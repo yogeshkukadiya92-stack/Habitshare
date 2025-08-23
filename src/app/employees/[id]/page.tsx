@@ -12,6 +12,7 @@ import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Employee, KRA } from '@/lib/types';
 import { AddKraDialog } from '@/components/add-kra-dialog';
+import { KraProgressChart } from '@/components/kra-progress-chart';
 
 
 export default function EmployeeKraPage() {
@@ -47,33 +48,40 @@ export default function EmployeeKraPage() {
             </Button>
         </Link>
         {employee && (
-             <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <Avatar className="h-12 w-12">
-                          <AvatarImage src={employee.avatarUrl} alt={employee.name} data-ai-hint="people" />
-                          <AvatarFallback>{employee.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                            <CardTitle>{employee.name}</CardTitle>
-                            <CardDescription>
-                                Key Result Areas
-                            </CardDescription>
-                        </div>
-                    </div>
-                     <AddKraDialog onSave={handleSaveKra} employees={employees}>
-                        <Button>Add KRA</Button>
-                    </AddKraDialog>
-                </CardHeader>
-                <CardContent>
-                    <KraTable 
-                        kras={employeeKras}
-                        employees={employees}
-                        onSave={handleSaveKra}
-                        onDelete={handleDeleteKra}
-                    />
-                </CardContent>
-            </Card>
+            <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-3">
+                <div className="lg:col-span-2">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <Avatar className="h-12 w-12">
+                                <AvatarImage src={employee.avatarUrl} alt={employee.name} data-ai-hint="people" />
+                                <AvatarFallback>{employee.name.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                    <CardTitle>{employee.name}</CardTitle>
+                                    <CardDescription>
+                                        Key Result Areas
+                                    </CardDescription>
+                                </div>
+                            </div>
+                            <AddKraDialog onSave={handleSaveKra} employees={employees}>
+                                <Button>Add KRA</Button>
+                            </AddKraDialog>
+                        </CardHeader>
+                        <CardContent>
+                            <KraTable 
+                                kras={employeeKras}
+                                employees={employees}
+                                onSave={handleSaveKra}
+                                onDelete={handleDeleteKra}
+                            />
+                        </CardContent>
+                    </Card>
+                </div>
+                <div className="lg:col-span-1">
+                    <KraProgressChart kras={employeeKras} />
+                </div>
+            </div>
         )}
         {!employee && (
              <Card>
