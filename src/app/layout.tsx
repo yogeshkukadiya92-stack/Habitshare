@@ -6,6 +6,7 @@ import { Toaster } from '@/components/ui/toaster';
 export const metadata: Metadata = {
   title: 'KRA Dashboard',
   description: 'Manage and track Key Result Areas for your team.',
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({
