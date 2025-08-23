@@ -24,7 +24,7 @@ import type { KRA, WeeklyScore, Employee } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
 import { format, getMonth, getYear } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandNew } from '@/components/ui/command';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 
 
@@ -65,6 +65,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
   const [isRefining, setIsRefining] = React.useState(false);
   const [employeeComboboxOpen, setEmployeeComboboxOpen] = React.useState(false)
   const [currentEmployees, setCurrentEmployees] = React.useState<Employee[]>(employees);
+  const [newEmployeeName, setNewEmployeeName] = React.useState('');
 
 
   const { toast } = useToast();
@@ -136,7 +137,6 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
 
 
   const taskDescription = watch('taskDescription');
-  const employeeId = watch('employeeId');
 
   const handleRefine = async () => {
     if (!taskDescription) {
@@ -236,26 +236,34 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                         </PopoverTrigger>
                         <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                           <Command>
-                            <CommandInput placeholder="Search employee..." />
+                            <CommandInput 
+                              placeholder="Search employee or add new"
+                              onValueChange={setNewEmployeeName}
+                              value={newEmployeeName}
+                            />
                             <CommandList>
                                 <CommandEmpty>
-                                  <Controller
-                                    name="employeeName"
-                                    control={control}
-                                    render={({field: nameField}) => (
-                                      <CommandNew
-                                        onClick={() => {
-                                          const newId = uuidv4();
-                                          const newEmployee: Employee = {id: newId, name: nameField.value, avatarUrl: `https://placehold.co/32x32.png?text=${nameField.value.charAt(0)}`};
+                                    <CommandItem
+                                      onSelect={() => {
+                                        const newId = uuidv4();
+                                        const newName = newEmployeeName.trim();
+                                        if (newName) {
+                                          const newEmployee: Employee = {
+                                              id: newId,
+                                              name: newName,
+                                              avatarUrl: `https://placehold.co/32x32.png?text=${newName.charAt(0)}`
+                                          };
                                           setCurrentEmployees(prev => [...prev, newEmployee]);
                                           setValue("employeeId", newId);
+                                          setValue("employeeName", newName);
+                                          setNewEmployeeName('');
                                           setEmployeeComboboxOpen(false);
-                                        }}
-                                      >
-                                        Create "{nameField.value}"
-                                      </CommandNew>
-                                    )}
-                                    />
+                                        }
+                                      }}
+                                    >
+                                       <PlusCircle className="mr-2 h-4 w-4" />
+                                       <span>Add "{newEmployeeName}"</span>
+                                    </CommandItem>
                                 </CommandEmpty>
                                 <CommandGroup>
                                   {currentEmployees.map((employee) => (
@@ -279,44 +287,12 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                   ))}
                                 </CommandGroup>
                             </CommandList>
-                             <CommandList>
-                                <CommandGroup>
-                                    <CommandItem
-                                        onSelect={(currentValue) => {
-                                            const newId = uuidv4();
-                                            const newName = currentValue.trim();
-                                            if (newName && !currentEmployees.some(e => e.name.toLowerCase() === newName)) {
-                                                const newEmployee: Employee = {
-                                                    id: newId,
-                                                    name: newName,
-                                                    avatarUrl: `https://placehold.co/32x32.png?text=${newName.charAt(0)}`
-                                                };
-                                                setCurrentEmployees(prev => [...prev, newEmployee]);
-                                                setValue("employeeId", newId);
-                                                setValue("employeeName", newName);
-                                                setEmployeeComboboxOpen(false);
-                                            }
-                                        }}
-                                    >
-                                       <Controller
-                                            name="employeeName"
-                                            control={control}
-                                            render={({ field }) => (
-                                                <div className="flex gap-2 items-center">
-                                                    <PlusCircle className="mr-2 h-4 w-4" />
-                                                    <span>Add "{field.value}"</span>
-                                                </div>
-                                            )}
-                                        />
-                                    </CommandItem>
-                                </CommandGroup>
-                            </CommandList>
                           </Command>
                         </PopoverContent>
                       </Popover>
                     )}
                   />
-                 {errors.employeeName && <p className="text-xs text-destructive mt-1">{errors.employeeName.message}</p>}
+                 {errors.employeeId && <p className="text-xs text-destructive mt-1">{errors.employeeId.message}</p>}
                  {/* Hidden input to store and validate the name */}
                  <Controller name="employeeName" control={control} render={({field}) => <input type="hidden" {...field} />} />
               </div>
@@ -462,3 +438,5 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
     </Dialog>
   );
 }
+
+    
