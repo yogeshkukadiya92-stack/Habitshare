@@ -1,0 +1,95 @@
+import type { KRA } from './types';
+
+export const mockKras: KRA[] = [
+  {
+    id: 'KRA-001',
+    taskDescription: 'Develop and launch the new customer portal by Q3 end.',
+    employee: {
+      name: 'Alice Johnson',
+      avatarUrl: 'https://placehold.co/32x32.png',
+    },
+    progress: 75,
+    status: 'On Track',
+    score: null,
+    startDate: new Date('2024-07-01'),
+    endDate: new Date('2024-09-30'),
+  },
+  {
+    id: 'KRA-002',
+    taskDescription: 'Increase organic search traffic by 20% over the next quarter.',
+    employee: {
+      name: 'Bob Williams',
+      avatarUrl: 'https://placehold.co/32x32.png',
+    },
+    progress: 40,
+    status: 'At Risk',
+    score: null,
+    startDate: new Date('2024-08-15'),
+    endDate: new Date('2024-11-15'),
+  },
+  {
+    id: 'KRA-003',
+    taskDescription: 'Reduce customer support ticket resolution time by 15%.',
+    employee: {
+      name: 'Charlie Brown',
+      avatarUrl: 'https://placehold.co/32x32.png',
+    },
+    progress: 90,
+    status: 'On Track',
+    score: null,
+    startDate: new Date('2024-07-10'),
+    endDate: new Date('2024-10-10'),
+  },
+  {
+    id: 'KRA-004',
+    taskDescription: 'Achieve a 95% customer satisfaction score for Q3.',
+    employee: {
+      name: 'Diana Prince',
+      avatarUrl: 'https://placehold.co/32x32.png',
+    },
+    progress: 100,
+    status: 'Completed',
+    score: 96,
+    startDate: new Date('2024-07-01'),
+    endDate: new Date('2024-09-30'),
+  },
+  {
+    id: 'KRA-005',
+    taskDescription: 'Onboard 5 new enterprise clients in the next six months.',
+    employee: {
+      name: 'Ethan Hunt',
+      avatarUrl: 'https://placehold.co/32x32.png',
+    },
+    progress: 10,
+    status: 'On Track',
+    score: null,
+    startDate: new Date('2024-09-01'),
+    endDate: new Date('2025-03-01'),
+  },
+  {
+    id: 'KRA-006',
+    taskDescription: 'Finalize the 2025 product roadmap.',
+    employee: {
+      name: 'Fiona Glenanne',
+      avatarUrl: 'https://placehold.co/32x32.png',
+    },
+    progress: 0,
+    status: 'Pending',
+    score: null,
+    startDate: new Date('2024-10-01'),
+    endDate: new Date('2024-10-31'),
+  },
+  {
+    id: 'KRA-007',
+    taskDescription: 'Migrate legacy database to the new cloud infrastructure.',
+    employee: {
+      name: 'Grace O-Malley',
+      avatarUrl: 'https://placehold.co/32x32.png',
+    },
+    progress: 55,
+    status: 'On Track',
+    score: null,
+    startDate: new Date('2024-06-01'),
+    endDate: new Date('2024-12-01'),
+  },
+];
