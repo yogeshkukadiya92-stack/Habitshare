@@ -8,7 +8,8 @@ export interface Employee {
 
 export interface WeeklyScore {
   date: Date;
-  score: number;
+  achieved: number | null;
+  target: number | null;
 }
 
 export interface KRA {
@@ -17,10 +18,9 @@ export interface KRA {
   employee: Employee;
   progress: number;
   status: KRAStatus;
-  score: number | null;
+  weightage: number | null;
+  marksAchieved: number | null;
   startDate: Date;
   endDate: Date;
-  target?: number;
-  achieved?: number;
   weeklyScores?: WeeklyScore[];
 }

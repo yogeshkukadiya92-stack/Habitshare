@@ -24,7 +24,7 @@ import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { Employee, KRA, KRAStatus } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { format, getMonth, getYear } from 'date-fns';
+import { format } from 'date-fns';
 import { AddKraDialog } from './add-kra-dialog';
 import {
   Tooltip,
@@ -47,25 +47,6 @@ interface KraTableProps {
     onDelete: (id: string) => void;
 }
 
-const calculateMonthlyScore = (kra: KRA): number | null => {
-    if (kra.target && kra.achieved) {
-        return Math.round((kra.achieved / kra.target) * 100);
-    }
-
-    if (kra.weeklyScores && kra.weeklyScores.length > 0) {
-        const now = new Date();
-        const currentMonthScores = kra.weeklyScores
-            .filter(ws => getYear(new Date(ws.date)) === getYear(now) && getMonth(new Date(ws.date)) === getMonth(now))
-            .map(ws => ws.score);
-
-        if (currentMonthScores.length > 0) {
-            const avgScore = currentMonthScores.reduce((sum, score) => sum + score, 0) / currentMonthScores.length;
-            return Math.round(avgScore);
-        }
-    }
-
-    return kra.score;
-}
 
 export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
   
@@ -75,12 +56,11 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
       <TableHeader>
         <TableRow>
           <TableHead>Employee</TableHead>
-          <TableHead>Task</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead className="hidden md:table-cell">Progress</TableHead>
-          <TableHead className="hidden md:table-cell">Quantitative</TableHead>
-          <TableHead>Weekly Scores</TableHead>
-          <TableHead>Monthly Score</TableHead>
+          <TableHead className='w-[250px]'>Task</TableHead>
+          <TableHead>Progress</TableHead>
+          <TableHead>Weightage</TableHead>
+          <TableHead>Weekly</TableHead>
+          <TableHead>Marks Achieved</TableHead>
           <TableHead>
             <span className="sr-only">Actions</span>
           </TableHead>
@@ -88,7 +68,6 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
       </TableHeader>
       <TableBody>
         {kras.map((kra) => {
-          const monthlyScore = calculateMonthlyScore(kra);
           const weeklyScores = kra.weeklyScores || [];
           return (
           <TableRow key={kra.id}>
@@ -105,34 +84,29 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
                 <p className="truncate font-medium">{kra.taskDescription}</p>
                  <p className="text-xs text-muted-foreground">Due: {format(kra.endDate, 'MMM d, yyyy')}</p>
             </TableCell>
-            <TableCell>
-              <Badge variant="outline" className={cn(statusStyles[kra.status])}>
-                {kra.status}
-              </Badge>
-            </TableCell>
-            <TableCell className="hidden md:table-cell">
+             <TableCell>
               <div className="flex items-center gap-2">
                 <Progress value={kra.progress} aria-label={`${kra.progress}% complete`} className="h-2" />
                 <span className="text-xs text-muted-foreground">{kra.progress}%</span>
               </div>
             </TableCell>
-            <TableCell className="hidden md:table-cell">
-              {kra.target ? (
-                <div>
-                  <span className="font-medium">{kra.achieved ?? 0}</span>
-                  <span className="text-xs text-muted-foreground"> / {kra.target}</span>
-                </div>
-              ) : (
-                <span className="text-muted-foreground">-</span>
-              )}
+            <TableCell>
+                 {kra.weightage !== null ? (
+                    <span className="font-medium">{kra.weightage}</span>
+                ) : (
+                    <span className="text-muted-foreground">-</span>
+                )}
             </TableCell>
             <TableCell>
                  {weeklyScores.length > 0 ? (
-                    <div className="flex items-center gap-1">
-                      {weeklyScores.slice(-4).map((ws, index) => (
+                    <div className="flex flex-wrap items-center gap-1">
+                      {weeklyScores.map((ws, index) => (
                         <Tooltip key={index}>
                           <TooltipTrigger asChild>
-                            <Badge variant="secondary">{ws.score}</Badge>
+                            <Badge variant="secondary">
+                                {ws.achieved}
+                                {ws.target && <span className='text-muted-foreground'>/{ws.target}</span>}
+                            </Badge>
                           </TooltipTrigger>
                           <TooltipContent>
                             <p>{format(new Date(ws.date), 'MMM d, yyyy')}</p>
@@ -145,8 +119,8 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
                   )}
             </TableCell>
             <TableCell>
-                {monthlyScore !== null ? (
-                    <span className="font-medium">{monthlyScore}</span>
+                {kra.marksAchieved !== null ? (
+                    <span className="font-medium">{kra.marksAchieved}</span>
                 ) : (
                     <span className="text-muted-foreground">-</span>
                 )}

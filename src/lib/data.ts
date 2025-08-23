@@ -11,12 +11,13 @@ export const mockKras: KRA[] = [
     },
     progress: 75,
     status: 'On Track',
-    score: null,
+    weightage: 15,
+    marksAchieved: 11,
     startDate: new Date('2024-07-01'),
     endDate: new Date('2024-09-30'),
     weeklyScores: [
-      { date: new Date('2024-07-07'), score: 80 },
-      { date: new Date('2024-07-14'), score: 85 },
+      { date: new Date('2024-07-07'), achieved: 80, target: 100 },
+      { date: new Date('2024-07-14'), achieved: 85, target: 100 },
     ]
   },
   {
@@ -29,12 +30,13 @@ export const mockKras: KRA[] = [
     },
     progress: 40,
     status: 'At Risk',
-    score: null,
+    weightage: 20,
+    marksAchieved: 8,
     startDate: new Date('2024-08-15'),
     endDate: new Date('2024-11-15'),
     weeklyScores: [
-      { date: new Date('2024-08-21'), score: 50 },
-      { date: new Date('2024-08-28'), score: 55 },
+      { date: new Date('2024-08-21'), achieved: 50, target: 100 },
+      { date: new Date('2024-08-28'), achieved: 55, target: 100 },
     ]
   },
   {
@@ -47,7 +49,8 @@ export const mockKras: KRA[] = [
     },
     progress: 90,
     status: 'On Track',
-    score: null,
+    weightage: 10,
+    marksAchieved: 9,
     startDate: new Date('2024-07-10'),
     endDate: new Date('2024-10-10'),
     weeklyScores: []
@@ -62,7 +65,8 @@ export const mockKras: KRA[] = [
     },
     progress: 100,
     status: 'Completed',
-    score: 96,
+    weightage: 15,
+    marksAchieved: 15,
     startDate: new Date('2024-07-01'),
     endDate: new Date('2024-09-30'),
     weeklyScores: []
@@ -77,7 +81,8 @@ export const mockKras: KRA[] = [
     },
     progress: 10,
     status: 'On Track',
-    score: null,
+    weightage: 25,
+    marksAchieved: 2.5,
     startDate: new Date('2024-09-01'),
     endDate: new Date('2025-03-01'),
     weeklyScores: []
@@ -92,7 +97,8 @@ export const mockKras: KRA[] = [
     },
     progress: 0,
     status: 'Pending',
-    score: null,
+    weightage: 5,
+    marksAchieved: 0,
     startDate: new Date('2024-10-01'),
     endDate: new Date('2024-10-31'),
     weeklyScores: []
@@ -107,12 +113,16 @@ export const mockKras: KRA[] = [
     },
     progress: 93,
     status: 'On Track',
-    score: 93,
+    weightage: 15,
+    marksAchieved: 14,
     startDate: new Date('2024-09-01'),
     endDate: new Date('2024-12-31'),
-    target: 1500,
-    achieved: 1400,
-    weeklyScores: []
+    weeklyScores: [
+      { date: new Date('2024-09-07'), achieved: 300, target: 375 },
+      { date: new Date('2024-09-14'), achieved: 400, target: 375 },
+      { date: new Date('2024-09-21'), achieved: 350, target: 375 },
+      { date: new Date('2024-09-28'), achieved: 350, target: 375 },
+    ]
   },
    {
     id: 'KRA-008',
@@ -124,7 +134,8 @@ export const mockKras: KRA[] = [
     },
     progress: 50,
     status: 'On Track',
-    score: null,
+    weightage: 10,
+    marksAchieved: 5,
     startDate: new Date('2024-10-01'),
     endDate: new Date('2024-12-31'),
     weeklyScores: []
