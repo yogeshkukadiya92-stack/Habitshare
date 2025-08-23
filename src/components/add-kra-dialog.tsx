@@ -14,14 +14,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Sparkles, Loader2 } from 'lucide-react';
-import { useForm, Controller } from 'react-hook-form';
+import { Sparkles, Loader2, PlusCircle, Trash2 } from 'lucide-react';
+import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { refineKraTaskDescription } from '@/ai/flows/kra-refinement';
 import { useToast } from '@/hooks/use-toast';
-import type { KRA } from '@/lib/types';
+import type { KRA, WeeklyScore } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
+import { format, getMonth, getYear } from 'date-fns';
+
+const weeklyScoreSchema = z.object({
+  date: z.date(),
+  score: z.number().min(0, "Score must be positive").max(100, "Score cannot exceed 100"),
+});
 
 const kraSchema = z.object({
   taskDescription: z.string().min(10, 'Task description must be at least 10 characters.'),
@@ -29,6 +35,7 @@ const kraSchema = z.object({
   target: z.number().positive('Target must be a positive number.').optional().nullable(),
   achieved: z.number().nonnegative('Achieved value must be non-negative.').optional().nullable(),
   score: z.number().min(0).max(100).nullable(),
+  weeklyScores: z.array(weeklyScoreSchema).optional(),
 }).refine(data => {
     if (data.target && data.achieved && data.achieved > data.target) {
         return false;
@@ -67,20 +74,39 @@ export function AddKraDialog({ children, kra, onSave }: AddKraDialogProps) {
       target: kra?.target || null,
       achieved: kra?.achieved || null,
       score: kra?.score || null,
+      weeklyScores: kra?.weeklyScores || [],
     },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "weeklyScores",
   });
 
   const target = watch('target');
   const achieved = watch('achieved');
+  const weeklyScores = watch('weeklyScores');
 
   React.useEffect(() => {
     if (target && achieved !== null && achieved !== undefined) {
       const calculatedScore = Math.round((achieved / target) * 100);
       setValue('score', Math.min(100, calculatedScore), { shouldValidate: true });
-    } else if (kra?.score === null) {
-        setValue('score', null);
+    } else if (weeklyScores && weeklyScores.length > 0) {
+        const now = new Date();
+        const currentMonthScores = weeklyScores
+            .filter(ws => getYear(ws.date) === getYear(now) && getMonth(ws.date) === getMonth(now))
+            .map(ws => ws.score);
+
+        if (currentMonthScores.length > 0) {
+            const avgScore = currentMonthScores.reduce((sum, score) => sum + score, 0) / currentMonthScores.length;
+            setValue('score', Math.round(avgScore), { shouldValidate: true });
+        } else {
+             setValue('score', null);
+        }
+    } else {
+        setValue('score', kra?.score || null);
     }
-  }, [target, achieved, setValue, kra]);
+  }, [target, achieved, setValue, kra, weeklyScores]);
 
   React.useEffect(() => {
     if (open) {
@@ -90,6 +116,7 @@ export function AddKraDialog({ children, kra, onSave }: AddKraDialogProps) {
         target: kra?.target || null,
         achieved: kra?.achieved || null,
         score: kra?.score || null,
+        weeklyScores: kra?.weeklyScores?.map(ws => ({...ws, date: new Date(ws.date)})) || [],
       });
     }
   }, [open, kra, reset]);
@@ -146,6 +173,7 @@ export function AddKraDialog({ children, kra, onSave }: AddKraDialogProps) {
       endDate: kra?.endDate || new Date(new Date().setMonth(new Date().getMonth() + 3)),
       target: data.target || undefined,
       achieved: data.achieved || undefined,
+      weeklyScores: data.weeklyScores,
     };
     onSave?.(newKra);
     toast({
@@ -159,7 +187,7 @@ export function AddKraDialog({ children, kra, onSave }: AddKraDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-2xl">
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
             <DialogTitle>{kra ? 'Edit KRA' : 'Add New KRA'}</DialogTitle>
@@ -167,7 +195,7 @@ export function AddKraDialog({ children, kra, onSave }: AddKraDialogProps) {
               {kra ? 'Update the details for this KRA.' : 'Fill in the details for the new KRA task.'}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="employeeName" className="text-right">
                 Employee
@@ -208,6 +236,46 @@ export function AddKraDialog({ children, kra, onSave }: AddKraDialogProps) {
                   Refine with AI
                 </Button>
               </div>
+            </div>
+             <div className="grid grid-cols-4 items-start gap-4">
+                <Label className="text-right pt-2">Weekly Scores</Label>
+                <div className="col-span-3 space-y-2">
+                    {fields.map((field, index) => (
+                    <div key={field.id} className="flex items-center gap-2">
+                        <Controller
+                            name={`weeklyScores.${index}.date`}
+                            control={control}
+                            render={({ field }) => (
+                                <Input 
+                                    type="date"
+                                    value={format(new Date(field.value), 'yyyy-MM-dd')}
+                                    onChange={e => field.onChange(new Date(e.target.value))}
+                                />
+                            )}
+                        />
+                        <Controller
+                            name={`weeklyScores.${index}.score`}
+                            control={control}
+                            render={({ field }) => (
+                                <Input 
+                                    type="number"
+                                    placeholder="Score"
+                                    {...field}
+                                    value={field.value ?? ''}
+                                    onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
+                                />
+                            )}
+                        />
+                        <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                    </div>
+                    ))}
+                    <Button type="button" size="sm" variant="outline" onClick={() => append({ date: new Date(), score: 0 })}>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Add Weekly Score
+                    </Button>
+                </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
                <Label className="text-right">Sales</Label>
@@ -252,7 +320,7 @@ export function AddKraDialog({ children, kra, onSave }: AddKraDialogProps) {
             </div>
              <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="score" className="text-right">
-                Score
+                Monthly Score
               </Label>
               <div className="col-span-3">
                  <Controller
@@ -265,8 +333,8 @@ export function AddKraDialog({ children, kra, onSave }: AddKraDialogProps) {
                         {...field} 
                         value={field.value ?? ''}
                         onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
-                        placeholder="0-100"
-                        readOnly={!!target}
+                        placeholder="Auto-calculated"
+                        readOnly
                      />
                   )}
                 />
@@ -274,7 +342,7 @@ export function AddKraDialog({ children, kra, onSave }: AddKraDialogProps) {
               </div>
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="pt-4">
             <Button type="submit">Save changes</Button>
           </DialogFooter>
         </form>

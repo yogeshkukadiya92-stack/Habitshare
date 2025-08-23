@@ -14,6 +14,10 @@ export const mockKras: KRA[] = [
     score: null,
     startDate: new Date('2024-07-01'),
     endDate: new Date('2024-09-30'),
+    weeklyScores: [
+      { date: new Date('2024-07-07'), score: 80 },
+      { date: new Date('2024-07-14'), score: 85 },
+    ]
   },
   {
     id: 'KRA-002',
@@ -28,6 +32,10 @@ export const mockKras: KRA[] = [
     score: null,
     startDate: new Date('2024-08-15'),
     endDate: new Date('2024-11-15'),
+    weeklyScores: [
+      { date: new Date('2024-08-21'), score: 50 },
+      { date: new Date('2024-08-28'), score: 55 },
+    ]
   },
   {
     id: 'KRA-003',
@@ -42,6 +50,7 @@ export const mockKras: KRA[] = [
     score: null,
     startDate: new Date('2024-07-10'),
     endDate: new Date('2024-10-10'),
+    weeklyScores: []
   },
   {
     id: 'KRA-004',
@@ -56,6 +65,7 @@ export const mockKras: KRA[] = [
     score: 96,
     startDate: new Date('2024-07-01'),
     endDate: new Date('2024-09-30'),
+    weeklyScores: []
   },
   {
     id: 'KRA-005',
@@ -70,6 +80,7 @@ export const mockKras: KRA[] = [
     score: null,
     startDate: new Date('2024-09-01'),
     endDate: new Date('2025-03-01'),
+    weeklyScores: []
   },
   {
     id: 'KRA-006',
@@ -84,6 +95,7 @@ export const mockKras: KRA[] = [
     score: null,
     startDate: new Date('2024-10-01'),
     endDate: new Date('2024-10-31'),
+    weeklyScores: []
   },
   {
     id: 'KRA-007',
@@ -100,6 +112,7 @@ export const mockKras: KRA[] = [
     endDate: new Date('2024-12-31'),
     target: 1500,
     achieved: 1400,
+    weeklyScores: []
   },
    {
     id: 'KRA-008',
@@ -114,5 +127,6 @@ export const mockKras: KRA[] = [
     score: null,
     startDate: new Date('2024-10-01'),
     endDate: new Date('2024-12-31'),
+    weeklyScores: []
   },
 ];

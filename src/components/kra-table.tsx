@@ -24,7 +24,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { mockKras } from '@/lib/data';
 import type { KRA, KRAStatus } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, getMonth, getYear } from 'date-fns';
 import { AddKraDialog } from './add-kra-dialog';
 
 const statusStyles: Record<KRAStatus, string> = {
@@ -36,6 +36,26 @@ const statusStyles: Record<KRAStatus, string> = {
 
 interface KraTableProps {
     employeeId?: string;
+}
+
+const calculateMonthlyScore = (kra: KRA): number | null => {
+    if (kra.target && kra.achieved) {
+        return Math.round((kra.achieved / kra.target) * 100);
+    }
+
+    if (kra.weeklyScores && kra.weeklyScores.length > 0) {
+        const now = new Date();
+        const currentMonthScores = kra.weeklyScores
+            .filter(ws => getYear(new Date(ws.date)) === getYear(now) && getMonth(new Date(ws.date)) === getMonth(now))
+            .map(ws => ws.score);
+
+        if (currentMonthScores.length > 0) {
+            const avgScore = currentMonthScores.reduce((sum, score) => sum + score, 0) / currentMonthScores.length;
+            return Math.round(avgScore);
+        }
+    }
+
+    return kra.score;
 }
 
 export function KraTable({ employeeId }: KraTableProps) {
@@ -78,7 +98,9 @@ export function KraTable({ employeeId }: KraTableProps) {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {kras.map((kra) => (
+        {kras.map((kra) => {
+          const monthlyScore = calculateMonthlyScore(kra);
+          return (
           <TableRow key={kra.id}>
             <TableCell>
               <div className="flex items-center gap-3">
@@ -115,8 +137,8 @@ export function KraTable({ employeeId }: KraTableProps) {
               )}
             </TableCell>
             <TableCell>
-                {kra.score !== null ? (
-                    <span className="font-medium">{kra.score}</span>
+                {monthlyScore !== null ? (
+                    <span className="font-medium">{monthlyScore}</span>
                 ) : (
                     <span className="text-muted-foreground">-</span>
                 )}
@@ -139,7 +161,8 @@ export function KraTable({ employeeId }: KraTableProps) {
                 </AddKraDialog>
             </TableCell>
           </TableRow>
-        ))}
+          );
+        })}
       </TableBody>
     </Table>
      <div className="hidden">

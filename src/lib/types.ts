@@ -6,8 +6,13 @@ export interface Employee {
   avatarUrl: string;
 }
 
+export interface WeeklyScore {
+  date: Date;
+  score: number;
+}
+
 export interface KRA {
-  id: string;
+  id:string;
   taskDescription: string;
   employee: Employee;
   progress: number;
@@ -17,4 +22,5 @@ export interface KRA {
   endDate: Date;
   target?: number;
   achieved?: number;
+  weeklyScores?: WeeklyScore[];
 }
