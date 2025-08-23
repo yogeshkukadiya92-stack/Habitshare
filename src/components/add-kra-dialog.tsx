@@ -14,15 +14,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Sparkles, Loader2, PlusCircle, Trash2 } from 'lucide-react';
+import { Sparkles, Loader2, PlusCircle, Trash2, Check, ChevronsUpDown } from 'lucide-react';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { refineKraTaskDescription } from '@/ai/flows/kra-refinement';
 import { useToast } from '@/hooks/use-toast';
-import type { KRA, WeeklyScore } from '@/lib/types';
+import type { KRA, WeeklyScore, Employee } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
 import { format, getMonth, getYear } from 'date-fns';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandNew } from '@/components/ui/command';
+import { cn } from '@/lib/utils';
+
 
 const weeklyScoreSchema = z.object({
   date: z.date(),
@@ -31,6 +35,7 @@ const weeklyScoreSchema = z.object({
 
 const kraSchema = z.object({
   taskDescription: z.string().min(10, 'Task description must be at least 10 characters.'),
+  employeeId: z.string().min(1, 'Employee is required.'),
   employeeName: z.string().min(2, 'Employee name is required.'),
   target: z.number().positive('Target must be a positive number.').optional().nullable(),
   achieved: z.number().nonnegative('Achieved value must be non-negative.').optional().nullable(),
@@ -52,11 +57,16 @@ interface AddKraDialogProps {
   children: React.ReactNode;
   kra?: KRA;
   onSave?: (kra: KRA) => void;
+  employees: Employee[];
 }
 
-export function AddKraDialog({ children, kra, onSave }: AddKraDialogProps) {
+export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogProps) {
   const [open, setOpen] = React.useState(false);
   const [isRefining, setIsRefining] = React.useState(false);
+  const [employeeComboboxOpen, setEmployeeComboboxOpen] = React.useState(false)
+  const [currentEmployees, setCurrentEmployees] = React.useState<Employee[]>(employees);
+
+
   const { toast } = useToast();
 
   const {
@@ -70,6 +80,7 @@ export function AddKraDialog({ children, kra, onSave }: AddKraDialogProps) {
     resolver: zodResolver(kraSchema),
     defaultValues: {
       taskDescription: kra?.taskDescription || '',
+      employeeId: kra?.employee.id || '',
       employeeName: kra?.employee.name || '',
       target: kra?.target || null,
       achieved: kra?.achieved || null,
@@ -110,8 +121,10 @@ export function AddKraDialog({ children, kra, onSave }: AddKraDialogProps) {
 
   React.useEffect(() => {
     if (open) {
+      setCurrentEmployees(employees);
       reset({
         taskDescription: kra?.taskDescription || '',
+        employeeId: kra?.employee.id || '',
         employeeName: kra?.employee.name || '',
         target: kra?.target || null,
         achieved: kra?.achieved || null,
@@ -119,10 +132,11 @@ export function AddKraDialog({ children, kra, onSave }: AddKraDialogProps) {
         weeklyScores: kra?.weeklyScores?.map(ws => ({...ws, date: new Date(ws.date)})) || [],
       });
     }
-  }, [open, kra, reset]);
+  }, [open, kra, reset, employees]);
 
 
   const taskDescription = watch('taskDescription');
+  const employeeId = watch('employeeId');
 
   const handleRefine = async () => {
     if (!taskDescription) {
@@ -157,14 +171,15 @@ export function AddKraDialog({ children, kra, onSave }: AddKraDialogProps) {
   
   const onSubmit = (data: KraFormValues) => {
     const progress = (data.target && data.achieved) ? Math.round((data.achieved / data.target) * 100) : (kra?.progress || 0);
+    const selectedEmployee = currentEmployees.find(e => e.id === data.employeeId);
 
     const newKra: KRA = {
       id: kra?.id || uuidv4(),
       taskDescription: data.taskDescription,
       employee: {
-        id: kra?.employee.id || uuidv4(),
+        id: data.employeeId,
         name: data.employeeName,
-        avatarUrl: kra?.employee.avatarUrl || `https://placehold.co/32x32.png?text=${data.employeeName.charAt(0)}`,
+        avatarUrl: selectedEmployee?.avatarUrl || `https://placehold.co/32x32.png?text=${data.employeeName.charAt(0)}`,
       },
       progress: Math.min(100, progress),
       status: kra?.status || 'Pending',
@@ -201,12 +216,109 @@ export function AddKraDialog({ children, kra, onSave }: AddKraDialogProps) {
                 Employee
               </Label>
               <div className="col-span-3">
-                <Controller
-                  name="employeeName"
-                  control={control}
-                  render={({ field }) => <Input id="employeeName" {...field} />}
-                />
+                 <Controller
+                    name="employeeId"
+                    control={control}
+                    render={({ field }) => (
+                      <Popover open={employeeComboboxOpen} onOpenChange={setEmployeeComboboxOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={employeeComboboxOpen}
+                            className="w-full justify-between"
+                          >
+                            {field.value
+                              ? currentEmployees.find((employee) => employee.id === field.value)?.name
+                              : "Select employee..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                          <Command>
+                            <CommandInput placeholder="Search employee..." />
+                            <CommandList>
+                                <CommandEmpty>
+                                  <Controller
+                                    name="employeeName"
+                                    control={control}
+                                    render={({field: nameField}) => (
+                                      <CommandNew
+                                        onClick={() => {
+                                          const newId = uuidv4();
+                                          const newEmployee: Employee = {id: newId, name: nameField.value, avatarUrl: `https://placehold.co/32x32.png?text=${nameField.value.charAt(0)}`};
+                                          setCurrentEmployees(prev => [...prev, newEmployee]);
+                                          setValue("employeeId", newId);
+                                          setEmployeeComboboxOpen(false);
+                                        }}
+                                      >
+                                        Create "{nameField.value}"
+                                      </CommandNew>
+                                    )}
+                                    />
+                                </CommandEmpty>
+                                <CommandGroup>
+                                  {currentEmployees.map((employee) => (
+                                    <CommandItem
+                                      key={employee.id}
+                                      value={employee.name}
+                                      onSelect={() => {
+                                        setValue("employeeId", employee.id);
+                                        setValue("employeeName", employee.name);
+                                        setEmployeeComboboxOpen(false);
+                                      }}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-4 w-4",
+                                          employee.id === field.value ? "opacity-100" : "opacity-0"
+                                        )}
+                                      />
+                                      {employee.name}
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                            </CommandList>
+                             <CommandList>
+                                <CommandGroup>
+                                    <CommandItem
+                                        onSelect={(currentValue) => {
+                                            const newId = uuidv4();
+                                            const newName = currentValue.trim();
+                                            if (newName && !currentEmployees.some(e => e.name.toLowerCase() === newName)) {
+                                                const newEmployee: Employee = {
+                                                    id: newId,
+                                                    name: newName,
+                                                    avatarUrl: `https://placehold.co/32x32.png?text=${newName.charAt(0)}`
+                                                };
+                                                setCurrentEmployees(prev => [...prev, newEmployee]);
+                                                setValue("employeeId", newId);
+                                                setValue("employeeName", newName);
+                                                setEmployeeComboboxOpen(false);
+                                            }
+                                        }}
+                                    >
+                                       <Controller
+                                            name="employeeName"
+                                            control={control}
+                                            render={({ field }) => (
+                                                <div className="flex gap-2 items-center">
+                                                    <PlusCircle className="mr-2 h-4 w-4" />
+                                                    <span>Add "{field.value}"</span>
+                                                </div>
+                                            )}
+                                        />
+                                    </CommandItem>
+                                </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    )}
+                  />
                  {errors.employeeName && <p className="text-xs text-destructive mt-1">{errors.employeeName.message}</p>}
+                 {/* Hidden input to store and validate the name */}
+                 <Controller name="employeeName" control={control} render={({field}) => <input type="hidden" {...field} />} />
               </div>
             </div>
             <div className="grid grid-cols-4 items-start gap-4">
@@ -278,7 +390,7 @@ export function AddKraDialog({ children, kra, onSave }: AddKraDialogProps) {
                 </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-               <Label className="text-right">Sales</Label>
+               <Label className="text-right">Quantitative</Label>
                <div className="col-span-3 grid grid-cols-2 gap-2">
                     <div>
                         <Label htmlFor="target" className="text-xs text-muted-foreground">Target</Label>

@@ -42,7 +42,7 @@ export default function Dashboard() {
               Select an employee to view their Key Result Areas.
             </CardDescription>
           </div>
-          <AddKraDialog onSave={handleSaveKra}>
+          <AddKraDialog onSave={handleSaveKra} employees={employees}>
              <Button>Add KRA</Button>
           </AddKraDialog>
         </CardHeader>

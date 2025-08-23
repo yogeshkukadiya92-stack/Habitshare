@@ -9,7 +9,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import type { KRA } from '@/lib/types';
+import type { Employee, KRA } from '@/lib/types';
 import { AddKraDialog } from '@/components/add-kra-dialog';
 
 
@@ -22,7 +22,6 @@ export default function EmployeeKraPage({ params }: { params: { id: string } }) 
       if (exists) {
         return prevKras.map((kra) => (kra.id === kraToSave.id ? kraToSave : kra));
       }
-      // This page should only edit existing KRAs for the current employee, but adding is included for consistency.
       return [...prevKras, kraToSave];
     });
   };
@@ -30,9 +29,10 @@ export default function EmployeeKraPage({ params }: { params: { id: string } }) 
   const handleDeleteKra = (kraId: string) => {
     setKras((prevKras) => prevKras.filter((kra) => kra.id !== kraId));
   };
-
+  
+  const employees: Employee[] = Array.from(new Map(kras.map(kra => [kra.employee.id, kra.employee])).values());
   const employeeKras = kras.filter((kra) => kra.employee.id === params.id);
-  const employee = employeeKras.length > 0 ? employeeKras[0].employee : mockKras.find(k => k.employee.id === params.id)?.employee;
+  const employee = employees.find(e => e.id === params.id);
 
   return (
     <div className="flex flex-col gap-4">
@@ -57,13 +57,14 @@ export default function EmployeeKraPage({ params }: { params: { id: string } }) 
                             </CardDescription>
                         </div>
                     </div>
-                     <AddKraDialog onSave={handleSaveKra}>
+                     <AddKraDialog onSave={handleSaveKra} employees={employees}>
                         <Button>Add KRA</Button>
                     </AddKraDialog>
                 </CardHeader>
                 <CardContent>
                     <KraTable 
                         kras={employeeKras}
+                        employees={employees}
                         onSave={handleSaveKra}
                         onDelete={handleDeleteKra}
                     />

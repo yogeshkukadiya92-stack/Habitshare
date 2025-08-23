@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import type { KRA, KRAStatus } from '@/lib/types';
+import type { Employee, KRA, KRAStatus } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { format, getMonth, getYear } from 'date-fns';
 import { AddKraDialog } from './add-kra-dialog';
@@ -42,6 +42,7 @@ const statusStyles: Record<KRAStatus, string> = {
 
 interface KraTableProps {
     kras: KRA[];
+    employees: Employee[];
     onSave: (kra: KRA) => void;
     onDelete: (id: string) => void;
 }
@@ -66,7 +67,7 @@ const calculateMonthlyScore = (kra: KRA): number | null => {
     return kra.score;
 }
 
-export function KraTable({ kras, onSave, onDelete }: KraTableProps) {
+export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
   
   return (
      <TooltipProvider>
@@ -77,7 +78,7 @@ export function KraTable({ kras, onSave, onDelete }: KraTableProps) {
           <TableHead>Task</TableHead>
           <TableHead>Status</TableHead>
           <TableHead className="hidden md:table-cell">Progress</TableHead>
-          <TableHead className="hidden md:table-cell">Sales</TableHead>
+          <TableHead className="hidden md:table-cell">Quantitative</TableHead>
           <TableHead>Weekly Scores</TableHead>
           <TableHead>Monthly Score</TableHead>
           <TableHead>
@@ -151,7 +152,7 @@ export function KraTable({ kras, onSave, onDelete }: KraTableProps) {
                 )}
             </TableCell>
             <TableCell>
-               <AddKraDialog kra={kra} onSave={onSave}>
+               <AddKraDialog kra={kra} onSave={onSave} employees={employees}>
                  <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button aria-haspopup="true" size="icon" variant="ghost">
