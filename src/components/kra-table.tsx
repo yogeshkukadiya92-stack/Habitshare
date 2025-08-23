@@ -34,8 +34,17 @@ const statusStyles: Record<KRAStatus, string> = {
   Pending: 'bg-gray-100 text-gray-800 border-gray-200 hover:bg-gray-200 dark:bg-gray-800/40 dark:text-gray-300 dark:border-gray-700',
 };
 
-export function KraTable() {
-  const [kras, setKras] = React.useState<KRA[]>(mockKras);
+interface KraTableProps {
+    employeeId?: string;
+}
+
+export function KraTable({ employeeId }: KraTableProps) {
+  const [kras, setKras] = React.useState<KRA[]>(() => {
+    if (employeeId) {
+        return mockKras.filter(kra => kra.employee.id === employeeId);
+    }
+    return mockKras;
+  });
 
   const handleSaveKra = (kraToSave: KRA) => {
     setKras((prevKras) => {

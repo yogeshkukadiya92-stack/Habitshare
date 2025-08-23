@@ -135,6 +135,7 @@ export function AddKraDialog({ children, kra, onSave }: AddKraDialogProps) {
       id: kra?.id || uuidv4(),
       taskDescription: data.taskDescription,
       employee: {
+        id: kra?.employee.id || uuidv4(),
         name: data.employeeName,
         avatarUrl: kra?.employee.avatarUrl || `https://placehold.co/32x32.png?text=${data.employeeName.charAt(0)}`,
       },

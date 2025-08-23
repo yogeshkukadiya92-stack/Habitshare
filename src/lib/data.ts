@@ -5,6 +5,7 @@ export const mockKras: KRA[] = [
     id: 'KRA-001',
     taskDescription: 'Develop and launch the new customer portal by Q3 end.',
     employee: {
+      id: 'EMP-001',
       name: 'Alice Johnson',
       avatarUrl: 'https://placehold.co/32x32.png',
     },
@@ -18,6 +19,7 @@ export const mockKras: KRA[] = [
     id: 'KRA-002',
     taskDescription: 'Increase organic search traffic by 20% over the next quarter.',
     employee: {
+      id: 'EMP-002',
       name: 'Bob Williams',
       avatarUrl: 'https://placehold.co/32x32.png',
     },
@@ -31,6 +33,7 @@ export const mockKras: KRA[] = [
     id: 'KRA-003',
     taskDescription: 'Reduce customer support ticket resolution time by 15%.',
     employee: {
+      id: 'EMP-003',
       name: 'Charlie Brown',
       avatarUrl: 'https://placehold.co/32x32.png',
     },
@@ -44,6 +47,7 @@ export const mockKras: KRA[] = [
     id: 'KRA-004',
     taskDescription: 'Achieve a 95% customer satisfaction score for Q3.',
     employee: {
+      id: 'EMP-004',
       name: 'Diana Prince',
       avatarUrl: 'https://placehold.co/32x32.png',
     },
@@ -57,6 +61,7 @@ export const mockKras: KRA[] = [
     id: 'KRA-005',
     taskDescription: 'Onboard 5 new enterprise clients in the next six months.',
     employee: {
+      id: 'EMP-005',
       name: 'Ethan Hunt',
       avatarUrl: 'https://placehold.co/32x32.png',
     },
@@ -70,6 +75,7 @@ export const mockKras: KRA[] = [
     id: 'KRA-006',
     taskDescription: 'Finalize the 2025 product roadmap.',
     employee: {
+      id: 'EMP-006',
       name: 'Fiona Glenanne',
       avatarUrl: 'https://placehold.co/32x32.png',
     },
@@ -83,6 +89,7 @@ export const mockKras: KRA[] = [
     id: 'KRA-007',
     taskDescription: 'Sell 1500 units of Product X.',
     employee: {
+      id: 'EMP-007',
       name: 'Amara Ray',
       avatarUrl: 'https://placehold.co/32x32.png',
     },
@@ -93,5 +100,19 @@ export const mockKras: KRA[] = [
     endDate: new Date('2024-12-31'),
     target: 1500,
     achieved: 1400,
+  },
+   {
+    id: 'KRA-008',
+    taskDescription: 'Increase customer retention by 5%.',
+    employee: {
+      id: 'EMP-001',
+      name: 'Alice Johnson',
+      avatarUrl: 'https://placehold.co/32x32.png',
+    },
+    progress: 50,
+    status: 'On Track',
+    score: null,
+    startDate: new Date('2024-10-01'),
+    endDate: new Date('2024-12-31'),
   },
 ];

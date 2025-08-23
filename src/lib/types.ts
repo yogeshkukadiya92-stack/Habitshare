@@ -1,12 +1,15 @@
 export type KRAStatus = 'On Track' | 'At Risk' | 'Completed' | 'Pending';
 
+export interface Employee {
+  id: string;
+  name: string;
+  avatarUrl: string;
+}
+
 export interface KRA {
   id: string;
   taskDescription: string;
-  employee: {
-    name: string;
-    avatarUrl: string;
-  };
+  employee: Employee;
   progress: number;
   status: KRAStatus;
   score: number | null;
