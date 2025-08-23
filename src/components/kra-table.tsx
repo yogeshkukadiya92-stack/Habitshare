@@ -37,16 +37,15 @@ const statusStyles: Record<KRAStatus, string> = {
 export function KraTable() {
   const [kras, setKras] = React.useState<KRA[]>(mockKras);
 
-  const handleUpdateKra = (updatedKra: KRA) => {
-    setKras((prevKras) =>
-      prevKras.map((kra) => (kra.id === updatedKra.id ? updatedKra : kra))
-    );
+  const handleSaveKra = (kraToSave: KRA) => {
+    setKras((prevKras) => {
+      const exists = prevKras.some(k => k.id === kraToSave.id);
+      if (exists) {
+        return prevKras.map((kra) => (kra.id === kraToSave.id ? kraToSave : kra));
+      }
+      return [...prevKras, kraToSave];
+    });
   };
-  
-  const handleAddKra = (newKra: KRA) => {
-    setKras((prevKras) => [...prevKras, newKra]);
-  };
-
 
   const handleDeleteKra = (kraId: string) => {
     setKras((prevKras) => prevKras.filter((kra) => kra.id !== kraId));
@@ -54,15 +53,16 @@ export function KraTable() {
 
 
   return (
+     <>
     <Table>
       <TableHeader>
         <TableRow>
           <TableHead>Employee</TableHead>
-          <TableHead className="hidden md:table-cell">Task</TableHead>
+          <TableHead>Task</TableHead>
           <TableHead>Status</TableHead>
-          <TableHead className="hidden md:table-cell w-[20%]">Progress</TableHead>
-          <TableHead className="hidden md:table-cell">Score</TableHead>
-          <TableHead className="hidden md:table-cell">End Date</TableHead>
+          <TableHead className="hidden md:table-cell">Progress</TableHead>
+          <TableHead className="hidden md:table-cell">Sales</TableHead>
+          <TableHead>Score</TableHead>
           <TableHead>
             <span className="sr-only">Actions</span>
           </TableHead>
@@ -80,8 +80,9 @@ export function KraTable() {
                 <div className="font-medium">{kra.employee.name}</div>
               </div>
             </TableCell>
-            <TableCell className="hidden md:table-cell max-w-sm">
+            <TableCell className="max-w-sm">
                 <p className="truncate font-medium">{kra.taskDescription}</p>
+                 <p className="text-xs text-muted-foreground">Due: {format(kra.endDate, 'MMM d, yyyy')}</p>
             </TableCell>
             <TableCell>
               <Badge variant="outline" className={cn(statusStyles[kra.status])}>
@@ -95,17 +96,24 @@ export function KraTable() {
               </div>
             </TableCell>
             <TableCell className="hidden md:table-cell">
+              {kra.target ? (
+                <div>
+                  <span className="font-medium">{kra.achieved ?? 0}</span>
+                  <span className="text-xs text-muted-foreground"> / {kra.target}</span>
+                </div>
+              ) : (
+                <span className="text-muted-foreground">-</span>
+              )}
+            </TableCell>
+            <TableCell>
                 {kra.score !== null ? (
                     <span className="font-medium">{kra.score}</span>
                 ) : (
                     <span className="text-muted-foreground">-</span>
                 )}
             </TableCell>
-            <TableCell className="hidden md:table-cell">
-              {format(kra.endDate, 'MMM d, yyyy')}
-            </TableCell>
             <TableCell>
-              <AddKraDialog kra={kra} onSave={handleUpdateKra}>
+               <AddKraDialog kra={kra} onSave={handleSaveKra}>
                  <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button aria-haspopup="true" size="icon" variant="ghost">
@@ -115,15 +123,23 @@ export function KraTable() {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem>Edit</DropdownMenuItem>
+                       <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Edit</DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleDeleteKra(kra.id)} className="text-destructive">Delete</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-              </AddKraDialog>
+                </AddKraDialog>
             </TableCell>
           </TableRow>
         ))}
       </TableBody>
     </Table>
+     <div className="hidden">
+        {/* This is a hack to allow adding new KRAs. The AddKraDialog for adding is not rendered visibly.
+            The button in the header will trigger this dialog. */}
+        <AddKraDialog onSave={handleSaveKra}>
+            <button id="add-kra-dialog-trigger-hack"></button>
+        </AddKraDialog>
+    </div>
+    </>
   );
 }

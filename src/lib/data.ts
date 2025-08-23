@@ -81,15 +81,17 @@ export const mockKras: KRA[] = [
   },
   {
     id: 'KRA-007',
-    taskDescription: 'Migrate legacy database to the new cloud infrastructure.',
+    taskDescription: 'Sell 1500 units of Product X.',
     employee: {
-      name: 'Grace O-Malley',
+      name: 'Amara Ray',
       avatarUrl: 'https://placehold.co/32x32.png',
     },
-    progress: 55,
+    progress: 93,
     status: 'On Track',
-    score: null,
-    startDate: new Date('2024-06-01'),
-    endDate: new Date('2024-12-01'),
+    score: 93,
+    startDate: new Date('2024-09-01'),
+    endDate: new Date('2024-12-31'),
+    target: 1500,
+    achieved: 1400,
   },
 ];

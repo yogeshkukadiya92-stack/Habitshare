@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Settings, Package, Package2, TrendingUp, Users } from 'lucide-react';
+import { Home, Settings, Package2, TrendingUp, Users } from 'lucide-react';
 
 import {
   Tooltip,

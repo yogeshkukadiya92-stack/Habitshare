@@ -12,4 +12,6 @@ export interface KRA {
   score: number | null;
   startDate: Date;
   endDate: Date;
+  target?: number;
+  achieved?: number;
 }
