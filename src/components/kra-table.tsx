@@ -26,6 +26,12 @@ import type { KRA, KRAStatus } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { format, getMonth, getYear } from 'date-fns';
 import { AddKraDialog } from './add-kra-dialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 const statusStyles: Record<KRAStatus, string> = {
   'On Track': 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/40 dark:text-green-300 dark:border-green-800',
@@ -82,7 +88,7 @@ export function KraTable({ employeeId }: KraTableProps) {
 
 
   return (
-     <>
+     <TooltipProvider>
     <Table>
       <TableHeader>
         <TableRow>
@@ -91,7 +97,8 @@ export function KraTable({ employeeId }: KraTableProps) {
           <TableHead>Status</TableHead>
           <TableHead className="hidden md:table-cell">Progress</TableHead>
           <TableHead className="hidden md:table-cell">Sales</TableHead>
-          <TableHead>Score</TableHead>
+          <TableHead>Weekly Scores</TableHead>
+          <TableHead>Monthly Score</TableHead>
           <TableHead>
             <span className="sr-only">Actions</span>
           </TableHead>
@@ -100,6 +107,7 @@ export function KraTable({ employeeId }: KraTableProps) {
       <TableBody>
         {kras.map((kra) => {
           const monthlyScore = calculateMonthlyScore(kra);
+          const weeklyScores = kra.weeklyScores || [];
           return (
           <TableRow key={kra.id}>
             <TableCell>
@@ -137,6 +145,24 @@ export function KraTable({ employeeId }: KraTableProps) {
               )}
             </TableCell>
             <TableCell>
+                 {weeklyScores.length > 0 ? (
+                    <div className="flex items-center gap-1">
+                      {weeklyScores.slice(-4).map((ws, index) => (
+                        <Tooltip key={index}>
+                          <TooltipTrigger asChild>
+                            <Badge variant="secondary">{ws.score}</Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{format(new Date(ws.date), 'MMM d, yyyy')}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
+                  )}
+            </TableCell>
+            <TableCell>
                 {monthlyScore !== null ? (
                     <span className="font-medium">{monthlyScore}</span>
                 ) : (
@@ -172,6 +198,6 @@ export function KraTable({ employeeId }: KraTableProps) {
             <button id="add-kra-dialog-trigger-hack"></button>
         </AddKraDialog>
     </div>
-    </>
+    </TooltipProvider>
   );
 }
