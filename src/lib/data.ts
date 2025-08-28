@@ -1,5 +1,6 @@
+
 import { v4 as uuidv4 } from 'uuid';
-import type { KRA, RoutineTask } from './types';
+import type { KRA, RoutineTask, Leave } from './types';
 
 export const mockKras: KRA[] = [
   {
@@ -205,5 +206,44 @@ export const mockRoutineTasks: RoutineTask[] = [
         dueDate: new Date(),
         status: 'Completed',
         priority: 'High'
+    }
+];
+
+export const mockLeaves: Leave[] = [
+    {
+        id: 'L-001',
+        employee: { id: 'EMP-002', name: 'Bob Williams', avatarUrl: 'https://placehold.co/32x32.png', branch: 'Marketing' },
+        leaveType: 'Annual',
+        startDate: new Date(new Date().setDate(new Date().getDate() + 10)),
+        endDate: new Date(new Date().setDate(new Date().getDate() + 15)),
+        reason: 'Family vacation to the mountains.',
+        status: 'Approved'
+    },
+    {
+        id: 'L-002',
+        employee: { id: 'EMP-004', name: 'Diana Prince', avatarUrl: 'https://placehold.co/32x32.png', branch: 'Support' },
+        leaveType: 'Sick',
+        startDate: new Date(new Date().setDate(new Date().getDate() - 1)),
+        endDate: new Date(new Date().setDate(new Date().getDate())),
+        reason: 'Fever and cold.',
+        status: 'Approved'
+    },
+     {
+        id: 'L-003',
+        employee: { id: 'EMP-005', name: 'Ethan Hunt', avatarUrl: 'https://placehold.co/32x32.png', branch: 'Sales' },
+        leaveType: 'Casual',
+        startDate: new Date(new Date().setDate(new Date().getDate() + 5)),
+        endDate: new Date(new Date().setDate(new Date().getDate() + 5)),
+        reason: 'Personal appointment.',
+        status: 'Pending'
+    },
+     {
+        id: 'L-004',
+        employee: { id: 'EMP-001', name: 'Alice Johnson', avatarUrl: 'https://placehold.co/32x32.png', branch: 'Engineering' },
+        leaveType: 'Annual',
+        startDate: new Date(new Date().setDate(new Date().getDate() + 20)),
+        endDate: new Date(new Date().setDate(new Date().getDate() + 22)),
+        reason: 'Attending a tech conference.',
+        status: 'Rejected'
     }
 ];

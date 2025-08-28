@@ -1,3 +1,4 @@
+
 export type KRAStatus = 'On Track' | 'At Risk' | 'Completed' | 'Pending';
 
 export interface Employee {
@@ -44,4 +45,17 @@ export interface RoutineTask {
     dueDate: Date;
     status: RoutineTaskStatus;
     priority: 'Low' | 'Medium' | 'High';
+}
+
+export type LeaveStatus = 'Pending' | 'Approved' | 'Rejected';
+export type LeaveType = 'Annual' | 'Sick' | 'Casual' | 'Unpaid';
+
+export interface Leave {
+    id: string;
+    employee: Employee;
+    leaveType: LeaveType;
+    startDate: Date;
+    endDate: Date;
+    reason: string;
+    status: LeaveStatus;
 }

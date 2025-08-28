@@ -1,8 +1,9 @@
+
 'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Settings, Package2, TrendingUp, Users, ListTodo } from 'lucide-react';
+import { Home, Settings, Package2, TrendingUp, Users, ListTodo, Plane } from 'lucide-react';
 
 import {
   Tooltip,
@@ -20,6 +21,7 @@ export function AppSidebar() {
     { href: '/increments', label: 'Increments', icon: TrendingUp },
     { href: '/employees', label: 'Employees', icon: Users },
     { href: '/routine-tasks', label: 'Routine Tasks', icon: ListTodo },
+    { href: '/leaves', label: 'Leave Management', icon: Plane },
   ];
 
   return (
@@ -41,7 +43,7 @@ export function AppSidebar() {
                   href={item.href}
                   className={cn(
                     'flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8',
-                    pathname === item.href && 'bg-accent text-accent-foreground'
+                    (pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))) && 'bg-accent text-accent-foreground'
                   )}
                 >
                   <item.icon className="h-5 w-5" />
