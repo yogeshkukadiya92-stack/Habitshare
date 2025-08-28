@@ -33,3 +33,15 @@ export interface Branch {
     id: string;
     name: string;
 }
+
+export type RoutineTaskStatus = 'To Do' | 'In Progress' | 'Completed';
+
+export interface RoutineTask {
+    id: string;
+    title: string;
+    description: string;
+    employee: Employee;
+    dueDate: Date;
+    status: RoutineTaskStatus;
+    priority: 'Low' | 'Medium' | 'High';
+}

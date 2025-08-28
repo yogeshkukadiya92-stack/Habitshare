@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import type { KRA } from './types';
+import type { KRA, RoutineTask } from './types';
 
 export const mockKras: KRA[] = [
   {
@@ -166,4 +166,44 @@ export const mockKras: KRA[] = [
     endDate: new Date('2024-12-31'),
     actions: []
   },
+];
+
+
+export const mockRoutineTasks: RoutineTask[] = [
+    {
+        id: 'RT-001',
+        title: 'Daily Standup Meeting',
+        description: 'Attend the daily standup meeting to report progress and impediments.',
+        employee: { id: 'EMP-001', name: 'Alice Johnson', avatarUrl: 'https://placehold.co/32x32.png', branch: 'Engineering' },
+        dueDate: new Date(),
+        status: 'To Do',
+        priority: 'High'
+    },
+    {
+        id: 'RT-002',
+        title: 'Update CRM with new leads',
+        description: 'Ensure all new leads from the past week are entered and categorized in the CRM.',
+        employee: { id: 'EMP-005', name: 'Ethan Hunt', avatarUrl: 'https://placehold.co/32x32.png', branch: 'Sales' },
+        dueDate: new Date(new Date().setDate(new Date().getDate() + 2)),
+        status: 'In Progress',
+        priority: 'Medium'
+    },
+    {
+        id: 'RT-003',
+        title: 'Weekly Social Media Posting',
+        description: 'Schedule all social media posts for the upcoming week across all platforms.',
+        employee: { id: 'EMP-002', name: 'Bob Williams', avatarUrl: 'https://placehold.co/32x32.png', branch: 'Marketing' },
+        dueDate: new Date(new Date().setDate(new Date().getDate() + 3)),
+        status: 'To Do',
+        priority: 'Medium'
+    },
+    {
+        id: 'RT-004',
+        title: 'Review and reply to support tickets',
+        description: 'Go through the high-priority support ticket queue and ensure all are responded to.',
+        employee: { id: 'EMP-003', name: 'Charlie Brown', avatarUrl: 'https://placehold.co/32x32.png', branch: 'Support' },
+        dueDate: new Date(),
+        status: 'Completed',
+        priority: 'High'
+    }
 ];
