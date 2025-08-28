@@ -43,6 +43,8 @@ const kraSchema = z.object({
   employeeBranch: z.string().optional(),
   weightage: z.number().positive('Weightage must be a positive number.').nullable(),
   marksAchieved: z.number().min(0).nullable(),
+  bonus: z.number().min(0).nullable(),
+  penalty: z.number().min(0).nullable(),
   actions: z.array(actionItemSchema).optional(),
 });
 
@@ -82,6 +84,8 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
       employeeBranch: kra?.employee.branch || '',
       weightage: kra?.weightage || null,
       marksAchieved: kra?.marksAchieved || null,
+      bonus: kra?.bonus || null,
+      penalty: kra?.penalty || null,
       actions: [],
     },
   });
@@ -129,6 +133,8 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
         employeeBranch: kra?.employee.branch || '',
         weightage: kra?.weightage || null,
         marksAchieved: kra?.marksAchieved || null,
+        bonus: kra?.bonus || null,
+        penalty: kra?.penalty || null,
         actions: kra?.actions?.map(a => ({...a, dueDate: new Date(a.dueDate)})) || [],
       });
     }
@@ -199,6 +205,8 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
       status: kra?.status || 'Pending',
       weightage: data.weightage || null,
       marksAchieved: data.marksAchieved,
+      bonus: data.bonus,
+      penalty: data.penalty,
       startDate: kra?.startDate || new Date(),
       endDate: kra?.endDate || new Date(new Date().setMonth(new Date().getMonth() + 3)),
       actions: data.actions,
@@ -445,6 +453,50 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                   )}
                 />
                 {errors.marksAchieved && <p className="text-xs text-destructive mt-1">{errors.marksAchieved.message}</p>}
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+               <Label htmlFor="bonus" className="text-right">
+                Bonus Marks
+              </Label>
+              <div className="col-span-3">
+                 <Controller
+                  name="bonus"
+                  control={control}
+                  render={({ field }) => (
+                     <Input 
+                        id="bonus" 
+                        type="number" 
+                        {...field} 
+                        value={field.value ?? ''}
+                        onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
+                        placeholder="e.g. 2"
+                     />
+                  )}
+                />
+                {errors.bonus && <p className="text-xs text-destructive mt-1">{errors.bonus.message}</p>}
+              </div>
+            </div>
+             <div className="grid grid-cols-4 items-center gap-4">
+               <Label htmlFor="penalty" className="text-right">
+                Penalty Marks
+              </Label>
+              <div className="col-span-3">
+                 <Controller
+                  name="penalty"
+                  control={control}
+                  render={({ field }) => (
+                     <Input 
+                        id="penalty" 
+                        type="number" 
+                        {...field} 
+                        value={field.value ?? ''}
+                        onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
+                        placeholder="e.g. 1"
+                     />
+                  )}
+                />
+                {errors.penalty && <p className="text-xs text-destructive mt-1">{errors.penalty.message}</p>}
               </div>
             </div>
           </div>

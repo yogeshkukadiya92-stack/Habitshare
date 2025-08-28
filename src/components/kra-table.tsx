@@ -70,6 +70,13 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
         {kras.map((kra) => {
           const totalActions = kra.actions?.length || 0;
           const completedActions = kra.actions?.filter(a => a.isCompleted).length || 0;
+          
+          const baseMarks = kra.marksAchieved ?? 0;
+          const bonus = kra.bonus ?? 0;
+          const penalty = kra.penalty ?? 0;
+          const finalMarks = baseMarks + bonus - penalty;
+          const hasBonusOrPenalty = bonus > 0 || penalty > 0;
+
           return (
           <TableRow key={kra.id}>
             <TableCell>
@@ -116,11 +123,23 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
                 )}
             </TableCell>
             <TableCell>
-                {kra.marksAchieved !== null ? (
-                    <span className="font-medium">{kra.marksAchieved}</span>
-                ) : (
-                    <span className="text-muted-foreground">-</span>
-                )}
+                <Tooltip>
+                    <TooltipTrigger>
+                        <span className={cn("font-medium", hasBonusOrPenalty && 'underline decoration-dotted')}>
+                            {finalMarks}
+                        </span>
+                    </TooltipTrigger>
+                     {hasBonusOrPenalty && (
+                        <TooltipContent>
+                            <div className="text-xs">
+                                <p>Base: {baseMarks}</p>
+                                {bonus > 0 && <p>Bonus: +{bonus}</p>}
+                                {penalty > 0 && <p>Penalty: -{penalty}</p>}
+                                <p className="font-bold border-t mt-1 pt-1">Total: {finalMarks}</p>
+                            </div>
+                        </TooltipContent>
+                    )}
+                </Tooltip>
             </TableCell>
             <TableCell>
                 <DropdownMenu>

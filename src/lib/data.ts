@@ -15,6 +15,8 @@ export const mockKras: KRA[] = [
     status: 'On Track',
     weightage: 15,
     marksAchieved: 10,
+    bonus: 0,
+    penalty: 0,
     startDate: new Date('2024-07-01'),
     endDate: new Date('2024-09-30'),
     actions: [
@@ -36,6 +38,8 @@ export const mockKras: KRA[] = [
     status: 'At Risk',
     weightage: 20,
     marksAchieved: 5,
+    bonus: 0,
+    penalty: 2,
     startDate: new Date('2024-08-15'),
     endDate: new Date('2024-11-15'),
      actions: [
@@ -58,6 +62,8 @@ export const mockKras: KRA[] = [
     status: 'On Track',
     weightage: 10,
     marksAchieved: 9,
+    bonus: 0,
+    penalty: 0,
     startDate: new Date('2024-07-10'),
     endDate: new Date('2024-10-10'),
     actions: []
@@ -75,6 +81,8 @@ export const mockKras: KRA[] = [
     status: 'Completed',
     weightage: 15,
     marksAchieved: 15,
+    bonus: 2,
+    penalty: 0,
     startDate: new Date('2024-07-01'),
     endDate: new Date('2024-09-30'),
     actions: []
@@ -92,6 +100,8 @@ export const mockKras: KRA[] = [
     status: 'On Track',
     weightage: 25,
     marksAchieved: 5,
+    bonus: 0,
+    penalty: 0,
     startDate: new Date('2024-09-01'),
     endDate: new Date('2025-03-01'),
     actions: [
@@ -112,6 +122,8 @@ export const mockKras: KRA[] = [
     status: 'Pending',
     weightage: 5,
     marksAchieved: 0,
+    bonus: 0,
+    penalty: 0,
     startDate: new Date('2024-10-01'),
     endDate: new Date('2024-10-31'),
     actions: []
@@ -129,6 +141,8 @@ export const mockKras: KRA[] = [
     status: 'On Track',
     weightage: 15,
     marksAchieved: 14,
+    bonus: 0,
+    penalty: 0,
     startDate: new Date('2024-09-01'),
     endDate: new Date('2024-12-31'),
     actions: []
@@ -146,6 +160,8 @@ export const mockKras: KRA[] = [
     status: 'On Track',
     weightage: 10,
     marksAchieved: 5,
+    bonus: 0,
+    penalty: 0,
     startDate: new Date('2024-10-01'),
     endDate: new Date('2024-12-31'),
     actions: []

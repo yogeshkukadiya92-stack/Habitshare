@@ -22,6 +22,8 @@ export interface KRA {
   status: KRAStatus;
   weightage: number | null;
   marksAchieved: number | null;
+  bonus: number | null;
+  penalty: number | null;
   startDate: Date;
   endDate: Date;
   actions?: ActionItem[];
