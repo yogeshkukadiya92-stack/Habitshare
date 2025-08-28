@@ -1,6 +1,6 @@
 
 import { v4 as uuidv4 } from 'uuid';
-import type { KRA, RoutineTask, Leave } from './types';
+import type { KRA, RoutineTask, Leave, Attendance } from './types';
 
 export const mockKras: KRA[] = [
   {
@@ -245,5 +245,32 @@ export const mockLeaves: Leave[] = [
         endDate: new Date(new Date().setDate(new Date().getDate() + 22)),
         reason: 'Attending a tech conference.',
         status: 'Rejected'
+    }
+];
+
+export const mockAttendances: Attendance[] = [
+    {
+        id: 'A-001',
+        employee: { id: 'EMP-001', name: 'Alice Johnson', avatarUrl: 'https://placehold.co/32x32.png', branch: 'Engineering' },
+        date: new Date(),
+        status: 'Present'
+    },
+    {
+        id: 'A-002',
+        employee: { id: 'EMP-002', name: 'Bob Williams', avatarUrl: 'https://placehold.co/32x32.png', branch: 'Marketing' },
+        date: new Date(),
+        status: 'Absent'
+    },
+    {
+        id: 'A-003',
+        employee: { id: 'EMP-003', name: 'Charlie Brown', avatarUrl: 'https://placehold.co/32x32.png', branch: 'Support' },
+        date: new Date(),
+        status: 'Half-day'
+    },
+    {
+        id: 'A-004',
+        employee: { id: 'EMP-005', name: 'Ethan Hunt', avatarUrl: 'https://placehold.co/32x32.png', branch: 'Sales' },
+        date: new Date(),
+        status: 'On Leave'
     }
 ];
