@@ -1,4 +1,5 @@
 
+
 export type KRAStatus = 'On Track' | 'At Risk' | 'Completed' | 'Pending';
 
 export interface Employee {
@@ -67,4 +68,20 @@ export interface Attendance {
     employee: Employee;
     date: Date;
     status: AttendanceStatus;
+}
+
+export type ExpenseStatus = 'Pending' | 'Approved' | 'Rejected' | 'Paid';
+export type ExpenseType = 'Travel' | 'Food' | 'Accommodation';
+
+export interface Expense {
+    id: string;
+    employee: Employee;
+    date: Date;
+    expenseType: ExpenseType;
+    description: string;
+    distanceInKm?: number | null;
+    ratePerKm?: number | null;
+    amount?: number | null;
+    totalAmount: number;
+    status: ExpenseStatus;
 }

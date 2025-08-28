@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Settings, Package2, TrendingUp, Users, ListTodo, Plane, UserCheck } from 'lucide-react';
+import { Home, Settings, Package2, TrendingUp, Users, ListTodo, Plane, UserCheck, ReceiptText } from 'lucide-react';
 
 import {
   Tooltip,
@@ -23,6 +23,7 @@ export function AppSidebar() {
     { href: '/routine-tasks', label: 'Routine Tasks', icon: ListTodo },
     { href: '/leaves', label: 'Leave Management', icon: Plane },
     { href: '/attendance', label: 'Attendance', icon: UserCheck },
+    { href: '/expenses', label: 'Expense Claims', icon: ReceiptText },
   ];
 
   return (

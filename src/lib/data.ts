@@ -1,6 +1,6 @@
 
 import { v4 as uuidv4 } from 'uuid';
-import type { KRA, RoutineTask, Leave, Attendance } from './types';
+import type { KRA, RoutineTask, Leave, Attendance, Expense } from './types';
 
 export const mockKras: KRA[] = [
   {
@@ -273,4 +273,48 @@ export const mockAttendances: Attendance[] = [
         date: new Date(),
         status: 'On Leave'
     }
+];
+
+export const mockExpenses: Expense[] = [
+    {
+        id: 'EXP-001',
+        employee: { id: 'EMP-005', name: 'Ethan Hunt', avatarUrl: 'https://placehold.co/32x32.png', branch: 'Sales' },
+        date: new Date(new Date().setDate(new Date().getDate() - 5)),
+        expenseType: 'Travel',
+        description: 'Client meeting in Pune',
+        distanceInKm: 320,
+        ratePerKm: 15,
+        totalAmount: 320 * 15,
+        status: 'Approved'
+    },
+    {
+        id: 'EXP-002',
+        employee: { id: 'EMP-001', name: 'Alice Johnson', avatarUrl: 'https://placehold.co/32x32.png', branch: 'Engineering' },
+        date: new Date(new Date().setDate(new Date().getDate() - 10)),
+        expenseType: 'Accommodation',
+        description: 'Hotel stay for Mumbai conference',
+        amount: 8000,
+        totalAmount: 8000,
+        status: 'Paid'
+    },
+    {
+        id: 'EXP-003',
+        employee: { id: 'EMP-002', name: 'Bob Williams', avatarUrl: 'https://placehold.co/32x32.png', branch: 'Marketing' },
+        date: new Date(new Date().setDate(new Date().getDate() - 2)),
+        expenseType: 'Food',
+        description: 'Team lunch with marketing agency',
+        amount: 2500,
+        totalAmount: 2500,
+        status: 'Pending'
+    },
+    {
+        id: 'EXP-004',
+        employee: { id: 'EMP-005', name: 'Ethan Hunt', avatarUrl: 'https://placehold.co/32x32.png', branch: 'Sales' },
+        date: new Date(new Date().setDate(new Date().getDate() - 1)),
+        expenseType: 'Food',
+        description: 'Dinner with prospective client',
+        amount: 1800,
+        totalAmount: 1800,
+        status: 'Rejected'
+    },
 ];
