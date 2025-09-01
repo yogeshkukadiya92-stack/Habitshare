@@ -111,3 +111,17 @@ export interface Holiday {
     date: Date;
     type: HolidayType;
 }
+
+export type RecruitmentStatus = 'Applied' | 'Screening' | 'Interview' | 'Offered' | 'Hired' | 'Rejected';
+
+export interface Recruit {
+    id: string;
+    name: string;
+    email: string;
+    phone: string;
+    position: string;
+    appliedDate: Date;
+    status: RecruitmentStatus;
+    notes?: string;
+    avatarUrl: string;
+}

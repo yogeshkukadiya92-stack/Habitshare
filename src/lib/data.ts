@@ -1,6 +1,6 @@
 
 import { v4 as uuidv4 } from 'uuid';
-import type { KRA, RoutineTask, Leave, Attendance, Expense, Habit, Holiday } from './types';
+import type { KRA, RoutineTask, Leave, Attendance, Expense, Habit, Holiday, Recruit } from './types';
 
 export const mockKras: KRA[] = [
   {
@@ -387,5 +387,41 @@ export const mockHolidays: Holiday[] = [
         name: 'Independence Day',
         date: new Date(new Date().getFullYear(), 7, 15),
         type: 'Full Day'
+    }
+];
+
+export const mockRecruits: Recruit[] = [
+    {
+        id: uuidv4(),
+        name: 'Gita Patel',
+        email: 'gita.p@example.com',
+        phone: '9876543210',
+        position: 'Frontend Developer',
+        appliedDate: new Date('2024-07-20'),
+        status: 'Interview',
+        notes: 'Strong portfolio, good communication skills.',
+        avatarUrl: 'https://placehold.co/32x32.png',
+    },
+    {
+        id: uuidv4(),
+        name: 'Rohan Sharma',
+        email: 'rohan.sharma@example.com',
+        phone: '9876543211',
+        position: 'Backend Developer',
+        appliedDate: new Date('2024-07-18'),
+        status: 'Offered',
+        notes: 'Excellent problem solver, team player.',
+        avatarUrl: 'https://placehold.co/32x32.png',
+    },
+    {
+        id: uuidv4(),
+        name: 'Priya Singh',
+        email: 'priya.s@example.com',
+        phone: '9876543212',
+        position: 'UI/UX Designer',
+        appliedDate: new Date('2024-07-22'),
+        status: 'Applied',
+        notes: '',
+        avatarUrl: 'https://placehold.co/32x32.png',
     }
 ];
