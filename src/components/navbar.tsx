@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from './auth-provider';
 import { auth } from '@/lib/firebase';
 import { Button } from './ui/button';
-import { Package2 } from 'lucide-react';
+import { Package2, ShieldCheck } from 'lucide-react';
+import { Badge } from './ui/badge';
 
 export const Navbar = () => {
   const { user } = useAuth();
@@ -16,6 +17,8 @@ export const Navbar = () => {
     await signOut(auth);
     router.push('/login');
   };
+
+  const isAdmin = user?.email === 'connect@luvfitnessworld.com';
 
   return (
     <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-6">
@@ -28,7 +31,15 @@ export const Navbar = () => {
         <h1 className="text-lg font-semibold">KRA Dashboard</h1>
       {user && (
         <div className="ml-auto flex items-center gap-4">
-          <span className="text-sm text-muted-foreground">Welcome, {user.email}</span>
+            <div className='flex items-center gap-2'>
+              <span className="text-sm text-muted-foreground hidden sm:inline">Welcome, {user.email}</span>
+              {isAdmin && (
+                <Badge variant="secondary" className="gap-1">
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  Admin
+                </Badge>
+              )}
+            </div>
           <Button onClick={handleLogout} variant="outline">Logout</Button>
         </div>
       )}
