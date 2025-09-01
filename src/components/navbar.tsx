@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -10,7 +11,7 @@ import { Package2, ShieldCheck } from 'lucide-react';
 import { Badge } from './ui/badge';
 
 export const Navbar = () => {
-  const { user } = useAuth();
+  const { user, currentUserRole } = useAuth();
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -18,7 +19,7 @@ export const Navbar = () => {
     router.push('/login');
   };
 
-  const isAdmin = user?.email === 'connect@luvfitnessworld.com';
+  const isAdmin = currentUserRole === 'Admin';
 
   return (
     <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-6">

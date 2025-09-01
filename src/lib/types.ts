@@ -1,6 +1,7 @@
 
 
 export type KRAStatus = 'On Track' | 'At Risk' | 'Completed' | 'Pending';
+export type UserRole = 'Admin' | 'Manager' | 'Employee';
 
 export interface Employee {
   id: string;
@@ -8,6 +9,8 @@ export interface Employee {
   avatarUrl: string;
   branch?: string;
   isManager?: boolean;
+  email?: string;
+  role?: UserRole;
 }
 
 export interface ActionItem {

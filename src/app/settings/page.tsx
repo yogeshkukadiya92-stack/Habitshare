@@ -7,10 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from 'uuid';
-import type { Branch, Employee, KRA } from '@/lib/types';
+import type { Branch, Employee, KRA, UserRole } from '@/lib/types';
 import { mockKras } from '@/lib/data';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Check, ChevronsUpDown, Edit, PlusCircle, Trash2 } from 'lucide-react';
+import { Check, ChevronsUpDown, Edit, PlusCircle, Trash2, UserCog } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +28,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useAuth } from '@/components/auth-provider';
 
 
 const BranchDialog = ({ 
@@ -143,6 +145,8 @@ export default function SettingsPage() {
     const [kras, setKras] = React.useState<KRA[]>([]);
     const [loading, setLoading] = React.useState(true);
     const { toast } = useToast();
+    const { currentUserRole } = useAuth();
+
 
     const employees: Employee[] = React.useMemo(() => {
         const employeeMap = new Map<string, Employee>();
@@ -187,8 +191,9 @@ export default function SettingsPage() {
     React.useEffect(() => {
         if (!loading) {
             sessionStorage.setItem('branchData', JSON.stringify(branches));
+            sessionStorage.setItem('kraData', JSON.stringify(kras));
         }
-    }, [branches, loading]);
+    }, [branches, kras, loading]);
 
     const handleSaveBranch = (branchToSave: Branch) => {
         const isEditing = branches.some(b => b.id === branchToSave.id);
@@ -203,7 +208,6 @@ export default function SettingsPage() {
                 ? prevBranches.map(b => b.id === branchToSave.id ? branchToSave : b)
                 : [...prevBranches, branchToSave];
             
-            // Recalculate isManager status for employees
             const managerIds = new Set(updatedBranches.map(b => b.managerId));
             const updatedKras = kras.map(kra => ({
                 ...kra,
@@ -212,7 +216,6 @@ export default function SettingsPage() {
                     isManager: managerIds.has(kra.employee.id)
                 }
             }));
-            sessionStorage.setItem('kraData', JSON.stringify(updatedKras));
             setKras(updatedKras);
 
             return updatedBranches;
@@ -233,8 +236,28 @@ export default function SettingsPage() {
         });
     };
 
+    const handleRoleChange = (employeeId: string, role: UserRole) => {
+        const updatedKras = kras.map(kra => {
+            if (kra.employee.id === employeeId) {
+                return {
+                    ...kra,
+                    employee: { ...kra.employee, role: role }
+                };
+            }
+            return kra;
+        });
+        setKras(updatedKras);
+        toast({
+            title: "Role Updated",
+            description: `Role has been changed to ${role}.`
+        })
+    };
+    
+    const isAdmin = currentUserRole === 'Admin';
+
+
     return (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-6">
             <h1 className="text-2xl font-semibold">Settings</h1>
             <Card>
                 <CardHeader className='flex-row items-center justify-between'>
@@ -244,12 +267,14 @@ export default function SettingsPage() {
                             Add, view, or manage branches and assign managers.
                         </CardDescription>
                     </div>
-                    <BranchDialog onSave={handleSaveBranch} employees={employees}>
-                        <Button>
-                            <PlusCircle className="mr-2 h-4 w-4" />
-                            Add Branch
-                        </Button>
-                    </BranchDialog>
+                    {isAdmin && (
+                        <BranchDialog onSave={handleSaveBranch} employees={employees}>
+                            <Button>
+                                <PlusCircle className="mr-2 h-4 w-4" />
+                                Add Branch
+                            </Button>
+                        </BranchDialog>
+                    )}
                 </CardHeader>
                 <CardContent className="grid gap-6">
                     <div className="border rounded-lg">
@@ -258,7 +283,7 @@ export default function SettingsPage() {
                                 <TableRow>
                                     <TableHead>Branch Name</TableHead>
                                     <TableHead>Manager</TableHead>
-                                    <TableHead className="text-right w-[100px]">Actions</TableHead>
+                                    {isAdmin && <TableHead className="text-right w-[100px]">Actions</TableHead>}
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -285,6 +310,7 @@ export default function SettingsPage() {
                                                     <span className="text-muted-foreground">Not Assigned</span>
                                                 )}
                                             </TableCell>
+                                            {isAdmin && (
                                             <TableCell className="text-right">
                                                  <div className="flex items-center justify-end gap-2">
                                                      <BranchDialog branch={branch} onSave={handleSaveBranch} employees={employees}>
@@ -313,13 +339,70 @@ export default function SettingsPage() {
                                                     </AlertDialog>
                                                  </div>
                                             </TableCell>
+                                            )}
                                         </TableRow>
                                     )})
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={3} className="text-center">No branches found. Add one to get started.</TableCell>
+                                        <TableCell colSpan={isAdmin ? 3 : 2} className="text-center">No branches found. Add one to get started.</TableCell>
                                     </TableRow>
                                 )}
+                            </TableBody>
+                        </Table>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>User & Permission Management</CardTitle>
+                    <CardDescription>
+                        Assign roles to users to control their access levels.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                     <div className="border rounded-lg">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Employee</TableHead>
+                                    <TableHead>Email</TableHead>
+                                    <TableHead className="w-[200px]">Role</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {loading ? (
+                                    <TableRow><TableCell colSpan={3} className="text-center">Loading users...</TableCell></TableRow>
+                                ) : employees.map(employee => (
+                                    <TableRow key={employee.id}>
+                                        <TableCell>
+                                             <div className="flex items-center gap-3">
+                                                <Avatar className="h-8 w-8">
+                                                    <AvatarImage src={employee.avatarUrl} alt={employee.name} />
+                                                    <AvatarFallback>{employee.name.charAt(0)}</AvatarFallback>
+                                                </Avatar>
+                                                <span>{employee.name}</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>{employee.email || 'N/A'}</TableCell>
+                                        <TableCell>
+                                            <Select 
+                                                value={employee.role || 'Employee'}
+                                                onValueChange={(value: UserRole) => handleRoleChange(employee.id, value)}
+                                                disabled={!isAdmin || employee.email === 'connect@luvfitnessworld.com'}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select role" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="Admin">Admin</SelectItem>
+                                                    <SelectItem value="Manager">Manager</SelectItem>
+                                                    <SelectItem value="Employee">Employee</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
                             </TableBody>
                         </Table>
                     </div>

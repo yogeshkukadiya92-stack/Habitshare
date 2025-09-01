@@ -1,27 +1,41 @@
+
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Skeleton } from './ui/skeleton';
+import type { UserRole } from '@/lib/types';
+import { mockKras } from '@/lib/data';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  currentUserRole: UserRole | null;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
+  currentUserRole: null,
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [currentUserRole, setCurrentUserRole] = useState<UserRole | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
+      if (user) {
+        // In a real app, you'd fetch this from your database.
+        // For now, we'll find it from mock data.
+        const employeeData = mockKras.find(k => k.employee.email === user.email);
+        setCurrentUserRole(employeeData?.employee.role || 'Employee');
+      } else {
+        setCurrentUserRole(null);
+      }
       setLoading(false);
     });
 
@@ -44,7 +58,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     )
   }
 
-  return <AuthContext.Provider value={{ user, loading }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, loading, currentUserRole }}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => useContext(AuthContext);

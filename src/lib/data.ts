@@ -11,6 +11,8 @@ export const mockKras: KRA[] = [
       name: 'Alice Johnson',
       avatarUrl: 'https://placehold.co/32x32.png',
       branch: 'Engineering',
+      email: 'connect@luvfitnessworld.com',
+      role: 'Admin',
     },
     progress: 67,
     status: 'On Track',
@@ -34,6 +36,7 @@ export const mockKras: KRA[] = [
       name: 'Bob Williams',
       avatarUrl: 'https://placehold.co/32x32.png',
       branch: 'Marketing',
+      role: 'Manager',
     },
     progress: 25,
     status: 'At Risk',
@@ -58,6 +61,7 @@ export const mockKras: KRA[] = [
       name: 'Charlie Brown',
       avatarUrl: 'https://placehold.co/32x32.png',
       branch: 'Support',
+      role: 'Employee'
     },
     progress: 90,
     status: 'On Track',
@@ -77,6 +81,7 @@ export const mockKras: KRA[] = [
       name: 'Diana Prince',
       avatarUrl: 'https://placehold.co/32x32.png',
       branch: 'Support',
+      role: 'Employee'
     },
     progress: 100,
     status: 'Completed',
@@ -96,6 +101,7 @@ export const mockKras: KRA[] = [
       name: 'Ethan Hunt',
       avatarUrl: 'https://placehold.co/32x32.png',
       branch: 'Sales',
+      role: 'Manager'
     },
     progress: 20,
     status: 'On Track',
@@ -118,6 +124,7 @@ export const mockKras: KRA[] = [
       name: 'Fiona Glenanne',
       avatarUrl: 'https://placehold.co/32x32.png',
       branch: 'Engineering',
+      role: 'Manager'
     },
     progress: 0,
     status: 'Pending',
@@ -137,6 +144,7 @@ export const mockKras: KRA[] = [
       name: 'Amara Ray',
       avatarUrl: 'https://placehold.co/32x32.png',
       branch: 'Sales',
+      role: 'Employee'
     },
     progress: 93,
     status: 'On Track',
@@ -156,6 +164,8 @@ export const mockKras: KRA[] = [
       name: 'Alice Johnson',
       avatarUrl: 'https://placehold.co/32x32.png',
       branch: 'Engineering',
+      email: 'connect@luvfitnessworld.com',
+      role: 'Admin'
     },
     progress: 50,
     status: 'On Track',
