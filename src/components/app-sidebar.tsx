@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Settings, Package2, TrendingUp, Users, ListTodo, Plane, UserCheck, ReceiptText, Target } from 'lucide-react';
+import { Home, Settings, Package2, TrendingUp, Users, ListTodo, Plane, UserCheck, ReceiptText, Target, CalendarDays } from 'lucide-react';
 import { useAuth } from './auth-provider';
 import {
   Tooltip,
@@ -27,6 +27,7 @@ export function AppSidebar() {
     { href: '/attendance', label: 'Attendance', icon: UserCheck, show: true },
     { href: '/expenses', label: 'Expense Claims', icon: ReceiptText, show: true },
     { href: '/habit-tracker', label: 'Habit Tracker', icon: Target, show: true },
+    { href: '/holidays', label: 'Holidays', icon: CalendarDays, show: true },
   ], []);
 
 

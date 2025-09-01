@@ -100,3 +100,12 @@ export interface Habit {
   goalDays: number; // e.g., 30 for a 30-day challenge
   startDate: Date;
 }
+
+export type HolidayType = 'Full Day' | 'Half Day';
+
+export interface Holiday {
+    id: string;
+    name: string;
+    date: Date;
+    type: HolidayType;
+}
