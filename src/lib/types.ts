@@ -11,6 +11,8 @@ export interface Employee {
   isManager?: boolean;
   email?: string;
   role?: UserRole;
+  address?: string;
+  joiningDate?: Date;
 }
 
 export interface ActionItem {

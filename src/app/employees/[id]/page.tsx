@@ -8,7 +8,7 @@ import { mockKras } from '@/lib/data';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import Link from 'next/link';
-import { ArrowLeft, ShieldCheck, Trash2 } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Trash2, Edit, Mail, Home, Calendar as CalendarIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Employee, KRA, Branch } from '@/lib/types';
 import { AddKraDialog } from '@/components/add-kra-dialog';
@@ -27,7 +27,9 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { format } from 'date-fns';
+import { EditEmployeeDialog } from '@/components/edit-employee-dialog';
 
 
 export default function EmployeeKraPage() {
@@ -45,7 +47,7 @@ export default function EmployeeKraPage() {
       const savedKras = sessionStorage.getItem('kraData');
       if (savedKras) {
         setKras(JSON.parse(savedKras, (key, value) => {
-          if (['startDate', 'endDate', 'dueDate'].includes(key) && value) {
+          if (['startDate', 'endDate', 'dueDate', 'joiningDate'].includes(key) && value) {
             return new Date(value);
           }
           return value;
@@ -82,6 +84,17 @@ export default function EmployeeKraPage() {
     });
   };
 
+  const handleSaveEmployee = (employeeToSave: Employee) => {
+    setKras(prevKras => {
+        return prevKras.map(kra => {
+            if (kra.employee.id === employeeToSave.id) {
+                return { ...kra, employee: employeeToSave };
+            }
+            return kra;
+        });
+    });
+  };
+
   const handleDeleteKra = (kraId: string) => {
     setKras((prevKras) => prevKras.filter((kra) => kra.id !== kraId));
   };
@@ -111,9 +124,9 @@ export default function EmployeeKraPage() {
         <div className="flex flex-col gap-4">
             <Skeleton className="h-9 w-36" />
             <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-3">
-                <div className="lg:col-span-2">
+                <div className="lg:col-span-2 space-y-6">
                     <Card className="shadow-md">
-                        <CardHeader className="flex flex-row items-center justify-between">
+                         <CardHeader className="flex flex-row items-center justify-between">
                             <div className="flex items-center gap-4">
                                 <Skeleton className="h-12 w-12 rounded-full" />
                                 <div>
@@ -136,7 +149,17 @@ export default function EmployeeKraPage() {
                         </CardContent>
                     </Card>
                 </div>
-                <div className="lg:col-span-1">
+                <div className="lg:col-span-1 space-y-6">
+                    <Card className="shadow-md">
+                        <CardHeader>
+                           <Skeleton className="h-6 w-48 mb-2" />
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <Skeleton className="h-4 w-full" />
+                            <Skeleton className="h-4 w-full" />
+                            <Skeleton className="h-4 w-full" />
+                        </CardContent>
+                    </Card>
                     <Card className="shadow-md">
                         <CardHeader>
                            <Skeleton className="h-6 w-48 mb-2" />
@@ -163,7 +186,7 @@ export default function EmployeeKraPage() {
         </Link>
         {employee ? (
             <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-3">
-                <div className="lg:col-span-2">
+                <div className="lg:col-span-2 space-y-6">
                     <Card className="shadow-md">
                         <CardHeader className="flex flex-row items-center justify-between">
                             <div className="flex items-center gap-4">
@@ -189,7 +212,7 @@ export default function EmployeeKraPage() {
                                         )}
                                     </div>
                                     <CardDescription>
-                                        {employee.branch ? `${employee.branch} Branch` : 'Key Result Areas'}
+                                        {employee.branch ? `${employee.branch} Branch` : 'No branch assigned'}
                                     </CardDescription>
                                 </div>
                             </div>
@@ -230,7 +253,33 @@ export default function EmployeeKraPage() {
                         </CardContent>
                     </Card>
                 </div>
-                <div className="lg:col-span-1">
+                <div className="lg:col-span-1 space-y-6">
+                     <Card>
+                        <CardHeader className='flex-row items-center justify-between pb-2'>
+                            <CardTitle className='text-base'>
+                                Employee Information
+                            </CardTitle>
+                             <EditEmployeeDialog employee={employee} onSave={handleSaveEmployee}>
+                                <Button variant="ghost" size="icon">
+                                    <Edit className="h-4 w-4" />
+                                </Button>
+                            </EditEmployeeDialog>
+                        </CardHeader>
+                        <CardContent className='text-sm space-y-3 pt-4'>
+                            <div className='flex items-center gap-3'>
+                                <Mail className="h-4 w-4 text-muted-foreground" />
+                                <span>{employee.email || 'Not provided'}</span>
+                            </div>
+                            <div className='flex items-start gap-3'>
+                                <Home className="h-4 w-4 text-muted-foreground mt-1" />
+                                <span>{employee.address || 'Not provided'}</span>
+                            </div>
+                            <div className='flex items-center gap-3'>
+                                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                                <span>Joined on {employee.joiningDate ? format(new Date(employee.joiningDate), "MMM d, yyyy") : 'Not provided'}</span>
+                            </div>
+                        </CardContent>
+                    </Card>
                     <KraProgressChart kras={employeeKras} />
                 </div>
             </div>

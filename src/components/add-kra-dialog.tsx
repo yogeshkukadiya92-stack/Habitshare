@@ -44,6 +44,8 @@ const kraSchema = z.object({
   employeeName: z.string().min(2, 'Employee name is required.'),
   employeeBranch: z.string().optional(),
   employeeRole: z.custom<UserRole>().optional(),
+  employeeAddress: z.string().optional(),
+  employeeJoiningDate: z.date().optional(),
   weightage: z.number().positive('Weightage must be a positive number.').nullable(),
   marksAchieved: z.number().min(0).nullable(),
   bonus: z.number().min(0).nullable(),
@@ -88,6 +90,8 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
       employeeName: kra?.employee.name || '',
       employeeBranch: kra?.employee.branch || '',
       employeeRole: kra?.employee.role || 'Employee',
+      employeeAddress: kra?.employee.address || '',
+      employeeJoiningDate: kra?.employee.joiningDate || new Date(),
       weightage: kra?.weightage || null,
       marksAchieved: kra?.marksAchieved || null,
       bonus: kra?.bonus || null,
@@ -138,6 +142,8 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
         employeeName: kra?.employee.name || '',
         employeeBranch: kra?.employee.branch || '',
         employeeRole: kra?.employee.role || 'Employee',
+        employeeAddress: kra?.employee.address || '',
+        employeeJoiningDate: kra?.employee.joiningDate ? new Date(kra.employee.joiningDate) : new Date(),
         weightage: kra?.weightage || null,
         marksAchieved: kra?.marksAchieved || null,
         bonus: kra?.bonus || null,
@@ -153,6 +159,8 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
         setValue("employeeBranch", selectedEmployee.branch || '');
         setValue("employeeName", selectedEmployee.name);
         setValue("employeeRole", selectedEmployee.role || 'Employee');
+        setValue("employeeAddress", selectedEmployee.address || '');
+        setValue("employeeJoiningDate", selectedEmployee.joiningDate ? new Date(selectedEmployee.joiningDate) : new Date());
         setShowNewEmployeeFields(false);
     }
   }, [employeeId, currentEmployees, setValue]);
@@ -209,6 +217,8 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
         branch: data.employeeBranch,
         avatarUrl: selectedEmployee?.avatarUrl || `https://placehold.co/32x32.png?text=${data.employeeName.charAt(0)}`,
         role: data.employeeRole || 'Employee',
+        address: data.employeeAddress,
+        joiningDate: data.employeeJoiningDate
       },
       progress: Math.min(100, progress),
       status: kra?.status || 'Pending',
@@ -364,6 +374,38 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                             </div>
                         </div>
                     )}
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="employeeAddress" className="text-right">
+                            Address
+                        </Label>
+                        <div className="col-span-3">
+                            <Controller
+                                name="employeeAddress"
+                                control={control}
+                                render={({ field }) => <Textarea id="employeeAddress" {...field} placeholder="Employee's current address" />}
+                            />
+                        </div>
+                    </div>
+                     <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="employeeJoiningDate" className="text-right">
+                            Joining Date
+                        </Label>
+                        <div className="col-span-3">
+                             <Controller
+                                name="employeeJoiningDate"
+                                control={control}
+                                render={({ field }) => (
+                                    <Input
+                                    id="employeeJoiningDate"
+                                    type="date"
+                                    className="w-auto"
+                                    value={field.value ? format(new Date(field.value), 'yyyy-MM-dd') : ''}
+                                    onChange={e => field.onChange(new Date(e.target.value))}
+                                    />
+                                )}
+                            />
+                        </div>
+                    </div>
                 </>
             )}
 
