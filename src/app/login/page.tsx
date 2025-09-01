@@ -22,11 +22,13 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    console.log("Attempting to log in with email:", email);
     try {
       await signInWithEmailAndPassword(auth, email, password);
       toast({ title: 'Login Successful', description: 'Redirecting to dashboard...' });
       router.push('/');
     } catch (error: any) {
+      console.error("Login failed:", error.code, error.message);
       toast({ title: 'Login Failed', description: error.message, variant: 'destructive' });
       setLoading(false);
     }
@@ -35,11 +37,13 @@ export default function LoginPage() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    console.log("Attempting to sign up with email:", email);
     try {
       await createUserWithEmailAndPassword(auth, email, password);
       toast({ title: 'Sign Up Successful', description: 'Redirecting to dashboard...' });
       router.push('/');
     } catch (error: any) {
+      console.error("Sign up failed:", error.code, error.message);
       toast({ title: 'Sign Up Failed', description: error.message, variant: 'destructive' });
       setLoading(false);
     }
