@@ -23,9 +23,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { AppSidebar } from '@/components/app-sidebar';
+import { Protected } from '@/components/protected';
 
 
-export default function Dashboard() {
+function DashboardContent() {
   const [kras, setKras] = React.useState<KRA[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [selectedBranch, setSelectedBranch] = React.useState('all');
@@ -76,68 +78,79 @@ export default function Dashboard() {
     : employees.filter(e => e.branch === selectedBranch);
 
   return (
-    <div className="flex flex-col gap-4">
-      <Card className="shadow-md">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Employees</CardTitle>
-            <CardDescription>
-              Select an employee to view their Key Result Areas.
-            </CardDescription>
-          </div>
-          <div className="flex items-center gap-2">
-            <Select value={selectedBranch} onValueChange={setSelectedBranch}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by Branch" />
-              </SelectTrigger>
-              <SelectContent>
-                {branches.map(branch => (
-                  <SelectItem key={branch} value={branch}>
-                    {branch === 'all' ? 'All Branches' : branch}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <AddKraDialog onSave={handleSaveKra} employees={employees}>
-               <Button>Add KRA</Button>
-            </AddKraDialog>
-          </div>
-        </CardHeader>
-        <CardContent>
-            {loading ? (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {Array.from({ length: 8 }).map((_, i) => (
-                        <div key={i} className="flex items-center gap-4 p-4 border rounded-lg">
-                            <Skeleton className="h-12 w-12 rounded-full" />
-                            <div className="space-y-2">
-                                <Skeleton className="h-4 w-[150px]" />
-                                <Skeleton className="h-4 w-[100px]" />
-                            </div>
-                        </div>
-                    ))}
+    <div className="flex gap-4">
+        <AppSidebar />
+        <div className="flex-1 flex flex-col gap-4">
+            <Card className="shadow-md">
+                <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                    <CardTitle>Employees</CardTitle>
+                    <CardDescription>
+                    Select an employee to view their Key Result Areas.
+                    </CardDescription>
                 </div>
-            ) : (
-               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {filteredEmployees.map((employee) => (
-                    <Link href={`/employees/${employee.id}`} key={employee.id}>
-                        <Card className="hover:bg-muted/50 transition-all transform hover:-translate-y-1 shadow-sm hover:shadow-lg">
-                            <CardHeader className="flex flex-row items-center gap-4">
-                                <Avatar className="h-12 w-12">
-                                    <AvatarImage src={employee.avatarUrl} alt={employee.name} data-ai-hint="people" />
-                                    <AvatarFallback>{employee.name.charAt(0)}</AvatarFallback>
-                                </Avatar>
-                                <div>
-                                    <CardTitle className="text-lg">{employee.name}</CardTitle>
-                                    <CardDescription>{employee.branch || 'No Branch'}</CardDescription>
+                <div className="flex items-center gap-2">
+                    <Select value={selectedBranch} onValueChange={setSelectedBranch}>
+                    <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Filter by Branch" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {branches.map(branch => (
+                        <SelectItem key={branch} value={branch}>
+                            {branch === 'all' ? 'All Branches' : branch}
+                        </SelectItem>
+                        ))}
+                    </SelectContent>
+                    </Select>
+                    <AddKraDialog onSave={handleSaveKra} employees={employees}>
+                    <Button>Add KRA</Button>
+                    </AddKraDialog>
+                </div>
+                </CardHeader>
+                <CardContent>
+                    {loading ? (
+                        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                            {Array.from({ length: 8 }).map((_, i) => (
+                                <div key={i} className="flex items-center gap-4 p-4 border rounded-lg">
+                                    <Skeleton className="h-12 w-12 rounded-full" />
+                                    <div className="space-y-2">
+                                        <Skeleton className="h-4 w-[150px]" />
+                                        <Skeleton className="h-4 w-[100px]" />
+                                    </div>
                                 </div>
-                            </CardHeader>
-                        </Card>
-                    </Link>
-                  ))}
-               </div>
-            )}
-        </CardContent>
-      </Card>
+                            ))}
+                        </div>
+                    ) : (
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                        {filteredEmployees.map((employee) => (
+                            <Link href={`/employees/${employee.id}`} key={employee.id}>
+                                <Card className="hover:bg-muted/50 transition-all transform hover:-translate-y-1 shadow-sm hover:shadow-lg">
+                                    <CardHeader className="flex flex-row items-center gap-4">
+                                        <Avatar className="h-12 w-12">
+                                            <AvatarImage src={employee.avatarUrl} alt={employee.name} data-ai-hint="people" />
+                                            <AvatarFallback>{employee.name.charAt(0)}</AvatarFallback>
+                                        </Avatar>
+                                        <div>
+                                            <CardTitle className="text-lg">{employee.name}</CardTitle>
+                                            <CardDescription>{employee.branch || 'No Branch'}</CardDescription>
+                                        </div>
+                                    </CardHeader>
+                                </Card>
+                            </Link>
+                        ))}
+                    </div>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
     </div>
   );
+}
+
+export default function Dashboard() {
+    return (
+        <Protected>
+            <DashboardContent />
+        </Protected>
+    )
 }

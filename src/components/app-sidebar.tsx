@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Settings, Package2, TrendingUp, Users, ListTodo, Plane, UserCheck, ReceiptText, Target } from 'lucide-react';
-
+import { useAuth } from './auth-provider';
 import {
   Tooltip,
   TooltipContent,
@@ -12,34 +12,33 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { useMemo } from 'react';
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const { user } = useAuth();
 
-  const navItems = [
-    { href: '/', label: 'Dashboard', icon: Home },
-    { href: '/increments', label: 'Increments', icon: TrendingUp },
-    { href: '/employees', label: 'Employees', icon: Users },
-    { href: '/routine-tasks', label: 'Routine Tasks', icon: ListTodo },
-    { href: '/leaves', label: 'Leave Management', icon: Plane },
-    { href: '/attendance', label: 'Attendance', icon: UserCheck },
-    { href: '/expenses', label: 'Expense Claims', icon: ReceiptText },
-    { href: '/habit-tracker', label: 'Habit Tracker', icon: Target },
-  ];
+  const navItems = useMemo(() => [
+    { href: '/', label: 'Dashboard', icon: Home, show: user },
+    { href: '/increments', label: 'Increments', icon: TrendingUp, show: user },
+    { href: '/employees', label: 'Employees', icon: Users, show: user },
+    { href: '/routine-tasks', label: 'Routine Tasks', icon: ListTodo, show: user },
+    { href: '/leaves', label: 'Leave Management', icon: Plane, show: user },
+    { href: '/attendance', label: 'Attendance', icon: UserCheck, show: user },
+    { href: '/expenses', label: 'Expense Claims', icon: ReceiptText, show: user },
+    { href: '/habit-tracker', label: 'Habit Tracker', icon: Target, show: user },
+  ], [user]);
+
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <aside className="fixed inset-y-0 left-0 z-10 hidden w-14 flex-col border-r bg-background sm:flex">
       <TooltipProvider>
-        <nav className="flex flex-col items-center gap-4 px-2 py-4">
-          <Link
-            href="#"
-            className="group flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:h-8 md:w-8 md:text-base"
-          >
-            <Package2 className="h-4 w-4 transition-all group-hover:scale-110" />
-            <span className="sr-only">KRA Dashboard</span>
-          </Link>
-
-          {navItems.map((item) => (
+        <nav className="flex flex-col items-center gap-4 px-2 py-4 mt-14">
+          {navItems.map((item) => item.show && (
             <Tooltip key={item.href}>
               <TooltipTrigger asChild>
                 <Link
