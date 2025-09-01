@@ -39,7 +39,7 @@ export default function LoginPage() {
       await createUserWithEmailAndPassword(auth, email, password);
       toast({ title: 'Sign Up Successful', description: 'Redirecting to dashboard...' });
       router.push('/');
-    } catch (error: any) => {
+    } catch (error: any) {
       toast({ title: 'Sign Up Failed', description: error.message, variant: 'destructive' });
       setLoading(false);
     }
