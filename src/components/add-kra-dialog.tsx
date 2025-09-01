@@ -21,12 +21,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { refineKraTaskDescription } from '@/ai/flows/kra-refinement';
 import { useToast } from '@/hooks/use-toast';
-import type { KRA, ActionItem, Employee } from '@/lib/types';
+import type { KRA, ActionItem, Employee, UserRole } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
 import { format } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { useAuth } from './auth-provider';
 
 
 const actionItemSchema = z.object({
@@ -41,6 +43,7 @@ const kraSchema = z.object({
   employeeId: z.string().min(1, 'Employee is required.'),
   employeeName: z.string().min(2, 'Employee name is required.'),
   employeeBranch: z.string().optional(),
+  employeeRole: z.custom<UserRole>().optional(),
   weightage: z.number().positive('Weightage must be a positive number.').nullable(),
   marksAchieved: z.number().min(0).nullable(),
   bonus: z.number().min(0).nullable(),
@@ -64,6 +67,8 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
   const [currentEmployees, setCurrentEmployees] = React.useState<Employee[]>(employees);
   const [newEmployeeName, setNewEmployeeName] = React.useState('');
   const [showNewEmployeeFields, setShowNewEmployeeFields] = React.useState(false);
+  const { currentUserRole } = useAuth();
+  const isAdmin = currentUserRole === 'Admin';
 
 
   const { toast } = useToast();
@@ -82,6 +87,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
       employeeId: kra?.employee.id || '',
       employeeName: kra?.employee.name || '',
       employeeBranch: kra?.employee.branch || '',
+      employeeRole: kra?.employee.role || 'Employee',
       weightage: kra?.weightage || null,
       marksAchieved: kra?.marksAchieved || null,
       bonus: kra?.bonus || null,
@@ -131,6 +137,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
         employeeId: kra?.employee.id || '',
         employeeName: kra?.employee.name || '',
         employeeBranch: kra?.employee.branch || '',
+        employeeRole: kra?.employee.role || 'Employee',
         weightage: kra?.weightage || null,
         marksAchieved: kra?.marksAchieved || null,
         bonus: kra?.bonus || null,
@@ -145,6 +152,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
     if(selectedEmployee) {
         setValue("employeeBranch", selectedEmployee.branch || '');
         setValue("employeeName", selectedEmployee.name);
+        setValue("employeeRole", selectedEmployee.role || 'Employee');
         setShowNewEmployeeFields(false);
     }
   }, [employeeId, currentEmployees, setValue]);
@@ -200,6 +208,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
         name: data.employeeName,
         branch: data.employeeBranch,
         avatarUrl: selectedEmployee?.avatarUrl || `https://placehold.co/32x32.png?text=${data.employeeName.charAt(0)}`,
+        role: data.employeeRole || 'Employee',
       },
       progress: Math.min(100, progress),
       status: kra?.status || 'Pending',
@@ -268,6 +277,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                       onSelect={() => {
                                         setValue("employeeName", newEmployeeName.trim());
                                         setValue("employeeId", newEmployeeName.trim()); // Temporary ID
+                                        setValue("employeeRole", "Employee");
                                         setShowNewEmployeeFields(true);
                                         setEmployeeComboboxOpen(false);
                                       }}
@@ -329,6 +339,31 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                             />
                         </div>
                     </div>
+                    {isAdmin && (
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="employeeRole" className="text-right">
+                                Role
+                            </Label>
+                            <div className="col-span-3">
+                                <Controller
+                                    name="employeeRole"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select role" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="Admin">Admin</SelectItem>
+                                                <SelectItem value="Manager">Manager</SelectItem>
+                                                <SelectItem value="Employee">Employee</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
+                            </div>
+                        </div>
+                    )}
                 </>
             )}
 
