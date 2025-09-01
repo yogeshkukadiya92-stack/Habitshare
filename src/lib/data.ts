@@ -1,6 +1,6 @@
 
 import { v4 as uuidv4 } from 'uuid';
-import type { KRA, RoutineTask, Leave, Attendance, Expense } from './types';
+import type { KRA, RoutineTask, Leave, Attendance, Expense, Habit } from './types';
 
 export const mockKras: KRA[] = [
   {
@@ -317,4 +317,26 @@ export const mockExpenses: Expense[] = [
         totalAmount: 1800,
         status: 'Rejected'
     },
+];
+
+
+export const mockHabits: Habit[] = [
+    {
+        id: 'H-001',
+        name: 'Daily Coding Challenge',
+        description: 'Solve one coding problem every day on LeetCode.',
+        employee: { id: 'EMP-001', name: 'Alice Johnson', avatarUrl: 'https://placehold.co/32x32.png', branch: 'Engineering' },
+        checkIns: [new Date(2024, 7, 1), new Date(2024, 7, 2), new Date(2024, 7, 4)],
+        goalDays: 30,
+        startDate: new Date(2024, 7, 1)
+    },
+    {
+        id: 'H-002',
+        name: 'Read 10 Pages Daily',
+        description: 'Read at least 10 pages of a non-fiction book.',
+        employee: { id: 'EMP-002', name: 'Bob Williams', avatarUrl: 'https://placehold.co/32x32.png', branch: 'Marketing' },
+        checkIns: [new Date(2024, 7, 1), new Date(2024, 7, 3), new Date(2024, 7, 5)],
+        goalDays: 30,
+        startDate: new Date(2024, 7, 1)
+    }
 ];

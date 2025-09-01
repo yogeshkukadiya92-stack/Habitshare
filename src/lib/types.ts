@@ -87,3 +87,13 @@ export interface Expense {
     totalAmount: number;
     status: ExpenseStatus;
 }
+
+export interface Habit {
+  id: string;
+  name: string;
+  description: string;
+  employee: Employee;
+  checkIns: Date[];
+  goalDays: number; // e.g., 30 for a 30-day challenge
+  startDate: Date;
+}
