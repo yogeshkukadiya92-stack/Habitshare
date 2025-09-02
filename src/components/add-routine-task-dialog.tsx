@@ -32,7 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 
 
 const routineTaskSchema = z.object({
@@ -243,7 +243,7 @@ export function AddRoutineTaskDialog({ children, task, onSave, employees }: AddR
                                     type="date"
                                     className='w-full'
                                     value={format(new Date(field.value), 'yyyy-MM-dd')}
-                                    onChange={e => field.onChange(new Date(e.target.value))}
+                                    onChange={e => field.onChange(parseISO(e.target.value))}
                                 />
                             )}
                         />
@@ -260,7 +260,7 @@ export function AddRoutineTaskDialog({ children, task, onSave, employees }: AddR
                                     type="date"
                                     className='w-full'
                                     value={format(new Date(field.value), 'yyyy-MM-dd')}
-                                    onChange={e => field.onChange(new Date(e.target.value))}
+                                    onChange={e => field.onChange(parseISO(e.target.value))}
                                 />
                             )}
                         />
