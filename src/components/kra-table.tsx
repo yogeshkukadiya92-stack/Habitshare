@@ -111,17 +111,21 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
             </TableCell>
             <TableCell>
                 {totalActions > 0 ? (
-                    <Tooltip>
-                        <TooltipTrigger>
-                            <Badge variant="outline" className="flex items-center gap-1">
-                                <CalendarCheck2 className="h-3 w-3" />
-                                <span>{completedActions}/{totalActions}</span>
-                            </Badge>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                           <p>{completedActions} of {totalActions} actions completed</p>
-                        </TooltipContent>
-                    </Tooltip>
+                    <AddKraDialog kra={kra} onSave={onSave} employees={employees}>
+                         <div className="cursor-pointer">
+                            <Tooltip>
+                                <TooltipTrigger>
+                                    <Badge variant="outline" className="flex items-center gap-1">
+                                        <CalendarCheck2 className="h-3 w-3" />
+                                        <span>{completedActions}/{totalActions}</span>
+                                    </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                <p>{completedActions} of {totalActions} actions completed. Click to view/edit.</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </div>
+                    </AddKraDialog>
                 ) : (
                     <span className="text-muted-foreground">-</span>
                 )}
