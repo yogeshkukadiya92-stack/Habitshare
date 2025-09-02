@@ -3,6 +3,8 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/components/auth-provider';
 import { Navbar } from '@/components/navbar';
+import { AppSidebar } from '@/components/app-sidebar';
+import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
 
 export const metadata: Metadata = {
   title: 'KRA Dashboard',
@@ -24,15 +26,18 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <AuthProvider>
-            <div className="flex min-h-screen w-full flex-col bg-muted/40">
-              <div className="flex flex-col">
-                 <Navbar />
-                 <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-4 md:gap-8">
-                  {children}
+          <SidebarProvider>
+            <Sidebar>
+                <AppSidebar/>
+            </Sidebar>
+            <SidebarInset>
+                <Navbar />
+                <main className="p-4 sm:px-6 sm:py-4">
+                    {children}
                 </main>
-              </div>
-            </div>
-            <Toaster />
+                <Toaster />
+            </SidebarInset>
+          </SidebarProvider>
         </AuthProvider>
       </body>
     </html>

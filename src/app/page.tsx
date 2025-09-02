@@ -22,7 +22,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { AppSidebar } from '@/components/app-sidebar';
 import { Protected } from '@/components/protected';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Link from 'next/link';
@@ -169,8 +168,6 @@ function DashboardContent() {
 
   return (
      <TooltipProvider>
-    <div className="flex gap-4">
-        <AppSidebar />
         <div className="flex-1 flex flex-col gap-4">
             <h1 className="text-2xl font-semibold">Employee Management</h1>
             <Card>
@@ -328,7 +325,6 @@ function DashboardContent() {
                 </CardContent>
             </Card>
         </div>
-    </div>
      </TooltipProvider>
   );
 }

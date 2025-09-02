@@ -3,16 +3,11 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Settings, Package2, TrendingUp, Users, ListTodo, Plane, UserCheck, ReceiptText, Target, CalendarDays, Briefcase, Calendar } from 'lucide-react';
+import { Settings, Package2, Users, ListTodo, Plane, UserCheck, ReceiptText, Target, CalendarDays, Briefcase, Calendar } from 'lucide-react';
 import { useAuth } from './auth-provider';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useMemo } from 'react';
+import { SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarContent, SidebarFooter } from './ui/sidebar';
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -36,45 +31,42 @@ export function AppSidebar() {
   }
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-10 hidden w-14 flex-col border-r bg-background sm:flex">
-      <TooltipProvider>
-        <nav className="flex flex-col items-center gap-4 px-2 py-4 mt-14">
-          {navItems.map((item) => item.show && (
-            <Tooltip key={item.href}>
-              <TooltipTrigger asChild>
-                <Link
-                  href={item.href}
-                  className={cn(
-                    'flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8',
-                    (pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))) && 'bg-accent text-accent-foreground'
-                  )}
-                >
-                  <item.icon className="h-5 w-5" />
-                  <span className="sr-only">{item.label}</span>
+    <>
+      <SidebarHeader>
+        <Link href="/" className="flex items-center gap-2 font-semibold">
+           <Package2 />
+           <span>KRA Dashboard</span>
+        </Link>
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarMenu>
+          {navItems.map((item) => (
+             <SidebarMenuItem key={item.href}>
+                <Link href={item.href}>
+                  <SidebarMenuButton 
+                    isActive={pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))}
+                    tooltip={item.label}
+                   >
+                    <item.icon />
+                    <span>{item.label}</span>
+                  </SidebarMenuButton>
                 </Link>
-              </TooltipTrigger>
-              <TooltipContent side="right">{item.label}</TooltipContent>
-            </Tooltip>
+             </SidebarMenuItem>
           ))}
-        </nav>
-        <nav className="mt-auto flex flex-col items-center gap-4 px-2 py-4">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Link
-                href="/settings"
-                className={cn(
-                    'flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8',
-                    pathname === '/settings' && 'bg-accent text-accent-foreground'
-                )}
-              >
-                <Settings className="h-5 w-5" />
-                <span className="sr-only">Settings</span>
-              </Link>
-            </TooltipTrigger>
-            <TooltipContent side="right">Settings</TooltipContent>
-          </Tooltip>
-        </nav>
-      </TooltipProvider>
-    </aside>
+        </SidebarMenu>
+      </SidebarContent>
+      <SidebarFooter>
+        <SidebarMenu>
+            <SidebarMenuItem>
+                <Link href="/settings">
+                    <SidebarMenuButton isActive={pathname.startsWith('/settings')} tooltip="Settings">
+                        <Settings />
+                        <span>Settings</span>
+                    </SidebarMenuButton>
+                </Link>
+            </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+    </>
   );
 }
