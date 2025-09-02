@@ -19,6 +19,14 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+   webpack: (config, { isServer }) => {
+    if (isServer) {
+        config.externals.push({
+            'handlebars': 'commonjs handlebars'
+        });
+    }
+    return config;
+  },
 };
 
 export default withPWA({
