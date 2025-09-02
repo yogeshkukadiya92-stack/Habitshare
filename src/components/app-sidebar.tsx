@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Settings, Package2, TrendingUp, Users, ListTodo, Plane, UserCheck, ReceiptText, Target, CalendarDays, Briefcase } from 'lucide-react';
+import { Home, Settings, Package2, TrendingUp, Users, ListTodo, Plane, UserCheck, ReceiptText, Target, CalendarDays, Briefcase, Calendar } from 'lucide-react';
 import { useAuth } from './auth-provider';
 import {
   Tooltip,
@@ -27,6 +27,7 @@ export function AppSidebar() {
     { href: '/habit-tracker', label: 'Habit Tracker', icon: Target, show: true },
     { href: '/holidays', label: 'Holidays', icon: CalendarDays, show: true },
     { href: '/recruitment', label: 'Recruitment', icon: Briefcase, show: true },
+    { href: '/hr-calendar', label: 'HR Calendar', icon: Calendar, show: true },
   ], []);
 
 

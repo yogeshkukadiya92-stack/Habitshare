@@ -30,6 +30,7 @@ const employeeSchema = z.object({
     role: z.custom<UserRole>().optional(),
     address: z.string().optional(),
     joiningDate: z.date().optional(),
+    birthDate: z.date().optional(),
     email: z.string().email().optional(),
 });
 
@@ -64,6 +65,7 @@ export function EditEmployeeDialog({ children, employee, onSave }: EditEmployeeD
         role: employee.role || 'Employee',
         address: employee.address || '',
         joiningDate: employee.joiningDate ? new Date(employee.joiningDate) : undefined,
+        birthDate: employee.birthDate ? new Date(employee.birthDate) : undefined,
         email: employee.email || '',
       });
     }
@@ -75,6 +77,7 @@ export function EditEmployeeDialog({ children, employee, onSave }: EditEmployeeD
       ...employee,
       ...data,
       joiningDate: data.joiningDate || employee.joiningDate,
+      birthDate: data.birthDate || employee.birthDate,
     };
     onSave(updatedEmployee);
     toast({
@@ -188,6 +191,27 @@ export function EditEmployeeDialog({ children, employee, onSave }: EditEmployeeD
                         render={({ field }) => (
                             <Input
                             id="joiningDate"
+                            type="date"
+                            className="w-auto"
+                            value={field.value ? format(new Date(field.value), 'yyyy-MM-dd') : ''}
+                            onChange={e => field.onChange(new Date(e.target.value))}
+                            />
+                        )}
+                    />
+                </div>
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="birthDate" className="text-right">
+                    Birth Date
+                </Label>
+                <div className="col-span-3">
+                    <Controller
+                        name="birthDate"
+                        control={control}
+                        render={({ field }) => (
+                            <Input
+                            id="birthDate"
                             type="date"
                             className="w-auto"
                             value={field.value ? format(new Date(field.value), 'yyyy-MM-dd') : ''}

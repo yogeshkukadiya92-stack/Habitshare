@@ -13,6 +13,7 @@ export interface Employee {
   role?: UserRole;
   address?: string;
   joiningDate?: Date;
+  birthDate?: Date;
 }
 
 export interface ActionItem {

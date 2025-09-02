@@ -70,3 +70,25 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+.event-birthday {
+    --rdp-day-selected-bg: #fde2e4;
+    --rdp-day-selected-color: #9b2226;
+    background-color: var(--rdp-day-selected-bg) !important;
+    color: var(--rdp-day-selected-color) !important;
+    font-weight: bold;
+}
+.event-anniversary {
+    --rdp-day-selected-bg: #dcfce7;
+    --rdp-day-selected-color: #166534;
+    background-color: var(--rdp-day-selected-bg) !important;
+    color: var(--rdp-day-selected-color) !important;
+    font-weight: bold;
+}
+.event-holiday {
+    --rdp-day-selected-bg: #e0e7ff;
+    --rdp-day-selected-color: #3730a3;
+    background-color: var(--rdp-day-selected-bg) !important;
+    color: var(--rdp-day-selected-color) !important;
+    font-weight: bold;
+}

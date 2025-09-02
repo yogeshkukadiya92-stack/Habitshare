@@ -15,6 +15,7 @@ export const mockKras: KRA[] = [
       role: 'Admin',
       address: '123 Tech Park, Bangalore',
       joiningDate: new Date('2022-01-10'),
+      birthDate: new Date('1990-05-15'),
     },
     progress: 67,
     status: 'On Track',
@@ -41,6 +42,7 @@ export const mockKras: KRA[] = [
       role: 'Manager',
       address: '456 Market St, Mumbai',
       joiningDate: new Date('2021-11-20'),
+      birthDate: new Date('1988-10-25'),
     },
     progress: 25,
     status: 'At Risk',
@@ -68,6 +70,7 @@ export const mockKras: KRA[] = [
       role: 'Employee',
       address: '789 Service Lane, Pune',
       joiningDate: new Date('2023-02-15'),
+      birthDate: new Date('1995-03-20'),
     },
     progress: 90,
     status: 'On Track',
@@ -87,7 +90,8 @@ export const mockKras: KRA[] = [
       name: 'Diana Prince',
       avatarUrl: 'https://placehold.co/32x32.png',
       branch: 'Support',
-      role: 'Employee'
+      role: 'Employee',
+      birthDate: new Date('1992-08-01'),
     },
     progress: 100,
     status: 'Completed',
@@ -107,7 +111,9 @@ export const mockKras: KRA[] = [
       name: 'Ethan Hunt',
       avatarUrl: 'https://placehold.co/32x32.png',
       branch: 'Sales',
-      role: 'Manager'
+      role: 'Manager',
+      birthDate: new Date('1985-12-12'),
+      joiningDate: new Date('2020-07-19'),
     },
     progress: 20,
     status: 'On Track',
@@ -130,7 +136,9 @@ export const mockKras: KRA[] = [
       name: 'Fiona Glenanne',
       avatarUrl: 'https://placehold.co/32x32.png',
       branch: 'Engineering',
-      role: 'Manager'
+      role: 'Manager',
+      birthDate: new Date('1989-02-28'),
+      joiningDate: new Date('2019-01-01'),
     },
     progress: 0,
     status: 'Pending',
@@ -150,7 +158,9 @@ export const mockKras: KRA[] = [
       name: 'Amara Ray',
       avatarUrl: 'https://placehold.co/32x32.png',
       branch: 'Sales',
-      role: 'Employee'
+      role: 'Employee',
+      birthDate: new Date('1998-09-10'),
+      joiningDate: new Date('2023-08-01'),
     },
     progress: 93,
     status: 'On Track',
@@ -171,7 +181,9 @@ export const mockKras: KRA[] = [
       avatarUrl: 'https://placehold.co/32x32.png',
       branch: 'Engineering',
       email: 'connect@luvfitnessworld.com',
-      role: 'Admin'
+      role: 'Admin',
+      joiningDate: new Date('2022-01-10'),
+      birthDate: new Date('1990-05-15'),
     },
     progress: 50,
     status: 'On Track',
@@ -283,12 +295,6 @@ export const mockAttendances: Attendance[] = [
         date: new Date(),
         status: 'Half-day'
     },
-    {
-        id: 'A-004',
-        employee: { id: 'EMP-005', name: 'Ethan Hunt', avatarUrl: 'https://placehold.co/32x32.png', branch: 'Sales' },
-        date: new Date(),
-        status: 'On Leave'
-    }
 ];
 
 export const mockExpenses: Expense[] = [

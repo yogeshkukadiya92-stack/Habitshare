@@ -8,7 +8,7 @@ import { mockKras } from '@/lib/data';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import Link from 'next/link';
-import { ArrowLeft, ShieldCheck, Trash2, Edit, Mail, Home, Calendar as CalendarIcon } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Trash2, Edit, Mail, Home, Calendar as CalendarIcon, Cake } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Employee, KRA, Branch } from '@/lib/types';
 import { AddKraDialog } from '@/components/add-kra-dialog';
@@ -47,7 +47,7 @@ export default function EmployeeKraPage() {
       const savedKras = sessionStorage.getItem('kraData');
       if (savedKras) {
         setKras(JSON.parse(savedKras, (key, value) => {
-          if (['startDate', 'endDate', 'dueDate', 'joiningDate'].includes(key) && value) {
+          if (['startDate', 'endDate', 'dueDate', 'joiningDate', 'birthDate'].includes(key) && value) {
             return new Date(value);
           }
           return value;
@@ -108,7 +108,7 @@ export default function EmployeeKraPage() {
         description: "The employee and all their associated KRAs have been removed.",
     });
 
-    router.push('/employees');
+    router.push('/');
   };
   
   const employees: Employee[] = Array.from(new Map(kras.map(kra => [kra.employee.id, kra.employee])).values());
@@ -178,7 +178,7 @@ export default function EmployeeKraPage() {
   return (
     <TooltipProvider>
     <div className="flex flex-col gap-4">
-        <Link href="/employees" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+        <Link href="/" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
             <Button variant="outline" size="sm" className='gap-2'>
                 <ArrowLeft className="h-4 w-4" />
                 Back to Employees
@@ -277,6 +277,10 @@ export default function EmployeeKraPage() {
                             <div className='flex items-center gap-3'>
                                 <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                                 <span>Joined on {employee.joiningDate ? format(new Date(employee.joiningDate), "MMM d, yyyy") : 'Not provided'}</span>
+                            </div>
+                            <div className='flex items-center gap-3'>
+                                <Cake className="h-4 w-4 text-muted-foreground" />
+                                <span>Born on {employee.birthDate ? format(new Date(employee.birthDate), "MMM d, yyyy") : 'Not provided'}</span>
                             </div>
                         </CardContent>
                     </Card>

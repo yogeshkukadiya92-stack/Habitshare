@@ -46,6 +46,7 @@ const kraSchema = z.object({
   employeeRole: z.custom<UserRole>().optional(),
   employeeAddress: z.string().optional(),
   employeeJoiningDate: z.date().optional(),
+  employeeBirthDate: z.date().optional(),
   weightage: z.number().positive('Weightage must be a positive number.').nullable(),
   marksAchieved: z.number().min(0).nullable(),
   bonus: z.number().min(0).nullable(),
@@ -92,6 +93,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
       employeeRole: kra?.employee.role || 'Employee',
       employeeAddress: kra?.employee.address || '',
       employeeJoiningDate: kra?.employee.joiningDate || new Date(),
+      employeeBirthDate: kra?.employee.birthDate || new Date(),
       weightage: kra?.weightage || null,
       marksAchieved: kra?.marksAchieved || null,
       bonus: kra?.bonus || null,
@@ -144,6 +146,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
         employeeRole: kra?.employee.role || 'Employee',
         employeeAddress: kra?.employee.address || '',
         employeeJoiningDate: kra?.employee.joiningDate ? new Date(kra.employee.joiningDate) : new Date(),
+        employeeBirthDate: kra?.employee.birthDate ? new Date(kra.employee.birthDate) : new Date(),
         weightage: kra?.weightage || null,
         marksAchieved: kra?.marksAchieved || null,
         bonus: kra?.bonus || null,
@@ -161,6 +164,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
         setValue("employeeRole", selectedEmployee.role || 'Employee');
         setValue("employeeAddress", selectedEmployee.address || '');
         setValue("employeeJoiningDate", selectedEmployee.joiningDate ? new Date(selectedEmployee.joiningDate) : new Date());
+        setValue("employeeBirthDate", selectedEmployee.birthDate ? new Date(selectedEmployee.birthDate) : new Date());
         setShowNewEmployeeFields(false);
     }
   }, [employeeId, currentEmployees, setValue]);
@@ -218,7 +222,8 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
         avatarUrl: selectedEmployee?.avatarUrl || `https://placehold.co/32x32.png?text=${data.employeeName.charAt(0)}`,
         role: data.employeeRole || 'Employee',
         address: data.employeeAddress,
-        joiningDate: data.employeeJoiningDate
+        joiningDate: data.employeeJoiningDate,
+        birthDate: data.employeeBirthDate
       },
       progress: Math.min(100, progress),
       status: kra?.status || 'Pending',
@@ -397,6 +402,26 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                 render={({ field }) => (
                                     <Input
                                     id="employeeJoiningDate"
+                                    type="date"
+                                    className="w-auto"
+                                    value={field.value ? format(new Date(field.value), 'yyyy-MM-dd') : ''}
+                                    onChange={e => field.onChange(new Date(e.target.value))}
+                                    />
+                                )}
+                            />
+                        </div>
+                    </div>
+                     <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="employeeBirthDate" className="text-right">
+                            Birth Date
+                        </Label>
+                        <div className="col-span-3">
+                             <Controller
+                                name="employeeBirthDate"
+                                control={control}
+                                render={({ field }) => (
+                                    <Input
+                                    id="employeeBirthDate"
                                     type="date"
                                     className="w-auto"
                                     value={field.value ? format(new Date(field.value), 'yyyy-MM-dd') : ''}
