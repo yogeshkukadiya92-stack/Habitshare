@@ -89,8 +89,12 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
               </div>
             </TableCell>
             <TableCell className="max-w-sm">
-                <p className="truncate font-medium">{kra.taskDescription}</p>
-                 <p className="text-xs text-muted-foreground">Due: {format(kra.endDate, 'MMM d, yyyy')}</p>
+                 <AddKraDialog kra={kra} onSave={onSave} employees={employees}>
+                    <div className="cursor-pointer">
+                        <p className="truncate font-medium hover:underline">{kra.taskDescription}</p>
+                        <p className="text-xs text-muted-foreground">Due: {format(kra.endDate, 'MMM d, yyyy')}</p>
+                    </div>
+                </AddKraDialog>
             </TableCell>
              <TableCell>
               <div className="flex items-center gap-2">
