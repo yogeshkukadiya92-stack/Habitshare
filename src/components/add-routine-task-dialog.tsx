@@ -242,8 +242,8 @@ export function AddRoutineTaskDialog({ children, task, onSave, employees }: AddR
                                     id="assignedDate"
                                     type="date"
                                     className='w-full'
-                                    value={format(new Date(field.value), 'yyyy-MM-dd')}
-                                    onChange={e => field.onChange(parseISO(e.target.value))}
+                                    value={format(field.value, 'yyyy-MM-dd')}
+                                    onChange={e => field.onChange(e.target.valueAsDate || new Date(e.target.value))}
                                 />
                             )}
                         />
@@ -259,8 +259,8 @@ export function AddRoutineTaskDialog({ children, task, onSave, employees }: AddR
                                     id="dueDate"
                                     type="date"
                                     className='w-full'
-                                    value={format(new Date(field.value), 'yyyy-MM-dd')}
-                                    onChange={e => field.onChange(parseISO(e.target.value))}
+                                    value={format(field.value, 'yyyy-MM-dd')}
+                                    onChange={e => field.onChange(e.target.valueAsDate || new Date(e.target.value))}
                                 />
                             )}
                         />
@@ -342,3 +342,5 @@ export function AddRoutineTaskDialog({ children, task, onSave, employees }: AddR
     </Dialog>
   );
 }
+
+    

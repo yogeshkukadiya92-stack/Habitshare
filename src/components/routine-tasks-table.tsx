@@ -106,8 +106,8 @@ export function RoutineTasksTable({ tasks, employees, onSave, onDelete }: Routin
                 </TableCell>
                 <TableCell>
                      <div className="text-sm text-muted-foreground">
-                        <p>Assigned: {format(task.assignedDate, 'MMM d, yyyy')}</p>
-                        <p className='font-semibold text-foreground'>Due: {format(task.dueDate, 'MMM d, yyyy')}</p>
+                        <p>Assigned: {format(new Date(task.assignedDate), 'MMM d, yyyy')}</p>
+                        <p className='font-semibold text-foreground'>Due: {format(new Date(task.dueDate), 'MMM d, yyyy')}</p>
                      </div>
                 </TableCell>
                 <TableCell>
@@ -152,3 +152,5 @@ export function RoutineTasksTable({ tasks, employees, onSave, onDelete }: Routin
     </TooltipProvider>
   );
 }
+
+    
