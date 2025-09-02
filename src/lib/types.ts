@@ -36,6 +36,7 @@ export interface ActionItem {
   description: string;
   dueDate: Date;
   isCompleted: boolean;
+  marks: number;
 }
 
 export interface KRA {

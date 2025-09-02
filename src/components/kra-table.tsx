@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -68,8 +69,8 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
       </TableHeader>
       <TableBody>
         {kras.map((kra) => {
-          const totalActions = kra.actions?.length || 0;
-          const completedActions = kra.actions?.filter(a => a.isCompleted).length || 0;
+          const completedMarks = kra.actions?.filter(a => a.isCompleted).reduce((sum, a) => sum + (a.marks || 0), 0) || 0;
+          const totalActionMarks = kra.actions?.reduce((sum, a) => sum + (a.marks || 0), 0) || 0;
           
           const baseMarks = kra.marksAchieved ?? 0;
           const bonus = kra.bonus ?? 0;
@@ -110,18 +111,18 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
                 )}
             </TableCell>
             <TableCell>
-                {totalActions > 0 ? (
+                {totalActionMarks > 0 ? (
                     <AddKraDialog kra={kra} onSave={onSave} employees={employees}>
                          <div className="cursor-pointer">
                             <Tooltip>
                                 <TooltipTrigger>
                                     <Badge variant="outline" className="flex items-center gap-1">
                                         <CalendarCheck2 className="h-3 w-3" />
-                                        <span>{completedActions}/{totalActions}</span>
+                                        <span>{completedMarks}/{totalActionMarks} Marks</span>
                                     </Badge>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                <p>{completedActions} of {totalActions} actions completed. Click to view/edit.</p>
+                                <p>{completedMarks} of {totalActionMarks} marks achieved. Click to view/edit actions.</p>
                                 </TooltipContent>
                             </Tooltip>
                         </div>

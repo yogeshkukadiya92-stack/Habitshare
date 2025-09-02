@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -36,6 +37,7 @@ const actionItemSchema = z.object({
   description: z.string().min(1, "Action description cannot be empty."),
   dueDate: z.date(),
   isCompleted: z.boolean(),
+  marks: z.coerce.number().min(0, "Marks must be a positive number."),
 });
 
 const kraSchema = z.object({
@@ -52,7 +54,19 @@ const kraSchema = z.object({
   bonus: z.number().min(0).nullable(),
   penalty: z.number().min(0).nullable(),
   actions: z.array(actionItemSchema).optional(),
+}).superRefine((data, ctx) => {
+    if (data.weightage && data.actions) {
+        const totalActionMarks = data.actions.reduce((sum, action) => sum + (action.marks || 0), 0);
+        if (totalActionMarks > data.weightage) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: `Total marks of action items (${totalActionMarks}) cannot exceed the KRA weightage (${data.weightage}).`,
+                path: ['actions'],
+            });
+        }
+    }
 });
+
 
 type KraFormValues = z.infer<typeof kraSchema>;
 
@@ -70,8 +84,8 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
   const [currentEmployees, setCurrentEmployees] = React.useState<Employee[]>(employees);
   const [newEmployeeName, setNewEmployeeName] = React.useState('');
   const [showNewEmployeeFields, setShowNewEmployeeFields] = React.useState(false);
-  const { currentUser } = useAuth();
-  const isAdmin = currentUser?.role === 'Admin';
+  const { currentUser, getPermission } = useAuth();
+  const isAdmin = getPermission('employees') === 'download';
 
 
   const { toast } = useToast();
@@ -112,26 +126,20 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
   const employeeId = watch('employeeId');
 
   React.useEffect(() => {
-    if (actions && actions.length > 0 && weightage) {
-        const completedActions = actions.filter(action => action.isCompleted).length;
-        const totalActions = actions.length;
+    if (actions) {
+        const completedMarks = actions
+            .filter(action => action.isCompleted)
+            .reduce((sum, action) => sum + (action.marks || 0), 0);
         
-        if (totalActions > 0) {
-            const calculatedMarks = (completedActions / totalActions) * weightage;
-            setValue('marksAchieved', Math.round(Math.min(calculatedMarks, weightage)), { shouldValidate: true });
-            
-            const progress = Math.round((completedActions / totalActions) * 100);
-            // This is a proxy for progress, will be set on the KRA object later.
-        } else {
-            setValue('marksAchieved', 0);
-        }
+        setValue('marksAchieved', completedMarks, { shouldValidate: true });
 
-    } else if (weightage) {
-        setValue('marksAchieved', 0);
+        const totalActionMarks = actions.reduce((sum, action) => sum + (action.marks || 0), 0);
+        const progress = totalActionMarks > 0 ? Math.round((completedMarks / totalActionMarks) * 100) : 0;
+         // This is a proxy for progress, will be set on the KRA object later.
     } else {
-        setValue('marksAchieved', kra?.marksAchieved || null);
+        setValue('marksAchieved', 0);
     }
-  }, [actions, weightage, setValue, kra]);
+  }, [actions, setValue]);
 
   React.useEffect(() => {
     if (open) {
@@ -204,9 +212,9 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
   };
   
   const onSubmit = (data: KraFormValues) => {
-    const totalActions = data.actions?.length || 0;
-    const completedActions = data.actions?.filter(a => a.isCompleted).length || 0;
-    const progress = totalActions > 0 ? Math.round((completedActions / totalActions) * 100) : (kra?.progress || 0);
+    const completedMarks = data.actions?.filter(a => a.isCompleted).reduce((sum, a) => sum + (a.marks || 0), 0) || 0;
+    const totalActionMarks = data.actions?.reduce((sum, a) => sum + (a.marks || 0), 0) || 0;
+    const progress = totalActionMarks > 0 ? Math.round((completedMarks / totalActionMarks) * 100) : (kra?.progress || 0);
     
     const selectedEmployee = currentEmployees.find(e => e.id === data.employeeId);
     
@@ -527,15 +535,28 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                 />
                             )}
                         />
+                         <Controller
+                            name={`actions.${index}.marks`}
+                            control={control}
+                            render={({ field }) => (
+                                <Input 
+                                    type="number"
+                                    placeholder="Marks"
+                                    className="w-20"
+                                    {...field}
+                                />
+                            )}
+                        />
                         <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
                             <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                     </div>
                     ))}
-                    <Button type="button" size="sm" variant="outline" onClick={() => append({ id: uuidv4(), description: '', dueDate: new Date(), isCompleted: false })}>
+                    <Button type="button" size="sm" variant="outline" onClick={() => append({ id: uuidv4(), description: '', dueDate: new Date(), isCompleted: false, marks: 0 })}>
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Add Action Item
                     </Button>
+                     {errors.actions && <p className="text-xs text-destructive mt-1">{errors.actions.message}</p>}
                 </div>
             </div>
 
