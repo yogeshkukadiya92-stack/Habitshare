@@ -175,7 +175,12 @@ export default function SettingsPage() {
             }
              const savedKras = sessionStorage.getItem('kraData');
             if (savedKras) {
-                setKras(JSON.parse(savedKras));
+                setKras(JSON.parse(savedKras, (key, value) => {
+                    if (['startDate', 'endDate', 'dueDate', 'joiningDate', 'birthDate'].includes(key) && value) {
+                        return new Date(value);
+                    }
+                    return value;
+                }));
             } else {
                 setKras(mockKras);
             }
