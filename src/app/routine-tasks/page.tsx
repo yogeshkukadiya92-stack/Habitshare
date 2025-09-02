@@ -53,7 +53,7 @@ export default function RoutineTasksPage() {
             const savedTasks = sessionStorage.getItem('routineTasksData');
             if (savedTasks) {
                 setRoutineTasks(JSON.parse(savedTasks, (key, value) => {
-                    if (['dueDate'].includes(key) && value) {
+                    if (['dueDate', 'assignedDate'].includes(key) && value) {
                         return new Date(value);
                     }
                     return value;
