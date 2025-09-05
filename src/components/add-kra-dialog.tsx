@@ -40,7 +40,7 @@ const actionItemSchema = z.object({
 });
 
 const kraSchema = z.object({
-  taskDescription: z.string().min(10, 'Task description must be at least 10 characters.'),
+  taskDescription: z.string(),
   employeeId: z.string().min(1, 'Employee is required.'),
   weightage: z.number().positive('Weightage must be a positive number.').nullable(),
   marksAchieved: z.number().min(0).nullable(),
