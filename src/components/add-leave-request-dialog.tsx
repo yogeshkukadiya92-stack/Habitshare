@@ -34,16 +34,31 @@ import {
 } from "@/components/ui/select"
 import { format, differenceInDays, isSameDay } from 'date-fns';
 
+const leaveReasons = [
+    'Sick', 'Travel', 'Religious Function', 'Family Function', 
+    'Marriage', 'Bank Work', 'Emergency at Home', 'Rest', 'Other, please specify'
+] as const;
+
 const leaveRequestSchema = z.object({
   employeeId: z.string().min(1, 'Employee is required.'),
   startDate: z.date(),
   endDate: z.date(),
-  reason: z.string().min(10, "Reason must be at least 10 characters long."),
+  reason: z.string().min(1, "Reason is required."),
+  otherReason: z.string().optional(),
   status: z.enum(['Pending', 'Approved', 'Rejected']),
 }).refine(data => data.endDate >= data.startDate, {
     message: "End date cannot be before start date",
     path: ["endDate"],
+}).refine(data => {
+    if (data.reason === 'Other, please specify') {
+        return !!data.otherReason && data.otherReason.trim().length > 0;
+    }
+    return true;
+}, {
+    message: "Please specify the reason",
+    path: ["otherReason"],
 });
+
 
 type LeaveRequestFormValues = z.infer<typeof leaveRequestSchema>;
 
@@ -64,25 +79,23 @@ export function AddLeaveRequestDialog({ children, leave, onSave, employees }: Ad
     control,
     handleSubmit,
     reset,
+    watch,
     formState: { errors },
   } = useForm<LeaveRequestFormValues>({
     resolver: zodResolver(leaveRequestSchema),
-    defaultValues: {
-      employeeId: leave?.employee.id || '',
-      startDate: leave?.startDate || new Date(),
-      endDate: leave?.endDate || new Date(),
-      reason: leave?.reason || '',
-      status: leave?.status || 'Pending',
-    },
   });
+
+  const selectedReason = watch('reason');
   
   React.useEffect(() => {
     if (open) {
+      const isOtherReason = leave?.reason && !leaveReasons.includes(leave.reason as any);
       reset({
         employeeId: leave?.employee.id || '',
         startDate: leave?.startDate ? new Date(leave.startDate) : new Date(),
         endDate: leave?.endDate ? new Date(leave.endDate) : new Date(),
-        reason: leave?.reason || '',
+        reason: isOtherReason ? 'Other, please specify' : leave?.reason || '',
+        otherReason: isOtherReason ? leave?.reason : '',
         status: leave?.status || 'Pending',
       });
     }
@@ -98,12 +111,14 @@ export function AddLeaveRequestDialog({ children, leave, onSave, employees }: Ad
 
     const duration = isSameDay(data.startDate, data.endDate) ? 0.5 : differenceInDays(data.endDate, data.startDate) + 1;
     
+    const finalReason = data.reason === 'Other, please specify' ? data.otherReason! : data.reason;
+
     const newLeave: Leave = {
       id: leave?.id || uuidv4(),
       employee: selectedEmployee,
       startDate: data.startDate,
       endDate: data.endDate,
-      reason: data.reason,
+      reason: finalReason,
       status: data.status,
       duration: duration,
     };
@@ -199,7 +214,7 @@ export function AddLeaveRequestDialog({ children, leave, onSave, employees }: Ad
                             <Input 
                                 id="startDate"
                                 type="date"
-                                value={format(new Date(field.value), 'yyyy-MM-dd')}
+                                value={field.value ? format(new Date(field.value), 'yyyy-MM-dd') : ''}
                                 onChange={e => field.onChange(new Date(e.target.value))}
                             />
                         )}
@@ -214,7 +229,7 @@ export function AddLeaveRequestDialog({ children, leave, onSave, employees }: Ad
                             <Input 
                                 id="endDate"
                                 type="date"
-                                value={format(new Date(field.value), 'yyyy-MM-dd')}
+                                 value={field.value ? format(new Date(field.value), 'yyyy-MM-dd') : ''}
                                 onChange={e => field.onChange(new Date(e.target.value))}
                             />
                         )}
@@ -229,12 +244,34 @@ export function AddLeaveRequestDialog({ children, leave, onSave, employees }: Ad
                 Reason
               </Label>
               <div className="col-span-3">
-                <Controller
+                 <Controller
                     name="reason"
                     control={control}
-                    render={({ field }) => <Textarea id="reason" {...field} rows={3} placeholder="Provide a brief reason for the leave..."/>}
+                    render={({ field }) => (
+                        <Select onValueChange={field.onChange} value={field.value}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a reason" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {leaveReasons.map(reason => (
+                                    <SelectItem key={reason} value={reason}>{reason}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
                 />
                  {errors.reason && <p className="text-xs text-destructive mt-1">{errors.reason.message}</p>}
+
+                 {selectedReason === 'Other, please specify' && (
+                    <div className='mt-2'>
+                        <Controller
+                            name="otherReason"
+                            control={control}
+                            render={({ field }) => <Textarea {...field} placeholder="Please specify your reason here..." />}
+                        />
+                        {errors.otherReason && <p className="text-xs text-destructive mt-1">{errors.otherReason.message}</p>}
+                    </div>
+                 )}
               </div>
             </div>
             
@@ -272,6 +309,3 @@ export function AddLeaveRequestDialog({ children, leave, onSave, employees }: Ad
     </Dialog>
   );
 }
-
-
-    
