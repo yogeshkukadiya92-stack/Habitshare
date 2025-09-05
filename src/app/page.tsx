@@ -37,6 +37,7 @@ import { ViewSwitcher } from '@/components/view-switcher';
 import { EmployeeCard } from '@/components/employee-card';
 import { useAuth } from '@/components/auth-provider';
 import { AddEmployeeDialog } from '@/components/add-employee-dialog';
+import { getYear, getMonth, startOfMonth, endOfMonth } from 'date-fns';
 
 
 interface EmployeeSummary {
@@ -58,6 +59,8 @@ function DashboardContent() {
   const [branches, setBranches] = React.useState<Branch[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [selectedBranch, setSelectedBranch] = React.useState('all');
+  const [selectedYear, setSelectedYear] = React.useState<string>('all');
+  const [selectedMonth, setSelectedMonth] = React.useState<string>('all');
   const [view, setView] = React.useState<'list' | 'grid'>('list');
   const { currentUser, getPermission } = useAuth();
   const pagePermission = getPermission('employees');
@@ -144,16 +147,36 @@ function DashboardContent() {
     });
   };
 
-  const { employeeSummary, branchOptions, performanceData } = React.useMemo(() => {
+  const { employeeSummary, branchOptions, performanceData, availableYears, availableMonths } = React.useMemo(() => {
         let krasToProcess = kras;
+
         if (pagePermission === 'employee_only' && currentUser) {
             krasToProcess = kras.filter(k => k.employee.id === currentUser.id);
         }
 
+        const filteredKrasByDate = krasToProcess.filter(kra => {
+            if (selectedYear === 'all' && selectedMonth === 'all') return true;
+            
+            const year = parseInt(selectedYear);
+            const month = parseInt(selectedMonth);
+            const kraStart = new Date(kra.startDate);
+            const kraEnd = new Date(kra.endDate);
+
+            if (selectedYear !== 'all' && selectedMonth === 'all') {
+                return getYear(kraStart) === year || getYear(kraEnd) === year || (getYear(kraStart) < year && getYear(kraEnd) > year);
+            }
+            if (selectedYear !== 'all' && selectedMonth !== 'all') {
+                 const monthStart = startOfMonth(new Date(year, month));
+                 const monthEnd = endOfMonth(new Date(year, month));
+                 return kraStart <= monthEnd && kraEnd >= monthStart;
+            }
+            return true;
+        });
+
         const employeeMap = new Map<string, { employee: Employee; kras: KRA[] }>();
         const managerIds = new Set(branches.map(b => b.managerId));
 
-        krasToProcess.forEach(kra => {
+        filteredKrasByDate.forEach(kra => {
             const isManager = managerIds.has(kra.employee.id);
             const employeeWithRole = {...kra.employee, isManager };
             if (!employeeMap.has(kra.employee.id)) {
@@ -192,9 +215,29 @@ function DashboardContent() {
         const allEmployees: Employee[] = Array.from(new Map(kras.map(kra => [kra.employee.id, kra.employee])).values());
         const uniqueBranches = ['all', ...Array.from(new Set(allEmployees.map(e => e.branch).filter(Boolean)))];
 
-        return { employeeSummary: sortedSummary, branchOptions: uniqueBranches, performanceData: sortedPerfData };
+        const yearsSet = new Set<number>();
+        kras.forEach(kra => {
+            yearsSet.add(getYear(new Date(kra.startDate)));
+            yearsSet.add(getYear(new Date(kra.endDate)));
+        });
+         if (!yearsSet.has(getYear(new Date()))) {
+            yearsSet.add(getYear(new Date()));
+        }
 
-    }, [kras, branches, pagePermission, currentUser]);
+        const monthMap = [
+            'January', 'February', 'March', 'April', 'May', 'June', 
+            'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+
+        return { 
+            employeeSummary: sortedSummary, 
+            branchOptions: uniqueBranches, 
+            performanceData: sortedPerfData,
+            availableYears: Array.from(yearsSet).sort((a, b) => b - a),
+            availableMonths: monthMap
+        };
+
+    }, [kras, branches, pagePermission, currentUser, selectedYear, selectedMonth]);
 
 
   const employees: Employee[] = Array.from(new Map(kras.map(kra => [kra.employee.id, kra.employee])).values());
@@ -226,6 +269,28 @@ function DashboardContent() {
                 </div>
                 <div className="flex items-center gap-2">
                     {pagePermission !== 'employee_only' && <ViewSwitcher view={view} onViewChange={handleViewChange} />}
+                     <Select value={selectedYear} onValueChange={setSelectedYear}>
+                        <SelectTrigger className="w-[120px]">
+                            <SelectValue placeholder="Year" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Years</SelectItem>
+                            {availableYears.map(year => (
+                                <SelectItem key={year} value={String(year)}>{year}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <Select value={selectedMonth} onValueChange={setSelectedMonth} disabled={selectedYear === 'all'}>
+                        <SelectTrigger className="w-[140px]">
+                            <SelectValue placeholder="Month" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Months</SelectItem>
+                            {availableMonths.map((month, index) => (
+                                <SelectItem key={index} value={String(index)}>{month}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                     {pagePermission !== 'employee_only' && (
                         <Select value={selectedBranch} onValueChange={setSelectedBranch}>
                             <SelectTrigger className="w-[180px]">
