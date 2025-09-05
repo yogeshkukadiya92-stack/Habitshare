@@ -39,7 +39,7 @@ export function AppSidebar() {
       <SidebarHeader>
         <Link href="/" className="flex items-center gap-2 font-semibold">
            <Package2 />
-           <span>KRA Dashboard</span>
+           <span>HR Dashboard</span>
         </Link>
       </SidebarHeader>
       <SidebarContent>

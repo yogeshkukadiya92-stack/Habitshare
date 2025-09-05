@@ -7,7 +7,7 @@ import { AppSidebar } from '@/components/app-sidebar';
 import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
 
 export const metadata: Metadata = {
-  title: 'KRA Dashboard',
+  title: 'HR Dashboard',
   description: 'Manage and track Key Result Areas for your team.',
   manifest: '/manifest.json',
 };
