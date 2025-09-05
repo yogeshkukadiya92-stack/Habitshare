@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -47,6 +48,7 @@ const kraSchema = z.object({
   bonus: z.number().min(0).nullable(),
   penalty: z.number().min(0).nullable(),
   actions: z.array(actionItemSchema).optional(),
+  handover: z.string().optional(),
 }).superRefine((data, ctx) => {
     if (data.weightage && data.actions) {
         const totalActionMarks = data.actions.reduce((sum, action) => sum + (action.marks || 0), 0);
@@ -98,6 +100,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
       bonus: kra?.bonus || null,
       penalty: kra?.penalty || null,
       actions: [],
+      handover: kra?.handover || '',
     },
   });
 
@@ -134,6 +137,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
         bonus: kra?.bonus || null,
         penalty: kra?.penalty || null,
         actions: kra?.actions?.map(a => ({...a, dueDate: new Date(a.dueDate)})) || [],
+        handover: kra?.handover || '',
       });
     }
   }, [open, kra, reset, employees]);
@@ -199,6 +203,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
       startDate: kra?.startDate || new Date(),
       endDate: kra?.endDate || new Date(new Date().setMonth(new Date().getMonth() + 3)),
       actions: data.actions,
+      handover: data.handover,
     };
     onSave?.(newKra);
     toast({
@@ -466,6 +471,26 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                     />
                     {errors.penalty && <p className="text-xs text-destructive mt-1">{errors.penalty.message}</p>}
                 </div>
+                </div>
+                 <div className="grid grid-cols-4 items-start gap-4">
+                    <Label htmlFor="handover" className="text-right pt-2">
+                        Handover Notes
+                    </Label>
+                    <div className="col-span-3">
+                        <Controller
+                            name="handover"
+                            control={control}
+                            render={({ field }) => (
+                                <Textarea 
+                                    id="handover" 
+                                    {...field} 
+                                    rows={3} 
+                                    placeholder="Add any notes for handover..."
+                                />
+                            )}
+                        />
+                        {errors.handover && <p className="text-xs text-destructive mt-1">{errors.handover.message}</p>}
+                    </div>
                 </div>
             </fieldset>
           </div>

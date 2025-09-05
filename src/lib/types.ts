@@ -54,6 +54,7 @@ export interface KRA {
   startDate: Date;
   endDate: Date;
   actions?: ActionItem[];
+  handover?: string;
 }
 
 export interface Branch {
