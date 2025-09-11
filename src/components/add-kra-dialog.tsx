@@ -219,12 +219,13 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
     // Case 1: KRA has actions (KPIs)
     if (actions && actions.length > 0) {
         
+        const totalKpiTarget = actions.reduce((sum, action) => sum + (action.target || 0), 0);
+        
         actions.forEach((action, index) => {
-            const kpiAchieved = action.updates?.reduce((sum, u) => sum + (u.value || 0), 0) || 0;
+            const kpiAchieved = action.achieved || action.updates?.reduce((sum, u) => sum + (u.value || 0), 0) || 0;
             
-            // Auto-calculate weightage for each KPI
-            const kpiWeightage = (weightage && target && action.target) 
-                ? (action.target / target) * weightage 
+            const kpiWeightage = (weightage && totalKpiTarget > 0 && action.target) 
+                ? (action.target / totalKpiTarget) * weightage 
                 : 0;
 
             if (watch(`actions.${index}.weightage`) !== parseFloat(kpiWeightage.toFixed(2))) {
@@ -322,7 +323,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
     
     let kraAchieved = 0;
     const updatedActions = data.actions?.map(action => {
-        const achieved = action.updates?.reduce((sum, u) => sum + (u.value || 0), 0) || action.achieved || 0;
+        const achieved = action.achieved || action.updates?.reduce((sum, u) => sum + (u.value || 0), 0) || 0;
         kraAchieved += achieved;
         return {...action, achieved };
     });
@@ -520,7 +521,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                     />
                                 )}
                             />
-                            <div className='flex-1 grid grid-cols-3 gap-2'>
+                            <div className='flex-1 grid grid-cols-[1fr,80px,80px,80px] gap-2'>
                                 <Controller
                                     name={`actions.${index}.name`}
                                     control={control}
@@ -539,11 +540,25 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                     render={({ field: targetField }) => (
                                         <Input 
                                             type="number"
-                                            placeholder="Target (e.g. 1500)"
+                                            placeholder="Target"
                                             className="bg-background"
                                             {...targetField}
                                             value={targetField.value ?? ''}
                                             onChange={e => targetField.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
+                                        />
+                                    )}
+                                />
+                                 <Controller
+                                    name={`actions.${index}.achieved`}
+                                    control={control}
+                                    render={({ field: achievedField }) => (
+                                        <Input 
+                                            type="number"
+                                            placeholder="Achieved"
+                                            className="bg-background"
+                                            {...achievedField}
+                                            value={achievedField.value ?? ''}
+                                            onChange={e => achievedField.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
                                         />
                                     )}
                                 />
@@ -553,7 +568,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                     render={({ field: weightageField }) => (
                                         <Input 
                                             type="number"
-                                            placeholder="Auto Weightage"
+                                            placeholder="Auto"
                                             className="bg-muted"
                                             {...weightageField}
                                             value={weightageField.value ?? ''}
@@ -588,7 +603,11 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                 update.id = uuidv4();
                                 update.date = new Date();
                                 const newUpdates = [...currentUpdates, update];
-                                update(index, {...field, updates: newUpdates });
+                                
+                                const currentAchieved = field.achieved || 0;
+                                const newAchieved = currentAchieved + (update.value || 0);
+
+                                update(index, {...field, updates: newUpdates, achieved: newAchieved });
                             }}>
                                 <Button type="button" size="sm" variant="outline" className='gap-2 bg-background'>
                                     <MessageSquare className='h-4 w-4'/> Add Update
@@ -706,5 +725,6 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
     </Dialog>
   );
 }
+
 
 
