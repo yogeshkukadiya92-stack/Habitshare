@@ -39,6 +39,7 @@ export interface WeeklyUpdate {
     date: Date;
     status: WeeklyUpdateStatus;
     comment: string;
+    value?: number;
 }
 
 export interface ActionItem {
@@ -48,6 +49,8 @@ export interface ActionItem {
   isCompleted: boolean;
   weightage: number;
   updates?: WeeklyUpdate[];
+  target?: number;
+  achieved?: number;
 }
 
 export interface KRA {
