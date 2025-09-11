@@ -68,7 +68,7 @@ export type RoutineTaskStatus = 'To Do' | 'In Progress' | 'Completed';
 export interface RoutineTask {
     id: string;
     title: string;
-    description: string;
+    description?: string;
     employee: Employee;
     assignedDate: Date;
     dueDate: Date;

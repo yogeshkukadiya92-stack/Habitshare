@@ -37,7 +37,7 @@ import { format, parseISO } from 'date-fns';
 
 const routineTaskSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.'),
-  description: z.string().min(1, "Description cannot be empty."),
+  description: z.string().optional(),
   employeeId: z.string().min(1, 'Employee is required.'),
   assignedDate: z.date(),
   dueDate: z.date(),
