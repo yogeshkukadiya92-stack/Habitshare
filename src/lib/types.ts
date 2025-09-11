@@ -148,6 +148,10 @@ export interface Holiday {
     type: HolidayType;
 }
 
+export interface HolidayWithEvents extends Holiday {
+    otherEvents?: string[];
+}
+
 export type RecruitmentStatus = 'Applied' | 'Screening' | 'Interview' | 'Second Round' | 'Offered' | 'Hired' | 'Rejected' | 'Comment';
 
 export interface Recruit {

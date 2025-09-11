@@ -5,7 +5,7 @@
 import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import type { Employee, KRA, Holiday } from '@/lib/types';
+import type { Employee, KRA, Holiday, HolidayWithEvents } from '@/lib/types';
 import { getMonth, getYear, isSameDay, format, getDate } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -110,14 +110,37 @@ export default function HRCalendarPage() {
         };
     }, [holidays]);
 
-    const filteredHolidays = React.useMemo(() => {
-        return holidays.filter(holiday => {
-            const date = new Date(holiday.date);
-            const yearMatch = selectedYear === 'all' || getYear(date) === parseInt(selectedYear);
-            const monthMatch = selectedMonth === 'all' || getMonth(date) === parseInt(selectedMonth);
-            return yearMatch && monthMatch;
+    const filteredHolidays: HolidayWithEvents[] = React.useMemo(() => {
+        const employeeEvents: CalendarEvent[] = [];
+        employees.forEach(emp => {
+             if (emp.birthDate) {
+                const birthDate = new Date(emp.birthDate);
+                employeeEvents.push({ date: birthDate, type: 'birthday', title: `${emp.name}'s Birthday`, employee: emp });
+            }
+            if (emp.joiningDate) {
+                const joiningDate = new Date(emp.joiningDate);
+                 employeeEvents.push({ date: joiningDate, type: 'anniversary', title: `${emp.name}'s Work Anniversary`, employee: emp });
+            }
         });
-    }, [holidays, selectedYear, selectedMonth]);
+
+        return holidays
+            .filter(holiday => {
+                const date = new Date(holiday.date);
+                const yearMatch = selectedYear === 'all' || getYear(date) === parseInt(selectedYear);
+                const monthMatch = selectedMonth === 'all' || getMonth(date) === parseInt(selectedMonth);
+                return yearMatch && monthMatch;
+            })
+            .map(holiday => {
+                const holidayDate = new Date(holiday.date);
+                const otherEvents = employeeEvents
+                    .filter(event => 
+                        getMonth(event.date) === getMonth(holidayDate) && 
+                        getDate(event.date) === getDate(holidayDate)
+                    )
+                    .map(e => e.title);
+                return { ...holiday, otherEvents };
+            });
+    }, [holidays, employees, selectedYear, selectedMonth]);
 
     const handleExport = () => {
         const dataToExport = holidays.map(h => ({
