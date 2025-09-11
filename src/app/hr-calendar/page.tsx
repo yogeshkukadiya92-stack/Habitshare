@@ -5,13 +5,13 @@
 import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
-import { mockKras, mockHolidays } from '@/lib/data';
 import type { Employee, KRA, Holiday } from '@/lib/types';
 import { getMonth, getYear, isSameDay, format, getDate } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Cake, PartyPopper, Briefcase } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useDataStore } from '@/hooks/use-data-store';
 
 type EventType = 'birthday' | 'anniversary' | 'holiday';
 
@@ -29,19 +29,9 @@ const eventConfig: Record<EventType, { className: string, icon: React.ElementTyp
 };
 
 export default function HRCalendarPage() {
-    const [kras, setKras] = React.useState<KRA[]>(mockKras);
-    const [holidays, setHolidays] = React.useState<Holiday[]>(mockHolidays);
-    const [loading, setLoading] = React.useState(true);
+    const { employees, holidays, loading } = useDataStore();
     const [selectedDate, setSelectedDate] = React.useState<Date>(new Date());
     const [currentMonth, setCurrentMonth] = React.useState<Date>(new Date());
-    
-    const employees: Employee[] = React.useMemo(() => {
-        return Array.from(new Map(kras.map(kra => [kra.employee.id, kra.employee])).values());
-    }, [kras]);
-
-    React.useEffect(() => {
-        setLoading(false);
-    }, []);
 
     const calendarEvents: CalendarEvent[] = React.useMemo(() => {
         const events: CalendarEvent[] = [];

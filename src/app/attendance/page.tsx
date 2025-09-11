@@ -5,7 +5,6 @@
 import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserCheck, Upload, Download, TrendingUp } from "lucide-react";
-import { mockKras, mockAttendances } from '@/lib/data';
 import type { Employee, KRA, Attendance, AttendanceStatus } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AttendanceTable } from '@/components/attendance-table';
@@ -23,6 +22,7 @@ import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/components/auth-provider';
+import { useDataStore } from '@/hooks/use-data-store';
 
 
 interface MonthlyStat {
@@ -35,9 +35,7 @@ interface MonthlyStat {
 }
 
 export default function AttendancePage() {
-    const [kras, setKras] = React.useState<KRA[]>(mockKras);
-    const [attendances, setAttendances] = React.useState<Attendance[]>(mockAttendances);
-    const [loading, setLoading] = React.useState(true);
+    const { employees, attendances, loading, handleSaveAttendance } = useDataStore();
     const [selectedDate, setSelectedDate] = React.useState<Date>(new Date());
     const fileInputRef = React.useRef<HTMLInputElement>(null);
     const { toast } = useToast();
@@ -46,32 +44,6 @@ export default function AttendancePage() {
 
     const [selectedYear, setSelectedYear] = React.useState<number>(getYear(new Date()));
     const [selectedMonth, setSelectedMonth] = React.useState<number>(getMonth(new Date()));
-
-    const employees: Employee[] = React.useMemo(() => {
-        return Array.from(new Map(kras.map(kra => [kra.employee.id, kra.employee])).values())
-            .sort((a, b) => a.name.localeCompare(b.name));
-    }, [kras]);
-
-    React.useEffect(() => {
-        setLoading(false);
-    }, []);
-
-    const handleSaveAttendance = (attendanceToSave: Attendance) => {
-        setAttendances((prevAttendances) => {
-            const exists = prevAttendances.some(
-                a => a.employee.id === attendanceToSave.employee.id &&
-                format(new Date(a.date), 'yyyy-MM-dd') === format(new Date(attendanceToSave.date), 'yyyy-MM-dd')
-            );
-            if (exists) {
-                return prevAttendances.map((att) =>
-                    (att.employee.id === attendanceToSave.employee.id && format(new Date(att.date), 'yyyy-MM-dd') === format(new Date(attendanceToSave.date), 'yyyy-MM-dd'))
-                        ? attendanceToSave
-                        : att
-                );
-            }
-            return [...prevAttendances, attendanceToSave];
-        });
-    };
 
     const handleExport = () => {
         const dataToExport = attendances.map(a => ({
@@ -127,21 +99,7 @@ export default function AttendancePage() {
                     };
                 });
 
-                // Merge imported data with existing data
-                const updatedAttendances = [...attendances];
-                importedAttendances.forEach(importedAtt => {
-                    const index = updatedAttendances.findIndex(
-                        a => a.employee.id === importedAtt.employee.id &&
-                             format(new Date(a.date), 'yyyy-MM-dd') === format(new Date(importedAtt.date), 'yyyy-MM-dd')
-                    );
-                    if (index !== -1) {
-                        updatedAttendances[index] = importedAtt; // Update existing
-                    } else {
-                        updatedAttendances.push(importedAtt); // Add new
-                    }
-                });
-
-                setAttendances(updatedAttendances);
+                importedAttendances.forEach(handleSaveAttendance);
                 toast({ title: "Import Successful", description: `${json.length} records have been imported.` });
 
             } catch(error: any) {

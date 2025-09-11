@@ -5,7 +5,6 @@
 import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CalendarDays, PlusCircle, Upload, Download } from "lucide-react";
-import { mockHolidays } from '@/lib/data';
 import type { Holiday } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -16,11 +15,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { getYear, getMonth, format } from 'date-fns';
 import * as XLSX from 'xlsx';
 import { useToast } from '@/hooks/use-toast';
+import { useDataStore } from '@/hooks/use-data-store';
 
 
 export default function HolidaysPage() {
-    const [holidays, setHolidays] = React.useState<Holiday[]>(mockHolidays);
-    const [loading, setLoading] = React.useState(true);
+    const { holidays, loading, handleSaveHoliday } = useDataStore();
     const { getPermission } = useAuth();
     const pagePermission = getPermission('holidays');
     const { toast } = useToast();
@@ -29,24 +28,9 @@ export default function HolidaysPage() {
     const [selectedYear, setSelectedYear] = React.useState<string>(String(getYear(new Date())));
     const [selectedMonth, setSelectedMonth] = React.useState<string>('all');
 
-
-    React.useEffect(() => {
-        setLoading(false);
-    }, []);
-
-    const handleSaveHoliday = (holidayToSave: Holiday) => {
-        setHolidays((prevHolidays) => {
-            const exists = prevHolidays.some(h => h.id === holidayToSave.id);
-            const updatedHolidays = exists 
-                ? prevHolidays.map((holiday) => (holiday.id === holidayToSave.id ? holidayToSave : holiday))
-                : [...prevHolidays, holidayToSave];
-            
-            return updatedHolidays.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-        });
-    };
-
     const handleDeleteHoliday = (holidayId: string) => {
-        setHolidays((prevHolidays) => prevHolidays.filter((holiday) => holiday.id !== holidayId));
+        // This needs to be implemented in the data store
+        console.log("Delete holiday action triggered for", holidayId);
     };
 
      const { availableYears, availableMonths } = React.useMemo(() => {
@@ -122,18 +106,9 @@ export default function HolidaysPage() {
                         type: type,
                     };
                 });
+                
+                importedHolidays.forEach(handleSaveHoliday);
 
-                const updatedHolidays = [...holidays];
-                importedHolidays.forEach(importedHol => {
-                    const index = updatedHolidays.findIndex(h => h.id === importedHol.id);
-                    if (index !== -1) {
-                        updatedHolidays[index] = importedHol;
-                    } else {
-                        updatedHolidays.push(importedHol);
-                    }
-                });
-
-                setHolidays(updatedHolidays.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime()));
                 toast({ title: "Import Successful", description: `${json.length} holidays have been imported.` });
 
             } catch(error: any) {

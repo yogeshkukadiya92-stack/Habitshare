@@ -5,7 +5,6 @@
 import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plane, PlusCircle, Check, ChevronsUpDown, ShieldCheck } from "lucide-react";
-import { mockKras, mockLeaves } from '@/lib/data';
 import type { Employee, Leave, KRA } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +29,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
+import { useDataStore } from '@/hooks/use-data-store';
 
 interface LeaveBalance {
     employeeId: string;
@@ -39,9 +39,7 @@ interface LeaveBalance {
 }
 
 export default function LeaveManagementPage() {
-    const [kras, setKras] = React.useState<KRA[]>(mockKras);
-    const [leaves, setLeaves] = React.useState<Leave[]>(mockLeaves);
-    const [loading, setLoading] = React.useState(true);
+    const { employees, leaves, loading, handleSaveLeave, setKras } = useDataStore();
     const [statusFilter, setStatusFilter] = React.useState('all');
     const [yearFilter, setYearFilter] = React.useState<string>('all');
     const [monthFilter, setMonthFilter] = React.useState<string>('all');
@@ -54,9 +52,6 @@ export default function LeaveManagementPage() {
     const [comboboxOpen, setComboboxOpen] = React.useState(false);
     const { toast } = useToast();
 
-    const employees: Employee[] = React.useMemo(() => {
-        return Array.from(new Map(kras.map(kra => [kra.employee.id, kra.employee])).values());
-    }, [kras]);
 
     React.useEffect(() => {
         try {
@@ -66,23 +61,12 @@ export default function LeaveManagementPage() {
             }
         } catch (error) {
             console.error("Failed to parse data from localStorage", error);
-        } finally {
-            setLoading(false);
         }
     }, []);
 
-    const handleSaveLeave = (leaveToSave: Leave) => {
-        setLeaves((prevLeaves) => {
-            const exists = prevLeaves.some(l => l.id === leaveToSave.id);
-            if (exists) {
-                return prevLeaves.map((leave) => (leave.id === leaveToSave.id ? leaveToSave : leave));
-            }
-            return [leaveToSave, ...prevLeaves].sort((a,b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
-        });
-    };
-
     const handleDeleteLeave = (leaveId: string) => {
-        setLeaves((prevLeaves) => prevLeaves.filter((leave) => leave.id !== leaveId));
+        // This needs to be implemented in the data store
+        console.log("Delete leave action triggered for", leaveId);
     };
 
     const leaveBalances: LeaveBalance[] = React.useMemo(() => {

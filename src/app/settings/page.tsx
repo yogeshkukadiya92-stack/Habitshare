@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from 'uuid';
 import type { Branch, Employee, KRA, UserRole, EmployeePermissions, PermissionLevel } from '@/lib/types';
-import { mockKras } from '@/lib/data';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Check, ChevronsUpDown, Edit, PlusCircle, Trash2, UserCog, KeySquare } from 'lucide-react';
 import {
@@ -32,6 +31,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/components/auth-provider';
 import { EditEmployeeDialog } from '@/components/edit-employee-dialog';
+import { useDataStore } from '@/hooks/use-data-store';
 
 
 const navItems = [
@@ -239,36 +239,20 @@ const BranchDialog = ({
 
 
 export default function SettingsPage() {
-    const [branches, setBranches] = React.useState<Branch[]>([]);
-    const [kras, setKras] = React.useState<KRA[]>(mockKras);
-    const [loading, setLoading] = React.useState(true);
+    const { employees, branches, loading, setKras, setBranches } = useDataStore();
     const { toast } = useToast();
     const { getPermission } = useAuth();
     const pagePermission = getPermission('settings');
 
 
-    const employees: Employee[] = React.useMemo(() => {
-        const employeeMap = new Map<string, Employee>();
-         kras.forEach(kra => {
-            if (!employeeMap.has(kra.employee.id)) {
-                employeeMap.set(kra.employee.id, kra.employee);
-            }
-        });
-        
-        const allEmployees = Array.from(employeeMap.values());
-        
-        const managerIds = new Set(branches.map(b => b.managerId));
-
-        return allEmployees.map(emp => ({
+    const sortedEmployees = React.useMemo(() => {
+         const managerIds = new Set(branches.map(b => b.managerId));
+         return employees.map(emp => ({
             ...emp,
             isManager: managerIds.has(emp.id)
         })).sort((a,b) => a.name.localeCompare(b.name));
+    }, [employees, branches])
 
-    }, [kras, branches]);
-
-    React.useEffect(() => {
-        setLoading(false);
-    }, []);
 
     const handleSaveBranch = (branchToSave: Branch) => {
         const isEditing = branches.some(b => b.id === branchToSave.id);
@@ -282,17 +266,6 @@ export default function SettingsPage() {
             const updatedBranches = isEditing 
                 ? prevBranches.map(b => b.id === branchToSave.id ? branchToSave : b)
                 : [...prevBranches, branchToSave];
-            
-            const managerIds = new Set(updatedBranches.map(b => b.managerId));
-            const updatedKras = kras.map(kra => ({
-                ...kra,
-                employee: {
-                    ...kra.employee,
-                    isManager: managerIds.has(kra.employee.id)
-                }
-            }));
-            setKras(updatedKras);
-
             return updatedBranches;
         });
 
@@ -312,7 +285,7 @@ export default function SettingsPage() {
     };
 
     const handleRoleChange = (employeeId: string, role: UserRole) => {
-        const updatedKras = kras.map(kra => {
+        setKras(prevKras => prevKras.map(kra => {
             if (kra.employee.id === employeeId) {
                 return {
                     ...kra,
@@ -320,8 +293,7 @@ export default function SettingsPage() {
                 };
             }
             return kra;
-        });
-        setKras(updatedKras);
+        }));
         toast({
             title: "Role Updated",
             description: `Role has been changed to ${role}.`
@@ -329,18 +301,16 @@ export default function SettingsPage() {
     };
     
     const handleSaveEmployee = (employeeToSave: Employee) => {
-        setKras(prevKras => {
-            return prevKras.map(kra => {
-                if (kra.employee.id === employeeToSave.id) {
-                    return { ...kra, employee: employeeToSave };
-                }
-                return kra;
-            });
-        });
+        setKras(prevKras => prevKras.map(kra => {
+            if (kra.employee.id === employeeToSave.id) {
+                return { ...kra, employee: employeeToSave };
+            }
+            return kra;
+        }));
     };
 
     const handlePermissionChange = (employeeId: string, permissions: EmployeePermissions) => {
-         const updatedKras = kras.map(kra => {
+         setKras(prevKras => prevKras.map(kra => {
             if (kra.employee.id === employeeId) {
                 return {
                     ...kra,
@@ -348,8 +318,7 @@ export default function SettingsPage() {
                 };
             }
             return kra;
-        });
-        setKras(updatedKras);
+        }));
         toast({
             title: "Permissions Updated",
             description: `Permissions have been updated for the user.`
@@ -368,7 +337,7 @@ export default function SettingsPage() {
                         </CardDescription>
                     </div>
                     {pagePermission === 'download' && (
-                        <BranchDialog onSave={handleSaveBranch} employees={employees}>
+                        <BranchDialog onSave={handleSaveBranch} employees={sortedEmployees}>
                             <Button>
                                 <PlusCircle className="mr-2 h-4 w-4" />
                                 Add Branch
@@ -393,7 +362,7 @@ export default function SettingsPage() {
                                     </TableRow>
                                 ) : branches.length > 0 ? (
                                     branches.map((branch) => {
-                                        const manager = employees.find(e => e.id === branch.managerId);
+                                        const manager = sortedEmployees.find(e => e.id === branch.managerId);
                                         return (
                                         <TableRow key={branch.id}>
                                             <TableCell className="font-medium">{branch.name}</TableCell>
@@ -413,7 +382,7 @@ export default function SettingsPage() {
                                             {pagePermission === 'download' && (
                                             <TableCell className="text-right">
                                                  <div className="flex items-center justify-end gap-2">
-                                                     <BranchDialog branch={branch} onSave={handleSaveBranch} employees={employees}>
+                                                     <BranchDialog branch={branch} onSave={handleSaveBranch} employees={sortedEmployees}>
                                                         <Button variant="ghost" size="icon">
                                                             <Edit className="h-4 w-4" />
                                                         </Button>
@@ -475,7 +444,7 @@ export default function SettingsPage() {
                             <TableBody>
                                 {loading ? (
                                     <TableRow><TableCell colSpan={5} className="text-center">Loading users...</TableCell></TableRow>
-                                ) : employees.map(employee => (
+                                ) : sortedEmployees.map(employee => (
                                     <TableRow key={employee.id}>
                                         <TableCell>
                                              <div className="flex items-center gap-3">

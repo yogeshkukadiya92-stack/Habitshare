@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -8,6 +7,7 @@ import { auth } from '@/lib/firebase';
 import { Skeleton } from './ui/skeleton';
 import type { Employee, KRA, EmployeePermissions, PermissionLevel } from '@/lib/types';
 import { mockKras } from '@/lib/data';
+import { DataStoreProvider } from '@/hooks/use-data-store';
 
 interface AuthContextType {
   user: User | null;
@@ -119,7 +119,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     )
   }
 
-  return <AuthContext.Provider value={{ user, loading, currentUser, getPermission }}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ user, loading, currentUser, getPermission }}>
+      <DataStoreProvider>
+        {children}
+      </DataStoreProvider>
+    </AuthContext.Provider>
+  );
 };
 
 export const useAuth = () => useContext(AuthContext);

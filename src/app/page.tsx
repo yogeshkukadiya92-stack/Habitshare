@@ -13,7 +13,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { AddKraDialog } from '@/components/add-kra-dialog';
-import { mockKras } from '@/lib/data';
 import type { Employee, KRA, Branch } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -38,6 +37,7 @@ import { EmployeeCard } from '@/components/employee-card';
 import { useAuth } from '@/components/auth-provider';
 import { AddEmployeeDialog } from '@/components/add-employee-dialog';
 import { getYear, getMonth, startOfMonth, endOfMonth } from 'date-fns';
+import { useDataStore } from '@/hooks/use-data-store';
 
 
 interface EmployeeSummary {
@@ -55,9 +55,14 @@ interface EmployeePerformance {
 
 
 function DashboardContent() {
-  const [kras, setKras] = React.useState<KRA[]>(mockKras);
-  const [branches, setBranches] = React.useState<Branch[]>([]);
-  const [loading, setLoading] = React.useState(true);
+  const { 
+    kras, 
+    branches, 
+    loading, 
+    employees, 
+    handleSaveKra, 
+    handleSaveEmployee 
+  } = useDataStore();
   const [selectedBranch, setSelectedBranch] = React.useState('all');
   const [selectedYear, setSelectedYear] = React.useState<string>('all');
   const [selectedMonth, setSelectedMonth] = React.useState<string>('all');
@@ -73,55 +78,8 @@ function DashboardContent() {
         }
     } catch (error) {
         console.error("Failed to parse data from localStorage", error);
-    } finally {
-        setLoading(false);
     }
   }, []);
-
-  const handleSaveKra = (kraToSave: KRA) => {
-    setKras((prevKras) => {
-      const exists = prevKras.some(k => k.id === kraToSave.id);
-      if (exists) {
-        return prevKras.map((kra) => (kra.id === kraToSave.id ? kraToSave : kra));
-      }
-      return [...prevKras, kraToSave];
-    });
-  };
-
-  const handleSaveEmployee = (employeeToSave: Employee) => {
-     setKras(prevKras => {
-        const employeeExists = prevKras.some(k => k.employee.id === employeeToSave.id);
-
-        if (employeeExists) {
-            // Update existing employee's details across all their KRAs
-            return prevKras.map(kra => {
-                if (kra.employee.id === employeeToSave.id) {
-                    return { ...kra, employee: employeeToSave };
-                }
-                return kra;
-            });
-        } else {
-            // Add a new employee with a placeholder KRA (or handle as needed)
-            // For now, we'll just add the employee to the list via a "dummy" KRA
-            // that won't be displayed but will make the employee appear in the list.
-            const newPlaceholderKra: KRA = {
-                id: `KRA-placeholder-${employeeToSave.id}`,
-                taskDescription: 'Placeholder KRA for new employee',
-                employee: employeeToSave,
-                progress: 0,
-                status: 'Pending',
-                weightage: null,
-                marksAchieved: null,
-                bonus: null,
-                penalty: null,
-                startDate: new Date(),
-                endDate: new Date(),
-                actions: [],
-            };
-            return [...prevKras, newPlaceholderKra];
-        }
-    });
-  };
 
   const { employeeSummary, branchOptions, performanceData, availableYears, availableMonths } = React.useMemo(() => {
         let krasToProcess = kras;
@@ -215,8 +173,6 @@ function DashboardContent() {
 
     }, [kras, branches, pagePermission, currentUser, selectedYear, selectedMonth]);
 
-
-  const employees: Employee[] = Array.from(new Map(kras.map(kra => [kra.employee.id, kra.employee])).values());
  
   const filteredEmployeeSummary = selectedBranch === 'all'
         ? employeeSummary

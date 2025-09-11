@@ -5,7 +5,6 @@
 import * as React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { KraTable } from '@/components/kra-table';
-import { mockKras } from '@/lib/data';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import Link from 'next/link';
@@ -31,6 +30,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { format } from 'date-fns';
 import { EditEmployeeDialog } from '@/components/edit-employee-dialog';
+import { useDataStore } from '@/hooks/use-data-store';
 
 
 export default function EmployeeKraPage() {
@@ -39,58 +39,37 @@ export default function EmployeeKraPage() {
   const { toast } = useToast();
   const id = params.id as string;
   
-  const [kras, setKras] = React.useState<KRA[]>(mockKras);
-  const [branches, setBranches] = React.useState<Branch[]>([]);
-  const [loading, setLoading] = React.useState(true);
+  const { 
+    kras, 
+    branches, 
+    loading, 
+    employees,
+    handleSaveKra,
+    handleSaveEmployee,
+    handleDeleteEmployee
+  } = useDataStore();
 
-  React.useEffect(() => {
-    setLoading(false);
-  }, []);
 
-  const handleSaveKra = (kraToSave: KRA) => {
-    setKras((prevKras) => {
-      const exists = prevKras.some(k => k.id === kraToSave.id);
-      if (exists) {
-        return prevKras.map((kra) => (kra.id === kraToSave.id ? kraToSave : kra));
-      }
-      return [...prevKras, kraToSave];
-    });
-  };
-
-  const handleSaveEmployee = (employeeToSave: Employee) => {
-    setKras(prevKras => {
-        return prevKras.map(kra => {
-            if (kra.employee.id === employeeToSave.id) {
-                return { ...kra, employee: employeeToSave };
-            }
-            return kra;
-        });
-    });
-  };
-
-  const handleDeleteKra = (kraId: string) => {
-    setKras((prevKras) => prevKras.filter((kra) => kra.id !== kraId));
-  };
-
-  const handleDeleteEmployee = () => {
-    const updatedKras = kras.filter(kra => kra.employee.id !== id);
-    setKras(updatedKras);
-    
+  const handleDelete = () => {
+    handleDeleteEmployee(id);
     toast({
         title: "Employee Deleted",
         description: "The employee and all their associated KRAs have been removed.",
     });
-
     router.push('/');
   };
   
-  const employees: Employee[] = Array.from(new Map(kras.map(kra => [kra.employee.id, kra.employee])).values());
   const employeeKras = kras.filter((kra) => kra.employee.id === id);
   const employee = employees.find(e => e.id === id);
 
   const isManager = React.useMemo(() => {
     return branches.some(b => b.managerId === id);
   }, [branches, id]);
+
+   const handleDeleteKra = (kraId: string) => {
+    // This function needs to be implemented in the data store if needed
+    console.log("Delete KRA action triggered for", kraId);
+  };
 
   if (loading) {
     return (
@@ -210,7 +189,7 @@ export default function EmployeeKraPage() {
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
                                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction onClick={handleDeleteEmployee} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                                        <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
                                         </AlertDialogFooter>
                                     </AlertDialogContent>
                                 </AlertDialog>

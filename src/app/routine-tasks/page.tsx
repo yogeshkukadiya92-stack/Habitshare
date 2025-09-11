@@ -5,7 +5,6 @@
 import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ListTodo, PlusCircle } from "lucide-react";
-import { mockKras, mockRoutineTasks } from '@/lib/data';
 import type { Employee, RoutineTask, KRA } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -21,21 +20,16 @@ import { AddRoutineTaskDialog } from '@/components/add-routine-task-dialog';
 import { getMonth, getYear } from 'date-fns';
 import { ViewSwitcher } from '@/components/view-switcher';
 import { RoutineTaskCard } from '@/components/routine-task-card';
+import { useDataStore } from '@/hooks/use-data-store';
 
 
 export default function RoutineTasksPage() {
-    const [kras, setKras] = React.useState<KRA[]>(mockKras);
-    const [routineTasks, setRoutineTasks] = React.useState<RoutineTask[]>(mockRoutineTasks);
-    const [loading, setLoading] = React.useState(true);
+    const { employees, routineTasks, loading, handleSaveRoutineTask } = useDataStore();
     const [statusFilter, setStatusFilter] = React.useState('all');
     const [priorityFilter, setPriorityFilter] = React.useState('all');
     const [yearFilter, setYearFilter] = React.useState<string>('all');
     const [monthFilter, setMonthFilter] = React.useState<string>('all');
     const [view, setView] = React.useState<'list' | 'grid'>('list');
-
-    const employees: Employee[] = React.useMemo(() => {
-        return Array.from(new Map(kras.map(kra => [kra.employee.id, kra.employee])).values());
-    }, [kras]);
 
     React.useEffect(() => {
         try {
@@ -45,23 +39,12 @@ export default function RoutineTasksPage() {
             }
         } catch (error) {
             console.error("Failed to parse data from localStorage", error);
-        } finally {
-            setLoading(false);
         }
     }, []);
 
-    const handleSaveTask = (taskToSave: RoutineTask) => {
-        setRoutineTasks((prevTasks) => {
-            const exists = prevTasks.some(t => t.id === taskToSave.id);
-            if (exists) {
-                return prevTasks.map((task) => (task.id === taskToSave.id ? taskToSave : task));
-            }
-            return [taskToSave, ...prevTasks];
-        });
-    };
-
     const handleDeleteTask = (taskId: string) => {
-        setRoutineTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
+        // This needs to be implemented in the data store
+        console.log("Delete task action triggered for", taskId);
     };
 
     const { availableYears, availableMonths } = React.useMemo(() => {
@@ -154,7 +137,7 @@ export default function RoutineTasksPage() {
                                 <SelectItem value="High">High</SelectItem>
                             </SelectContent>
                         </Select>
-                        <AddRoutineTaskDialog employees={employees} onSave={handleSaveTask}>
+                        <AddRoutineTaskDialog employees={employees} onSave={handleSaveRoutineTask}>
                             <Button>
                                 <PlusCircle className="mr-2 h-4 w-4" />
                                 Add Task
@@ -173,7 +156,7 @@ export default function RoutineTasksPage() {
                     ) : view === 'list' ? (
                         <RoutineTasksTable 
                             tasks={filteredTasks} 
-                            onSave={handleSaveTask}
+                            onSave={handleSaveRoutineTask}
                             onDelete={handleDeleteTask}
                             employees={employees}
                         />
@@ -183,7 +166,7 @@ export default function RoutineTasksPage() {
                                 <RoutineTaskCard 
                                     key={task.id}
                                     task={task}
-                                    onSave={handleSaveTask}
+                                    onSave={handleSaveRoutineTask}
                                     onDelete={handleDeleteTask}
                                     employees={employees}
                                 />

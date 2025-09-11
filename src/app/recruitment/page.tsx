@@ -5,7 +5,6 @@
 import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Briefcase, Download, PlusCircle, Upload } from "lucide-react";
-import { mockRecruits } from '@/lib/data';
 import type { Recruit } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -24,10 +23,10 @@ import { RecruitCard } from '@/components/recruit-card';
 import * as XLSX from 'xlsx';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { useDataStore } from '@/hooks/use-data-store';
 
 export default function RecruitmentPage() {
-    const [recruits, setRecruits] = React.useState<Recruit[]>(mockRecruits);
-    const [loading, setLoading] = React.useState(true);
+    const { recruits, loading, handleSaveRecruit } = useDataStore();
     const [statusFilter, setStatusFilter] = React.useState('all');
     const { getPermission } = useAuth();
     const pagePermission = getPermission('recruitment');
@@ -43,24 +42,12 @@ export default function RecruitmentPage() {
             }
         } catch (error) {
             console.error("Failed to parse data from localStorage", error);
-        } finally {
-            setLoading(false);
         }
     }, []);
 
-    const handleSaveRecruit = (recruitToSave: Recruit) => {
-        setRecruits((prevRecruits) => {
-            const exists = prevRecruits.some(r => r.id === recruitToSave.id);
-            const updatedRecruits = exists 
-                ? prevRecruits.map((recruit) => (recruit.id === recruitToSave.id ? recruitToSave : recruit))
-                : [...prevRecruits, recruitToSave];
-            
-            return updatedRecruits.sort((a,b) => new Date(b.appliedDate).getTime() - new Date(a.appliedDate).getTime());
-        });
-    };
-
     const handleDeleteRecruit = (recruitId: string) => {
-        setRecruits((prevRecruits) => prevRecruits.filter((recruit) => recruit.id !== recruitId));
+        // This needs to be implemented in the data store
+        console.log("Delete recruit action triggered for", recruitId);
     };
 
     const filteredRecruits = React.useMemo(() => {
@@ -129,17 +116,7 @@ export default function RecruitmentPage() {
                     };
                 });
 
-                const updatedRecruits = [...recruits];
-                importedRecruits.forEach(importedRecruit => {
-                    const index = updatedRecruits.findIndex(h => h.id === importedRecruit.id);
-                    if (index !== -1) {
-                        updatedRecruits[index] = importedRecruit;
-                    } else {
-                        updatedRecruits.push(importedRecruit);
-                    }
-                });
-
-                setRecruits(updatedRecruits.sort((a,b) => new Date(b.appliedDate).getTime() - new Date(a.appliedDate).getTime()));
+                importedRecruits.forEach(handleSaveRecruit);
                 toast({ title: "Import Successful", description: `${json.length} recruits have been imported.` });
 
             } catch(error: any) {

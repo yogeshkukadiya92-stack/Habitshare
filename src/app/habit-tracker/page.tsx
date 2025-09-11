@@ -5,7 +5,6 @@
 import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Target, PlusCircle } from "lucide-react";
-import { mockKras, mockHabits } from '@/lib/data';
 import type { Employee, KRA, Habit } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -18,31 +17,11 @@ import {
 } from "@/components/ui/select"
 import { AddHabitDialog } from '@/components/add-habit-dialog';
 import { HabitCard } from '@/components/habit-card';
+import { useDataStore } from '@/hooks/use-data-store';
 
 export default function HabitTrackerPage() {
-    const [kras, setKras] = React.useState<KRA[]>(mockKras);
-    const [habits, setHabits] = React.useState<Habit[]>(mockHabits);
-    const [loading, setLoading] = React.useState(true);
+    const { employees, habits, loading, handleSaveHabit } = useDataStore();
     const [selectedEmployee, setSelectedEmployee] = React.useState('all');
-
-    const employees: Employee[] = React.useMemo(() => {
-        return Array.from(new Map(kras.map(kra => [kra.employee.id, kra.employee])).values())
-            .sort((a,b) => a.name.localeCompare(b.name));
-    }, [kras]);
-
-    React.useEffect(() => {
-        setLoading(false);
-    }, []);
-
-    const handleSaveHabit = (habitToSave: Habit) => {
-        setHabits((prevHabits) => {
-            const exists = prevHabits.some(h => h.id === habitToSave.id);
-            if (exists) {
-                return prevHabits.map((habit) => (habit.id === habitToSave.id ? habitToSave : habit));
-            }
-            return [...prevHabits, habitToSave];
-        });
-    };
 
     const filteredHabits = selectedEmployee === 'all'
         ? habits

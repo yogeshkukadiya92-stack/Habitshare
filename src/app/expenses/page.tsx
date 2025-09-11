@@ -5,7 +5,6 @@
 import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ReceiptText, PlusCircle, TrendingUp } from "lucide-react";
-import { mockKras, mockExpenses } from '@/lib/data';
 import type { Employee, Expense, KRA, ExpenseType } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -25,6 +24,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { ViewSwitcher } from '@/components/view-switcher';
 import { ExpenseCard } from '@/components/expense-card';
+import { useDataStore } from '@/hooks/use-data-store';
 
 
 interface MonthlyExpenseStat {
@@ -46,18 +46,11 @@ const TYPE_COLORS: Record<ExpenseType, string> = {
 }
 
 export default function ExpenseManagementPage() {
-    const [kras, setKras] = React.useState<KRA[]>(mockKras);
-    const [expenses, setExpenses] = React.useState<Expense[]>(mockExpenses);
-    const [loading, setLoading] = React.useState(true);
+    const { employees, expenses, loading, handleSaveExpense } = useDataStore();
     const [statusFilter, setStatusFilter] = React.useState('all');
     const [yearFilter, setYearFilter] = React.useState<string>(String(getYear(new Date())));
     const [monthFilter, setMonthFilter] = React.useState<string>(String(getMonth(new Date())));
     const [view, setView] = React.useState<'list' | 'grid'>('list');
-
-    const employees: Employee[] = React.useMemo(() => {
-        return Array.from(new Map(kras.map(kra => [kra.employee.id, kra.employee])).values())
-            .sort((a,b) => a.name.localeCompare(b.name));
-    }, [kras]);
 
     React.useEffect(() => {
         try {
@@ -67,23 +60,12 @@ export default function ExpenseManagementPage() {
             }
         } catch (error) {
             console.error("Failed to parse data from localStorage", error);
-        } finally {
-            setLoading(false);
         }
     }, []);
 
-    const handleSaveExpense = (expenseToSave: Expense) => {
-        setExpenses((prevExpenses) => {
-            const exists = prevExpenses.some(l => l.id === expenseToSave.id);
-            if (exists) {
-                return prevExpenses.map((expense) => (expense.id === expenseToSave.id ? expenseToSave : expense));
-            }
-            return [expenseToSave, ...prevExpenses].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        });
-    };
-
     const handleDeleteExpense = (expenseId: string) => {
-        setExpenses((prevExpenses) => prevExpenses.filter((expense) => expense.id !== expenseId));
+        // This needs to be implemented in the data store
+        console.log("Delete expense action triggered for", expenseId);
     };
 
     const { availableYears, availableMonths } = React.useMemo(() => {
