@@ -1,8 +1,9 @@
 
+
 'use client';
 
 import * as React from 'react';
-import { MoreHorizontal, Flag, Calendar, MessageSquare } from 'lucide-react';
+import { MoreHorizontal, Flag, Calendar, MessageSquare, Edit } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -80,20 +81,24 @@ export function RoutineTasksTable({ tasks, employees, onSave, onDelete }: Routin
             {tasks.map((task) => (
               <TableRow key={task.id}>
                 <TableCell className="font-medium max-w-sm">
-                    <div className="flex items-center gap-2">
-                        <p className="truncate">{task.title}</p>
-                        {task.remarks && (
-                            <Tooltip>
-                                <TooltipTrigger>
-                                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>{task.remarks}</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        )}
-                    </div>
-                    <p className="text-xs text-muted-foreground truncate">{task.description}</p>
+                    <AddRoutineTaskDialog task={task} onSave={onSave} employees={employees}>
+                        <div className="cursor-pointer group">
+                            <div className="flex items-center gap-2">
+                                <p className="truncate font-semibold group-hover:underline">{task.title}</p>
+                                {task.remarks && (
+                                    <Tooltip>
+                                        <TooltipTrigger onClick={(e) => e.stopPropagation()}>
+                                            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>{task.remarks}</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                )}
+                            </div>
+                            <p className="text-xs text-muted-foreground truncate">{task.description}</p>
+                        </div>
+                    </AddRoutineTaskDialog>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-3">
@@ -137,6 +142,7 @@ export function RoutineTasksTable({ tasks, employees, onSave, onDelete }: Routin
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                          <AddRoutineTaskDialog task={task} onSave={onSave} employees={employees}>
                             <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                <Edit className="h-4 w-4 mr-2" />
                                 Edit
                             </DropdownMenuItem>
                         </AddRoutineTaskDialog>
@@ -154,3 +160,4 @@ export function RoutineTasksTable({ tasks, employees, onSave, onDelete }: Routin
 }
 
     
+
