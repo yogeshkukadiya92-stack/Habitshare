@@ -118,7 +118,10 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
                                     onCheckedChange={(checked) => {
                                         const newActions = [...kra.actions!];
                                         newActions[index].isCompleted = !!checked;
-                                        onSave({...kra, actions: newActions});
+                                        const completedMarks = newActions
+                                            .filter(a => a.isCompleted)
+                                            .reduce((sum, a) => sum + (a.weightage || 0), 0);
+                                        onSave({...kra, actions: newActions, marksAchieved: completedMarks});
                                     }}
                                 />
                                 <label htmlFor={`action-${kra.id}-${action.id}`} className={cn("flex-1", action.isCompleted && 'line-through text-muted-foreground')}>{action.name}</label>
