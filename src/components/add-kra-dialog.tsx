@@ -495,6 +495,8 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                             placeholder="Target (e.g. 1500)"
                                             className="bg-background"
                                             {...field}
+                                            value={field.value ?? ''}
+                                            onChange={e => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
                                         />
                                     )}
                                 />
@@ -507,6 +509,8 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                             placeholder="Weightage"
                                             className="bg-background"
                                             {...field}
+                                            value={field.value ?? ''}
+                                            onChange={e => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
                                         />
                                     )}
                                 />
