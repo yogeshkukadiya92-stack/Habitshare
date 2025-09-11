@@ -35,15 +35,15 @@ export interface Employee {
 
 export interface ActionItem {
   id: string;
-  description: string;
+  name: string;
   dueDate: Date;
   isCompleted: boolean;
-  marks: number;
+  weightage: number;
 }
 
 export interface KRA {
   id:string;
-  taskDescription: string;
+  taskDescription?: string;
   employee: Employee;
   progress: number;
   status: KRAStatus;

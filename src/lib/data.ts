@@ -27,9 +27,9 @@ export const mockKras: KRA[] = [
     startDate: new Date('2024-07-01'),
     endDate: new Date('2024-09-30'),
     actions: [
-      { id: uuidv4(), description: 'Finalize UI mockups', dueDate: new Date('2024-07-15'), isCompleted: true, marks: 5 },
-      { id: uuidv4(), description: 'Develop backend APIs', dueDate: new Date('2024-08-10'), isCompleted: true, marks: 5 },
-      { id: uuidv4(), description: 'Frontend implementation', dueDate: new Date('2024-09-01'), isCompleted: false, marks: 5 },
+      { id: uuidv4(), name: 'Finalize UI mockups', dueDate: new Date('2024-07-15'), isCompleted: true, weightage: 5 },
+      { id: uuidv4(), name: 'Develop backend APIs', dueDate: new Date('2024-08-10'), isCompleted: true, weightage: 5 },
+      { id: uuidv4(), name: 'Frontend implementation', dueDate: new Date('2024-09-01'), isCompleted: false, weightage: 5 },
     ],
     handover: 'Project is on track. Frontend needs to be completed.',
   },
@@ -55,10 +55,10 @@ export const mockKras: KRA[] = [
     startDate: new Date('2024-08-15'),
     endDate: new Date('2024-11-15'),
      actions: [
-      { id: uuidv4(), description: 'Keyword research', dueDate: new Date('2024-08-25'), isCompleted: true, marks: 5 },
-      { id: uuidv4(), description: 'Create 10 blog posts', dueDate: new Date('2024-09-25'), isCompleted: false, marks: 5 },
-      { id: uuidv4(), description: 'Build 20 backlinks', dueDate: new Date('2024-10-25'), isCompleted: false, marks: 5 },
-      { id: uuidv4(), description: 'Optimize on-page SEO', dueDate: new Date('2024-11-05'), isCompleted: false, marks: 5 },
+      { id: uuidv4(), name: 'Keyword research', dueDate: new Date('2024-08-25'), isCompleted: true, weightage: 5 },
+      { id: uuidv4(), name: 'Create 10 blog posts', dueDate: new Date('2024-09-25'), isCompleted: false, weightage: 5 },
+      { id: uuidv4(), name: 'Build 20 backlinks', dueDate: new Date('2024-10-25'), isCompleted: false, weightage: 5 },
+      { id: uuidv4(), name: 'Optimize on-page SEO', dueDate: new Date('2024-11-05'), isCompleted: false, weightage: 5 },
     ]
   },
   {
@@ -126,8 +126,8 @@ export const mockKras: KRA[] = [
     startDate: new Date('2024-09-01'),
     endDate: new Date('2025-03-01'),
     actions: [
-        { id: uuidv4(), description: 'Identify 50 potential leads', dueDate: new Date('2024-09-30'), isCompleted: true, marks: 5 },
-        { id: uuidv4(), description: 'Conduct 20 product demos', dueDate: new Date('2024-11-30'), isCompleted: false, marks: 10 },
+        { id: uuidv4(), name: 'Identify 50 potential leads', dueDate: new Date('2024-09-30'), isCompleted: true, weightage: 5 },
+        { id: uuidv4(), name: 'Conduct 20 product demos', dueDate: new Date('2024-11-30'), isCompleted: false, weightage: 10 },
     ]
   },
   {

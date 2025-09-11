@@ -34,14 +34,14 @@ import { useAuth } from './auth-provider';
 
 const actionItemSchema = z.object({
   id: z.string(),
-  description: z.string().min(1, "Action description cannot be empty."),
+  name: z.string().min(1, "Action description cannot be empty."),
   dueDate: z.date(),
   isCompleted: z.boolean(),
-  marks: z.coerce.number().min(0, "Marks must be a positive number."),
+  weightage: z.coerce.number().min(0, "Marks must be a positive number."),
 });
 
 const kraSchema = z.object({
-  taskDescription: z.string(),
+  taskDescription: z.string().optional(),
   employeeId: z.string().min(1, 'Employee is required.'),
   weightage: z.number().positive('Weightage must be a positive number.').nullable(),
   marksAchieved: z.number().min(0).nullable(),
@@ -51,11 +51,11 @@ const kraSchema = z.object({
   handover: z.string().optional(),
 }).superRefine((data, ctx) => {
     if (data.weightage && data.actions) {
-        const totalActionMarks = data.actions.reduce((sum, action) => sum + (action.marks || 0), 0);
+        const totalActionMarks = data.actions.reduce((sum, action) => sum + (action.weightage || 0), 0);
         if (totalActionMarks > data.weightage) {
             ctx.addIssue({
                 code: z.ZodIssueCode.custom,
-                message: `Total marks of action items (${totalActionMarks}) cannot exceed the KRA weightage (${data.weightage}).`,
+                message: `Total weightage of KPIs (${totalActionMarks}) cannot exceed the KRA weightage (${data.weightage}).`,
                 path: ['actions'],
             });
         }
@@ -116,11 +116,11 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
     if (actions) {
         const completedMarks = actions
             .filter(action => action.isCompleted)
-            .reduce((sum, action) => sum + (action.marks || 0), 0);
+            .reduce((sum, action) => sum + (action.weightage || 0), 0);
         
         setValue('marksAchieved', completedMarks, { shouldValidate: true });
 
-        const totalActionMarks = actions.reduce((sum, action) => sum + (action.marks || 0), 0);
+        const totalActionMarks = actions.reduce((sum, action) => sum + (action.weightage || 0), 0);
         // This is a proxy for progress, will be set on the KRA object later.
     } else {
         setValue('marksAchieved', 0);
@@ -186,8 +186,8 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
       return;
     }
     
-    const completedMarks = data.actions?.filter(a => a.isCompleted).reduce((sum, a) => sum + (a.marks || 0), 0) || 0;
-    const totalActionMarks = data.actions?.reduce((sum, a) => sum + (a.marks || 0), 0) || 0;
+    const completedMarks = data.actions?.filter(a => a.isCompleted).reduce((sum, a) => sum + (a.weightage || 0), 0) || 0;
+    const totalActionMarks = data.actions?.reduce((sum, a) => sum + (a.weightage || 0), 0) || 0;
     const progress = totalActionMarks > 0 ? Math.round((completedMarks / totalActionMarks) * 100) : (kra?.progress || 0);
     
     const newKra: KRA = {
@@ -341,7 +341,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
             </fieldset>
 
              <div className="grid grid-cols-4 items-start gap-4">
-                <Label className="text-right pt-2">Action Items</Label>
+                <Label className="text-right pt-2">KPIs</Label>
                 <div className="col-span-3 space-y-2">
                     {fields.map((field, index) => (
                     <div key={field.id} className="flex items-center gap-2 p-2 border rounded-md">
@@ -356,12 +356,12 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                             )}
                         />
                          <Controller
-                            name={`actions.${index}.description`}
+                            name={`actions.${index}.name`}
                             control={control}
                             render={({ field }) => (
                                 <Input 
                                     type="text"
-                                    placeholder="Action item description"
+                                    placeholder="KPI description"
                                     className="flex-1"
                                     {...field}
                                 />
@@ -380,12 +380,12 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                             )}
                         />
                          <Controller
-                            name={`actions.${index}.marks`}
+                            name={`actions.${index}.weightage`}
                             control={control}
                             render={({ field }) => (
                                 <Input 
                                     type="number"
-                                    placeholder="Marks"
+                                    placeholder="Weight"
                                     className="w-20"
                                     {...field}
                                 />
@@ -396,9 +396,9 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                         </Button>
                     </div>
                     ))}
-                    <Button type="button" size="sm" variant="outline" onClick={() => append({ id: uuidv4(), description: '', dueDate: new Date(), isCompleted: false, marks: 0 })}>
+                    <Button type="button" size="sm" variant="outline" onClick={() => append({ id: uuidv4(), name: '', dueDate: new Date(), isCompleted: false, weightage: 0 })}>
                         <PlusCircle className="mr-2 h-4 w-4" />
-                        Add Action Item
+                        Add KPI
                     </Button>
                      {errors.actions && <p className="text-xs text-destructive mt-1">{errors.actions.message}</p>}
                 </div>

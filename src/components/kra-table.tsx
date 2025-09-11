@@ -33,6 +33,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Checkbox } from './ui/checkbox';
 
 const statusStyles: Record<KRAStatus, string> = {
   'On Track': 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/40 dark:text-green-300 dark:border-green-800',
@@ -57,10 +58,8 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
       <TableHeader>
         <TableRow>
           <TableHead>Employee</TableHead>
-          <TableHead className='w-[250px]'>Task</TableHead>
-          <TableHead>Progress</TableHead>
+          <TableHead className='w-[400px]'>KRA-KPI</TableHead>
           <TableHead>Weightage</TableHead>
-          <TableHead>Actions</TableHead>
           <TableHead>Marks Achieved</TableHead>
           <TableHead>
             <span className="sr-only">Actions</span>
@@ -69,9 +68,6 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
       </TableHeader>
       <TableBody>
         {kras.map((kra) => {
-          const completedMarks = kra.actions?.filter(a => a.isCompleted).reduce((sum, a) => sum + (a.marks || 0), 0) || 0;
-          const totalActionMarks = kra.actions?.reduce((sum, a) => sum + (a.marks || 0), 0) || 0;
-          
           const baseMarks = kra.marksAchieved ?? 0;
           const bonus = kra.bonus ?? 0;
           const penalty = kra.penalty ?? 0;
@@ -89,52 +85,44 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
                 <div className="font-medium">{kra.employee.name}</div>
               </div>
             </TableCell>
-            <TableCell className="max-w-sm">
-                 <AddKraDialog kra={kra} onSave={onSave} employees={employees}>
+            <TableCell className="max-w-sm align-top">
+                <AddKraDialog kra={kra} onSave={onSave} employees={employees}>
                     <div className="cursor-pointer">
-                        <p className="truncate font-medium hover:underline">{kra.taskDescription}</p>
+                        <p className="font-semibold hover:underline">{kra.taskDescription || "KRA"}</p>
                         <p className="text-xs text-muted-foreground">Due: {format(kra.endDate, 'MMM d, yyyy')}</p>
                     </div>
                 </AddKraDialog>
+                {(kra.actions && kra.actions.length > 0) && (
+                    <div className='mt-2 space-y-1 pl-4'>
+                        {kra.actions.map((action, index) => (
+                            <div key={action.id} className='flex items-center gap-2 text-sm'>
+                                <Checkbox 
+                                    id={`action-${kra.id}-${action.id}`}
+                                    checked={action.isCompleted}
+                                    onCheckedChange={(checked) => {
+                                        const newActions = [...kra.actions!];
+                                        newActions[index].isCompleted = !!checked;
+                                        onSave({...kra, actions: newActions});
+                                    }}
+                                />
+                                <label htmlFor={`action-${kra.id}-${action.id}`} className={cn("flex-1", action.isCompleted && 'line-through text-muted-foreground')}>{action.name}</label>
+                                <Badge variant="outline" className='font-mono'>{action.weightage}</Badge>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </TableCell>
-             <TableCell>
-              <div className="flex items-center gap-2">
-                <Progress value={kra.progress} aria-label={`${kra.progress}% complete`} className="h-2" />
-                <span className="text-xs text-muted-foreground">{kra.progress}%</span>
-              </div>
-            </TableCell>
-            <TableCell>
+            <TableCell className="align-top">
                  {kra.weightage !== null ? (
-                    <span className="font-medium">{kra.weightage}</span>
+                    <span className="font-semibold text-base">{kra.weightage}</span>
                 ) : (
                     <span className="text-muted-foreground">-</span>
                 )}
             </TableCell>
-            <TableCell>
-                {totalActionMarks > 0 ? (
-                    <AddKraDialog kra={kra} onSave={onSave} employees={employees}>
-                         <div className="cursor-pointer">
-                            <Tooltip>
-                                <TooltipTrigger>
-                                    <Badge variant="outline" className="flex items-center gap-1">
-                                        <CalendarCheck2 className="h-3 w-3" />
-                                        <span>{completedMarks}/{totalActionMarks} Marks</span>
-                                    </Badge>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                <p>{completedMarks} of {totalActionMarks} marks achieved. Click to view/edit actions.</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        </div>
-                    </AddKraDialog>
-                ) : (
-                    <span className="text-muted-foreground">-</span>
-                )}
-            </TableCell>
-            <TableCell>
+            <TableCell className="align-top">
                 <Tooltip>
                     <TooltipTrigger>
-                        <span className={cn("font-medium", hasBonusOrPenalty && 'underline decoration-dotted')}>
+                        <span className={cn("font-semibold text-base", hasBonusOrPenalty && 'underline decoration-dotted')}>
                             {finalMarks}
                         </span>
                     </TooltipTrigger>
@@ -150,7 +138,7 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
                     )}
                 </Tooltip>
             </TableCell>
-            <TableCell>
+            <TableCell className="align-top">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button aria-haspopup="true" size="icon" variant="ghost">
