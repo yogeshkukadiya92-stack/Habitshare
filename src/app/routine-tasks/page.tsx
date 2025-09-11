@@ -24,7 +24,7 @@ import { useDataStore } from '@/hooks/use-data-store';
 
 
 export default function RoutineTasksPage() {
-    const { employees, routineTasks, loading, handleSaveRoutineTask } = useDataStore();
+    const { employees, routineTasks, loading, handleSaveRoutineTask, handleDeleteRoutineTask } = useDataStore();
     const [statusFilter, setStatusFilter] = React.useState('all');
     const [priorityFilter, setPriorityFilter] = React.useState('all');
     const [yearFilter, setYearFilter] = React.useState<string>('all');
@@ -41,11 +41,6 @@ export default function RoutineTasksPage() {
             console.error("Failed to parse data from localStorage", error);
         }
     }, []);
-
-    const handleDeleteTask = (taskId: string) => {
-        // This needs to be implemented in the data store
-        console.log("Delete task action triggered for", taskId);
-    };
 
     const { availableYears, availableMonths } = React.useMemo(() => {
         const years = new Set<number>();
@@ -157,7 +152,7 @@ export default function RoutineTasksPage() {
                         <RoutineTasksTable 
                             tasks={filteredTasks} 
                             onSave={handleSaveRoutineTask}
-                            onDelete={handleDeleteTask}
+                            onDelete={handleDeleteRoutineTask}
                             employees={employees}
                         />
                     ) : (
@@ -167,7 +162,7 @@ export default function RoutineTasksPage() {
                                     key={task.id}
                                     task={task}
                                     onSave={handleSaveRoutineTask}
-                                    onDelete={handleDeleteTask}
+                                    onDelete={handleDeleteRoutineTask}
                                     employees={employees}
                                 />
                            ))}

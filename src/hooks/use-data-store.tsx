@@ -24,6 +24,7 @@ interface DataStoreContextType {
   handleSaveLeave: (leave: Leave) => void;
   handleSaveExpense: (expense: Expense) => void;
   handleSaveRoutineTask: (task: RoutineTask) => void;
+  handleDeleteRoutineTask: (taskId: string) => void;
   handleSaveHabit: (habit: Habit) => void;
   handleSaveHoliday: (holiday: Holiday) => void;
   handleSaveRecruit: (recruit: Recruit) => void;
@@ -137,6 +138,10 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     });
   };
 
+  const handleDeleteRoutineTask = (taskId: string) => {
+    setRoutineTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
+  };
+
   const handleSaveHabit = (habitToSave: Habit) => {
     setHabits((prevHabits) => {
         const exists = prevHabits.some(h => h.id === habitToSave.id);
@@ -205,6 +210,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     handleSaveLeave,
     handleSaveExpense,
     handleSaveRoutineTask,
+    handleDeleteRoutineTask,
     handleSaveHabit,
     handleSaveHoliday,
     handleSaveRecruit,
