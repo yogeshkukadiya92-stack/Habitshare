@@ -3,7 +3,7 @@
 'use client';
 
 import * as React from 'react';
-import { MoreHorizontal, CalendarCheck2, ChevronRight, MessageSquare } from 'lucide-react';
+import { MoreHorizontal, CalendarCheck2, ChevronRight, MessageSquare, Edit } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -35,6 +35,9 @@ import {
 } from '@/components/ui/tooltip';
 import { Checkbox } from './ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
 
 const statusStyles: Record<KRAStatus, string> = {
   'On Track': 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/40 dark:text-green-300 dark:border-green-800',
@@ -52,6 +55,48 @@ const weeklyUpdateStatusStyles: Record<WeeklyUpdateStatus, string> = {
 };
 
 
+const QuickUpdateDialog = ({ action, onUpdate, children }: { action: ActionItem, onUpdate: (newValue: number) => void, children: React.ReactNode }) => {
+    const [open, setOpen] = React.useState(false);
+    const [value, setValue] = React.useState(action.achieved || 0);
+
+    React.useEffect(() => {
+        if(open) {
+            setValue(action.achieved || 0);
+        }
+    }, [open, action.achieved]);
+
+    const handleSave = () => {
+        onUpdate(value);
+        setOpen(false);
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>{children}</DialogTrigger>
+            <DialogContent className="sm:max-w-xs">
+                <DialogHeader>
+                    <DialogTitle>Quick Update KPI</DialogTitle>
+                    <DialogDescription>Update the total achieved value for "{action.name}".</DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                    <Label htmlFor="achievedValue">Total Achieved Value</Label>
+                    <Input
+                        id="achievedValue"
+                        type="number"
+                        value={value}
+                        onChange={(e) => setValue(Number(e.target.value))}
+                        placeholder="e.g., 150"
+                    />
+                </div>
+                <DialogFooter>
+                    <Button onClick={handleSave}>Save</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
+
 interface KraTableProps {
     kras: KRA[];
     employees: Employee[];
@@ -61,30 +106,38 @@ interface KraTableProps {
 
 const KpiRow = ({ kra, action, onSave }: { kra: KRA, action: ActionItem, onSave: (kra: KRA) => void }) => {
   const [open, setOpen] = React.useState(false);
-  const achieved = action.updates?.reduce((sum, u) => sum + (u.value || 0), 0) || action.achieved || 0;
+  const achieved = action.achieved || action.updates?.reduce((sum, u) => sum + (u.value || 0), 0) || 0;
   
   let marks = 0;
-  if(action.target && action.target > 0 && action.weightage > 0) {
+  if(action.target && action.target > 0 && action.weightage && action.weightage > 0) {
     marks = (achieved / action.target) * action.weightage;
-  } else if (action.isCompleted) {
+  } else if (action.isCompleted && action.weightage) {
     marks = action.weightage;
   }
   marks = Math.round(marks * 100) / 100;
 
-  const handleCheckedChange = (checked: boolean) => {
-    const newActions = kra.actions!.map(a => a.id === action.id ? { ...a, isCompleted: checked } : a);
+  const updateKra = (updatedAction: ActionItem) => {
+    const newActions = kra.actions!.map(a => a.id === updatedAction.id ? updatedAction : a);
     let totalMarks = 0;
+
     newActions.forEach(act => {
-        const actAchieved = act.updates?.reduce((sum, u) => sum + (u.value || 0), 0) || act.achieved || 0;
-         if(act.target && act.target > 0 && act.weightage > 0) {
+        const actAchieved = act.achieved || act.updates?.reduce((sum, u) => sum + (u.value || 0), 0) || 0;
+         if(act.target && act.target > 0 && act.weightage && act.weightage > 0) {
             totalMarks += (actAchieved / act.target) * act.weightage;
-        } else if (act.isCompleted) {
+        } else if (act.isCompleted && act.weightage) {
             totalMarks += act.weightage;
         }
     });
     onSave({ ...kra, actions: newActions, marksAchieved: totalMarks });
   };
 
+  const handleCheckedChange = (checked: boolean) => {
+    updateKra({ ...action, isCompleted: checked });
+  };
+
+  const handleQuickUpdate = (newValue: number) => {
+     updateKra({ ...action, achieved: newValue });
+  }
 
   return (
     <Collapsible key={action.id} open={open} onOpenChange={setOpen}>
@@ -94,10 +147,14 @@ const KpiRow = ({ kra, action, onSave }: { kra: KRA, action: ActionItem, onSave:
             checked={action.isCompleted}
             onCheckedChange={handleCheckedChange}
         />
-        <label htmlFor={`action-${kra.id}-${action.id}`} className={cn("flex-1", action.isCompleted && 'line-through text-muted-foreground')}>
+        <div className={cn("flex-1", action.isCompleted && 'line-through text-muted-foreground')}>
             {action.name} 
-            {action.target && <span className='text-muted-foreground text-xs'> ({achieved} / {action.target})</span>}
-        </label>
+             {action.target && (
+                 <QuickUpdateDialog action={{...action, achieved}} onUpdate={handleQuickUpdate}>
+                    <span className='text-muted-foreground text-xs cursor-pointer hover:underline'> ({achieved} / {action.target})</span>
+                 </QuickUpdateDialog>
+            )}
+        </div>
         <Badge variant="outline" className='font-mono w-12 justify-center'>{action.weightage}</Badge>
         <Badge variant="secondary" className='font-mono w-12 justify-center'>{marks}</Badge>
         {(action.updates && action.updates.length > 0) && (
