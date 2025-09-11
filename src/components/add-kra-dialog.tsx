@@ -17,20 +17,28 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Sparkles, Loader2, PlusCircle, Trash2, Check, ChevronsUpDown } from 'lucide-react';
-import { useForm, Controller, useFieldArray } from 'react-hook-form';
+import { Sparkles, Loader2, PlusCircle, Trash2, Check, ChevronsUpDown, MessageSquare } from 'lucide-react';
+import { useForm, Controller, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { refineKraTaskDescription } from '@/ai/flows/kra-refinement';
 import { useToast } from '@/hooks/use-toast';
-import type { KRA, ActionItem, Employee } from '@/lib/types';
+import type { KRA, ActionItem, Employee, WeeklyUpdate, WeeklyUpdateStatus } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
 import { format } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
 import { useAuth } from './auth-provider';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Separator } from './ui/separator';
 
+const weeklyUpdateSchema = z.object({
+    id: z.string(),
+    date: z.date(),
+    status: z.enum(['On Track', 'Delayed', 'Completed', 'At Risk', 'Issue']),
+    comment: z.string().min(1, "Comment is required."),
+});
 
 const actionItemSchema = z.object({
   id: z.string(),
@@ -38,6 +46,7 @@ const actionItemSchema = z.object({
   dueDate: z.date(),
   isCompleted: z.boolean(),
   weightage: z.coerce.number().min(0, "Marks must be a positive number."),
+  updates: z.array(weeklyUpdateSchema).optional(),
 });
 
 const kraSchema = z.object({
@@ -64,6 +73,7 @@ const kraSchema = z.object({
 
 
 type KraFormValues = z.infer<typeof kraSchema>;
+type WeeklyUpdateFormValues = z.infer<typeof weeklyUpdateSchema>;
 
 interface AddKraDialogProps {
   children: React.ReactNode;
@@ -71,6 +81,87 @@ interface AddKraDialogProps {
   onSave?: (kra: KRA) => void;
   employees: Employee[];
 }
+
+const UpdateDialog = ({ onSave, children }: {onSave: (update: WeeklyUpdate) => void, children: React.ReactNode}) => {
+    const [open, setOpen] = React.useState(false);
+    const { toast } = useToast();
+    const {
+        control,
+        handleSubmit,
+        reset,
+        formState: { errors },
+    } = useForm<WeeklyUpdateFormValues>({
+        resolver: zodResolver(weeklyUpdateSchema),
+        defaultValues: {
+            date: new Date(),
+            status: 'On Track',
+            comment: '',
+        }
+    });
+
+    const onSubmit = (data: WeeklyUpdateFormValues) => {
+        onSave({ id: uuidv4(), ...data });
+        toast({title: "Update Added", description: "The weekly update has been saved."});
+        setOpen(false);
+        reset();
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>{children}</DialogTrigger>
+            <DialogContent>
+                 <form onSubmit={handleSubmit(onSubmit)}>
+                    <DialogHeader>
+                        <DialogTitle>Add Weekly Update</DialogTitle>
+                        <DialogDescription>
+                            Provide a status update for this KPI.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="status" className="text-right">Status</Label>
+                             <div className="col-span-3">
+                                <Controller
+                                    name="status"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select status" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="On Track">On Track</SelectItem>
+                                                <SelectItem value="Delayed">Delayed</SelectItem>
+                                                <SelectItem value="At Risk">At Risk</SelectItem>
+                                                <SelectItem value="Issue">Issue</SelectItem>
+                                                <SelectItem value="Completed">Completed</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-4 items-start gap-4">
+                            <Label htmlFor="comment" className="text-right pt-2">Comment</Label>
+                            <div className="col-span-3">
+                                <Controller
+                                    name="comment"
+                                    control={control}
+                                    render={({ field }) => <Textarea id="comment" {...field} placeholder="Add your update comment..."/>}
+                                />
+                                {errors.comment && <p className="text-xs text-destructive mt-1">{errors.comment.message}</p>}
+                            </div>
+                        </div>
+                    </div>
+                     <DialogFooter>
+                        <Button type="submit">Save Update</Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
 
 export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogProps) {
   const [open, setOpen] = React.useState(false);
@@ -104,7 +195,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
     },
   });
 
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, update } = useFieldArray({
     control,
     name: "actions",
   });
@@ -136,7 +227,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
         marksAchieved: kra?.marksAchieved || null,
         bonus: kra?.bonus || null,
         penalty: kra?.penalty || null,
-        actions: kra?.actions?.map(a => ({...a, dueDate: new Date(a.dueDate)})) || [],
+        actions: kra?.actions?.map(a => ({...a, dueDate: new Date(a.dueDate), updates: a.updates?.map(u => ({...u, date: new Date(u.date)})) || []})) || [],
         handover: kra?.handover || '',
       });
     }
@@ -342,67 +433,90 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
 
              <div className="grid grid-cols-4 items-start gap-4">
                 <Label className="text-right pt-2">KPIs</Label>
-                <div className="col-span-3 space-y-2">
+                <div className="col-span-3 space-y-3">
                     {fields.map((field, index) => (
-                    <div key={field.id} className="flex items-center gap-2 p-2 border rounded-md">
-                        <Controller
-                            name={`actions.${index}.isCompleted`}
-                            control={control}
-                            render={({ field }) => (
-                                <Checkbox
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
+                    <div key={field.id} className="space-y-2 p-3 border rounded-md bg-muted/50">
+                        <div className="flex items-center gap-2">
+                            <Controller
+                                name={`actions.${index}.isCompleted`}
+                                control={control}
+                                render={({ field }) => (
+                                    <Checkbox
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                    />
+                                )}
+                            />
+                            <Controller
+                                name={`actions.${index}.name`}
+                                control={control}
+                                render={({ field }) => (
+                                    <Input 
+                                        type="text"
+                                        placeholder="KPI description"
+                                        className="flex-1 bg-background"
+                                        {...field}
+                                    />
+                                )}
+                            />
+                            <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                        </div>
+                        <div className='flex items-end gap-2'>
+                             <div className='flex-1 space-y-1'>
+                                <Label className='text-xs'>Due Date</Label>
+                                 <Controller
+                                    name={`actions.${index}.dueDate`}
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Input 
+                                            type="date"
+                                            className='w-full bg-background'
+                                            value={format(new Date(field.value), 'yyyy-MM-dd')}
+                                            onChange={e => field.onChange(new Date(e.target.value))}
+                                        />
+                                    )}
                                 />
-                            )}
-                        />
-                         <Controller
-                            name={`actions.${index}.name`}
-                            control={control}
-                            render={({ field }) => (
-                                <Input 
-                                    type="text"
-                                    placeholder="KPI description"
-                                    className="flex-1"
-                                    {...field}
+                            </div>
+                            <div className='flex-1 space-y-1'>
+                                <Label className='text-xs'>Weightage</Label>
+                                 <Controller
+                                    name={`actions.${index}.weightage`}
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Input 
+                                            type="number"
+                                            placeholder="Weight"
+                                            className="w-full bg-background"
+                                            {...field}
+                                        />
+                                    )}
                                 />
-                            )}
-                        />
-                        <Controller
-                            name={`actions.${index}.dueDate`}
-                            control={control}
-                            render={({ field }) => (
-                                <Input 
-                                    type="date"
-                                    className='w-auto'
-                                    value={format(new Date(field.value), 'yyyy-MM-dd')}
-                                    onChange={e => field.onChange(new Date(e.target.value))}
-                                />
-                            )}
-                        />
-                         <Controller
-                            name={`actions.${index}.weightage`}
-                            control={control}
-                            render={({ field }) => (
-                                <Input 
-                                    type="number"
-                                    placeholder="Weight"
-                                    className="w-20"
-                                    {...field}
-                                />
-                            )}
-                        />
-                        <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                            </div>
+                            <UpdateDialog onSave={(update) => {
+                                const currentUpdates = field.updates || [];
+                                update.id = uuidv4();
+                                update.date = new Date();
+                                const newUpdates = [...currentUpdates, update];
+                                update(index, {...field, updates: newUpdates });
+                            }}>
+                                <Button type="button" size="sm" variant="outline" className='gap-2 bg-background'>
+                                    <MessageSquare className='h-4 w-4'/> Add Update
+                                </Button>
+                            </UpdateDialog>
+                        </div>
                     </div>
                     ))}
-                    <Button type="button" size="sm" variant="outline" onClick={() => append({ id: uuidv4(), name: '', dueDate: new Date(), isCompleted: false, weightage: 0 })}>
+                    <Button type="button" size="sm" variant="outline" onClick={() => append({ id: uuidv4(), name: '', dueDate: new Date(), isCompleted: false, weightage: 0, updates: [] })}>
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Add KPI
                     </Button>
                      {errors.actions && <p className="text-xs text-destructive mt-1">{errors.actions.message}</p>}
                 </div>
             </div>
+            
+            <Separator />
 
             <fieldset disabled={!isAdmin}>
                 <div className="grid grid-cols-4 items-center gap-4">
@@ -422,6 +536,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                             onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
                             placeholder="Auto-calculated"
                             readOnly
+                            className='bg-muted'
                         />
                     )}
                     />

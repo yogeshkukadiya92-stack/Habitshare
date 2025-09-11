@@ -33,12 +33,21 @@ export interface Employee {
   extraLeaves?: number;
 }
 
+export type WeeklyUpdateStatus = 'On Track' | 'Delayed' | 'Completed' | 'At Risk' | 'Issue';
+export interface WeeklyUpdate {
+    id: string;
+    date: Date;
+    status: WeeklyUpdateStatus;
+    comment: string;
+}
+
 export interface ActionItem {
   id: string;
   name: string;
   dueDate: Date;
   isCompleted: boolean;
   weightage: number;
+  updates?: WeeklyUpdate[];
 }
 
 export interface KRA {
