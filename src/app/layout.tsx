@@ -5,6 +5,7 @@ import { AuthProvider } from '@/components/auth-provider';
 import { Navbar } from '@/components/navbar';
 import { AppSidebar } from '@/components/app-sidebar';
 import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
+import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 export const metadata: Metadata = {
   title: 'HR Dashboard',
@@ -25,20 +26,22 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <AuthProvider>
-          <SidebarProvider>
-            <Sidebar>
-                <AppSidebar/>
-            </Sidebar>
-            <SidebarInset>
-                <Navbar />
-                <main className="p-4 sm:px-6 sm:py-4">
-                    {children}
-                </main>
-                <Toaster />
-            </SidebarInset>
-          </SidebarProvider>
-        </AuthProvider>
+        <FirebaseClientProvider>
+          <AuthProvider>
+            <SidebarProvider>
+              <Sidebar>
+                  <AppSidebar/>
+              </Sidebar>
+              <SidebarInset>
+                  <Navbar />
+                  <main className="p-4 sm:px-6 sm:py-4">
+                      {children}
+                  </main>
+                  <Toaster />
+              </SidebarInset>
+            </SidebarProvider>
+          </AuthProvider>
+        </FirebaseClientProvider>
       </body>
     </html>
   );

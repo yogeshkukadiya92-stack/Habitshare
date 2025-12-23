@@ -1,0 +1,252 @@
+{
+  "entities": {
+    "employee": {
+      "title": "Employee",
+      "description": "Represents an employee in the organization.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "avatarUrl": { "type": "string" },
+        "branch": { "type": "string" },
+        "isManager": { "type": "boolean" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["Admin", "Manager", "Employee"] },
+        "address": { "type": "string" },
+        "joiningDate": { "type": "string", "format": "date-time" },
+        "birthDate": { "type": "string", "format": "date-time" },
+        "familyMobileNumber": { "type": "string" },
+        "extraLeaves": { "type": "number" },
+        "permissions": { "$ref": "#/entities/employeePermissions" }
+      },
+      "required": ["id", "name", "email"]
+    },
+    "employeePermissions": {
+        "title": "Employee Permissions",
+        "description": "Defines page-level access for an employee.",
+        "type": "object",
+        "properties": {
+            "employees": { "type": "string" },
+            "kras": { "type": "string" },
+            "routine_tasks": { "type": "string" },
+            "leaves": { "type": "string" },
+            "attendance": { "type": "string" },
+            "expenses": { "type": "string" },
+            "habit_tracker": { "type": "string" },
+            "holidays": { "type": "string" },
+            "recruitment": { "type": "string" },
+            "hr_calendar": { "type": "string" },
+            "settings": { "type": "string" }
+        }
+    },
+    "kra": {
+      "title": "Key Result Area (KRA)",
+      "description": "A specific goal or objective for an employee.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "taskDescription": { "type": "string" },
+        "employee": { "$ref": "#/entities/employee" },
+        "progress": { "type": "number" },
+        "status": { "type": "string", "enum": ["On Track", "At Risk", "Completed", "Pending"] },
+        "weightage": { "type": "number" },
+        "marksAchieved": { "type": "number" },
+        "bonus": { "type": "number" },
+        "penalty": { "type": "number" },
+        "startDate": { "type": "string", "format": "date-time" },
+        "endDate": { "type": "string", "format": "date-time" },
+        "actions": { "type": "array", "items": { "$ref": "#/entities/actionItem" } },
+        "handover": { "type": "string" },
+        "target": { "type": "number" },
+        "achieved": { "type": "number" }
+      },
+      "required": ["id", "employee"]
+    },
+    "actionItem": {
+        "title": "Action Item (KPI)",
+        "description": "A sub-task or key performance indicator within a KRA.",
+        "type": "object",
+        "properties": {
+            "id": { "type": "string" },
+            "name": { "type": "string" },
+            "dueDate": { "type": "string", "format": "date-time" },
+            "isCompleted": { "type": "boolean" },
+            "weightage": { "type": "number" },
+            "updates": { "type": "array", "items": { "$ref": "#/entities/weeklyUpdate" } },
+            "target": { "type": "number" },
+            "achieved": { "type": "number" }
+        }
+    },
+    "weeklyUpdate": {
+        "title": "Weekly Update",
+        "description": "A weekly progress update on an action item.",
+        "type": "object",
+        "properties": {
+            "id": { "type": "string" },
+            "date": { "type": "string", "format": "date-time" },
+            "status": { "type": "string" },
+            "comment": { "type": "string" },
+            "value": { "type": "number" }
+        }
+    },
+    "branch": {
+      "title": "Branch",
+      "description": "Represents a department or branch in the organization.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "managerId": { "type": "string" }
+      },
+      "required": ["id", "name"]
+    },
+    "leave": {
+        "title": "Leave",
+        "description": "A leave request from an employee.",
+        "type": "object",
+        "properties": {
+            "id": { "type": "string" },
+            "employee": { "$ref": "#/entities/employee" },
+            "startDate": { "type": "string", "format": "date-time" },
+            "endDate": { "type": "string", "format": "date-time" },
+            "reason": { "type": "string" },
+            "status": { "type": "string", "enum": ["Pending", "Approved", "Rejected"] },
+            "duration": { "type": "number" }
+        }
+    },
+    "attendance": {
+        "title": "Attendance",
+        "description": "Daily attendance record for an employee.",
+        "type": "object",
+        "properties": {
+            "id": { "type": "string" },
+            "employee": { "$ref": "#/entities/employee" },
+            "date": { "type": "string", "format": "date-time" },
+            "status": { "type": "string", "enum": ["Present", "Absent", "Half-day"] }
+        }
+    },
+    "expense": {
+        "title": "Expense",
+        "description": "An expense claim submitted by an employee.",
+        "type": "object",
+        "properties": {
+            "id": { "type": "string" },
+            "employee": { "$ref": "#/entities/employee" },
+            "date": { "type": "string", "format": "date-time" },
+            "expenseType": { "type": "string" },
+            "description": { "type": "string" },
+            "distanceInKm": { "type": "number" },
+            "ratePerKm": { "type": "number" },
+            "amount": { "type": "number" },
+            "totalAmount": { "type": "number" },
+            "status": { "type": "string" }
+        }
+    },
+    "habit": {
+        "title": "Habit",
+        "description": "A habit being tracked by an employee.",
+        "type": "object",
+        "properties": {
+            "id": { "type": "string" },
+            "name": { "type": "string" },
+            "description": { "type": "string" },
+            "employee": { "$ref": "#/entities/employee" },
+            "checkIns": { "type": "array", "items": { "type": "string", "format": "date-time" } },
+            "goalDays": { "type": "number" },
+            "startDate": { "type": "string", "format": "date-time" },
+            "deadline": { "type": "string" }
+        }
+    },
+    "holiday": {
+        "title": "Holiday",
+        "description": "A company-wide holiday.",
+        "type": "object",
+        "properties": {
+            "id": { "type": "string" },
+            "name": { "type": "string" },
+            "date": { "type": "string", "format": "date-time" },
+            "type": { "type": "string" }
+        }
+    },
+    "recruit": {
+        "title": "Recruit",
+        "description": "A candidate in the recruitment pipeline.",
+        "type": "object",
+        "properties": {
+            "id": { "type": "string" },
+            "name": { "type": "string" },
+            "email": { "type": "string" },
+            "phone": { "type": "string" },
+            "position": { "type": "string" },
+            "branch": { "type": "string" },
+            "appliedDate": { "type": "string", "format": "date-time" },
+            "status": { "type": "string" },
+            "notes": { "type": "string" },
+            "avatarUrl": { "type": "string" },
+            "comment": { "type": "string" },
+            "expectedSalary": { "type": "number" },
+            "workExperience": { "type": "string" },
+            "qualification": { "type": "string" },
+            "location": { "type": "string" },
+            "resumeUrl": { "type": "string" }
+        }
+    },
+    "routineTask": {
+        "title": "Routine Task",
+        "description": "A routine task assigned to an employee.",
+        "type": "object",
+        "properties": {
+            "id": { "type": "string" },
+            "title": { "type": "string" },
+            "description": { "type": "string" },
+            "employee": { "$ref": "#/entities/employee" },
+            "assignedDate": { "type": "string", "format": "date-time" },
+            "dueDate": { "type": "string", "format": "date-time" },
+            "status": { "type": "string" },
+            "priority": { "type": "string" },
+            "remarks": { "type": "string" }
+        }
+    }
+  },
+  "auth": {
+    "providers": ["password"]
+  },
+  "firestore": {
+    "/kras/{kraId}": {
+      "schema": { "$ref": "#/entities/kra" },
+      "description": "Stores individual Key Result Areas (KRAs)."
+    },
+    "/branches/{branchId}": {
+      "schema": { "$ref": "#/entities/branch" },
+      "description": "Stores company branches or departments."
+    },
+    "/leaves/{leaveId}": {
+      "schema": { "$ref": "#/entities/leave" },
+      "description": "Stores employee leave requests."
+    },
+    "/expenses/{expenseId}": {
+      "schema": { "$ref": "#/entities/expense" },
+      "description": "Stores employee expense claims."
+    },
+    "/routineTasks/{taskId}": {
+      "schema": { "$ref": "#/entities/routineTask" },
+      "description": "Stores routine tasks assigned to employees."
+    },
+    "/habits/{habitId}": {
+      "schema": { "$ref": "#/entities/habit" },
+      "description": "Stores employee habit tracking data."
+    },
+    "/holidays/{holidayId}": {
+      "schema": { "$ref": "#/entities/holiday" },
+      "description": "Stores company-wide holidays."
+    },
+    "/recruits/{recruitId}": {
+      "schema": { "$ref": "#/entities/recruit" },
+      "description": "Stores recruitment candidate data."
+    },
+    "/attendances/{attendanceId}": {
+        "schema": { "$ref": "#/entities/attendance" },
+        "description": "Stores daily attendance records."
+    }
+  }
+}

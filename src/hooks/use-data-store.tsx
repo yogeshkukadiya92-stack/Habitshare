@@ -2,9 +2,10 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { mockKras, mockLeaves, mockExpenses, mockRoutineTasks, mockHabits, mockHolidays, mockRecruits, mockAttendances } from '@/lib/data';
 import type { Employee, KRA, Branch, Leave, Expense, RoutineTask, Habit, Holiday, Recruit, Attendance } from '@/lib/types';
-import { v4 as uuidv4 } from 'uuid';
+import { useCollection } from '@/firebase/firestore/use-collection';
+import { collection, doc, writeBatch, deleteDoc } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
 
 interface DataStoreContextType {
   loading: boolean;
@@ -29,62 +30,115 @@ interface DataStoreContextType {
   handleSaveHoliday: (holiday: Holiday) => void;
   handleSaveRecruit: (recruit: Recruit) => void;
   handleSaveAttendance: (attendance: Attendance) => void;
-  setKras: React.Dispatch<React.SetStateAction<KRA[]>>;
+  setKras: React.Dispatch<React.SetStateAction<KRA[]>>; // Kept for specific scenarios like role change
   setBranches: React.Dispatch<React.SetStateAction<Branch[]>>;
 }
 
 const DataStoreContext = createContext<DataStoreContextType | undefined>(undefined);
 
 export const DataStoreProvider = ({ children }: { children: React.ReactNode }) => {
-  const [loading, setLoading] = useState(true);
-  const [kras, setKras] = useState<KRA[]>(mockKras);
+  const firestore = useFirestore();
+
+  const { data: krasData, loading: krasLoading } = useCollection<KRA>(
+    firestore ? collection(firestore, 'kras') : null
+  );
+  const { data: branchesData, loading: branchesLoading } = useCollection<Branch>(
+    firestore ? collection(firestore, 'branches') : null
+  );
+  const { data: leavesData, loading: leavesLoading } = useCollection<Leave>(
+    firestore ? collection(firestore, 'leaves') : null
+  );
+   const { data: expensesData, loading: expensesLoading } = useCollection<Expense>(
+    firestore ? collection(firestore, 'expenses') : null
+  );
+   const { data: tasksData, loading: tasksLoading } = useCollection<RoutineTask>(
+    firestore ? collection(firestore, 'routineTasks') : null
+  );
+   const { data: habitsData, loading: habitsLoading } = useCollection<Habit>(
+    firestore ? collection(firestore, 'habits') : null
+  );
+   const { data: holidaysData, loading: holidaysLoading } = useCollection<Holiday>(
+    firestore ? collection(firestore, 'holidays') : null
+  );
+   const { data: recruitsData, loading: recruitsLoading } = useCollection<Recruit>(
+    firestore ? collection(firestore, 'recruits') : null
+  );
+   const { data: attendancesData, loading: attendancesLoading } = useCollection<Attendance>(
+    firestore ? collection(firestore, 'attendances') : null
+  );
+
+  // Raw data states from firestore
+  const [kras, setKras] = useState<KRA[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
-  const [leaves, setLeaves] = useState<Leave[]>(mockLeaves);
-  const [expenses, setExpenses] = useState<Expense[]>(mockExpenses);
-  const [routineTasks, setRoutineTasks] = useState<RoutineTask[]>(mockRoutineTasks);
-  const [habits, setHabits] = useState<Habit[]>(mockHabits);
-  const [holidays, setHolidays] = useState<Holiday[]>(mockHolidays);
-  const [recruits, setRecruits] = useState<Recruit[]>(mockRecruits);
-  const [attendances, setAttendances] = useState<Attendance[]>(mockAttendances);
-
-
-  useEffect(() => {
-    // Simulate loading data
-    setLoading(false);
-  }, []);
+  const [leaves, setLeaves] = useState<Leave[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [routineTasks, setRoutineTasks] = useState<RoutineTask[]>([]);
+  const [habits, setHabits] = useState<Habit[]>([]);
+  const [holidays, setHolidays] = useState<Holiday[]>([]);
+  const [recruits, setRecruits] = useState<Recruit[]>([]);
+  const [attendances, setAttendances] = useState<Attendance[]>([]);
+  
+  const loading = krasLoading || branchesLoading || leavesLoading || expensesLoading || tasksLoading || habitsLoading || holidaysLoading || recruitsLoading || attendancesLoading;
+  
+  // Use effects to update local state when Firestore data changes
+  useEffect(() => setKras(krasData || []), [krasData]);
+  useEffect(() => setBranches(branchesData || []), [branchesData]);
+  useEffect(() => setLeaves(leavesData || []), [leavesData]);
+  useEffect(() => setExpenses(expensesData || []), [expensesData]);
+  useEffect(() => setRoutineTasks(tasksData || []), [tasksData]);
+  useEffect(() => setHabits(habitsData || []), [habitsData]);
+  useEffect(() => setHolidays(holidaysData || []), [holidaysData]);
+  useEffect(() => setRecruits(recruitsData || []), [recruitsData]);
+  useEffect(() => setAttendances(attendancesData || []), [attendancesData]);
 
   const employees: Employee[] = React.useMemo(() => {
     const employeeMap = new Map<string, Employee>();
     kras.forEach(kra => {
-      if (!employeeMap.has(kra.employee.id)) {
+      // It's possible employee is a string ref, so we need to handle that. For now, assuming it's an object.
+      if (kra.employee && typeof kra.employee === 'object' && !employeeMap.has(kra.employee.id)) {
         employeeMap.set(kra.employee.id, kra.employee);
       }
     });
     return Array.from(employeeMap.values());
   }, [kras]);
 
-  const handleSaveKra = (kraToSave: KRA) => {
-    setKras(prevKras => {
-      const exists = prevKras.some(k => k.id === kraToSave.id);
-      if (exists) {
-        return prevKras.map(kra => (kra.id === kraToSave.id ? kraToSave : kra));
-      }
-      return [...prevKras, kraToSave];
-    });
+  const saveData = async (collectionName: string, data: any) => {
+    if (!firestore) return;
+    const batch = writeBatch(firestore);
+    const docRef = doc(firestore, collectionName, data.id);
+    batch.set(docRef, JSON.parse(JSON.stringify(data)), { merge: true });
+    await batch.commit();
   };
 
-  const handleSaveEmployee = (employeeToSave: Employee) => {
-    setKras(prevKras => {
-      const employeeExists = prevKras.some(k => k.employee.id === employeeToSave.id);
+  const deleteData = async (collectionName: string, id: string) => {
+      if (!firestore) return;
+      await deleteDoc(doc(firestore, collectionName, id));
+  }
+
+  const handleSaveKra = (kraToSave: KRA) => saveData('kras', kraToSave);
+  const handleSaveLeave = (leaveToSave: Leave) => saveData('leaves', leaveToSave);
+  const handleSaveExpense = (expenseToSave: Expense) => saveData('expenses', expenseToSave);
+  const handleSaveRoutineTask = (taskToSave: RoutineTask) => saveData('routineTasks', taskToSave);
+  const handleSaveHabit = (habitToSave: Habit) => saveData('habits', habitToSave);
+  const handleSaveHoliday = (holidayToSave: Holiday) => saveData('holidays', holidayToSave);
+  const handleSaveRecruit = (recruitToSave: Recruit) => saveData('recruits', recruitToSave);
+  const handleSaveAttendance = (attendanceToSave: Attendance) => saveData('attendances', attendanceToSave);
+
+  const handleSaveEmployee = async (employeeToSave: Employee) => {
+      if (!firestore) return;
+
+      const employeeExists = kras.some(k => k.employee.id === employeeToSave.id);
+      const batch = writeBatch(firestore);
 
       if (employeeExists) {
-        return prevKras.map(kra => {
-          if (kra.employee.id === employeeToSave.id) {
-            return { ...kra, employee: employeeToSave };
-          }
-          return kra;
+        // Update employee object in all relevant KRAs
+        const krasToUpdate = kras.filter(k => k.employee.id === employeeToSave.id);
+        krasToUpdate.forEach(kra => {
+          const kraRef = doc(firestore, 'kras', kra.id);
+          batch.update(kraRef, { employee: JSON.parse(JSON.stringify(employeeToSave)) });
         });
       } else {
+        // Create a new placeholder KRA for the new employee
         const newPlaceholderKra: KRA = {
           id: `KRA-placeholder-${employeeToSave.id}`,
           taskDescription: 'Placeholder KRA for new employee',
@@ -99,98 +153,24 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
           endDate: new Date(),
           actions: [],
         };
-        return [...prevKras, newPlaceholderKra];
+        const kraRef = doc(firestore, 'kras', newPlaceholderKra.id);
+        batch.set(kraRef, JSON.parse(JSON.stringify(newPlaceholderKra)));
       }
-    });
+      await batch.commit();
   };
 
-  const handleDeleteEmployee = (employeeId: string) => {
-    setKras(prevKras => prevKras.filter(kra => kra.employee.id !== employeeId));
+  const handleDeleteEmployee = async (employeeId: string) => {
+     if (!firestore) return;
+     const batch = writeBatch(firestore);
+     const krasToDelete = kras.filter(kra => kra.employee.id === employeeId);
+     krasToDelete.forEach(kra => {
+        const docRef = doc(firestore, 'kras', kra.id);
+        batch.delete(docRef);
+     });
+     await batch.commit();
   };
   
-  const handleSaveLeave = (leaveToSave: Leave) => {
-    setLeaves((prevLeaves) => {
-        const exists = prevLeaves.some(l => l.id === leaveToSave.id);
-        if (exists) {
-            return prevLeaves.map((leave) => (leave.id === leaveToSave.id ? leaveToSave : leave));
-        }
-        return [leaveToSave, ...prevLeaves].sort((a,b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
-    });
-  };
-
-  const handleSaveExpense = (expenseToSave: Expense) => {
-    setExpenses((prevExpenses) => {
-        const exists = prevExpenses.some(l => l.id === expenseToSave.id);
-        if (exists) {
-            return prevExpenses.map((expense) => (expense.id === expenseToSave.id ? expenseToSave : expense));
-        }
-        return [expenseToSave, ...prevExpenses].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    });
-  };
-
-  const handleSaveRoutineTask = (taskToSave: RoutineTask) => {
-    setRoutineTasks((prevTasks) => {
-        const exists = prevTasks.some(t => t.id === taskToSave.id);
-        if (exists) {
-            return prevTasks.map((task) => (task.id === taskToSave.id ? taskToSave : task));
-        }
-        return [taskToSave, ...prevTasks];
-    });
-  };
-
-  const handleDeleteRoutineTask = (taskId: string) => {
-    setRoutineTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
-  };
-
-  const handleSaveHabit = (habitToSave: Habit) => {
-    setHabits((prevHabits) => {
-        const exists = prevHabits.some(h => h.id === habitToSave.id);
-        if (exists) {
-            return prevHabits.map((habit) => (habit.id === habitToSave.id ? habitToSave : habit));
-        }
-        return [...prevHabits, habitToSave];
-    });
-  };
-
-  const handleSaveHoliday = (holidayToSave: Holiday) => {
-    setHolidays((prevHolidays) => {
-        const exists = prevHolidays.some(h => h.id === holidayToSave.id);
-        const updatedHolidays = exists 
-            ? prevHolidays.map((holiday) => (holiday.id === holidayToSave.id ? holidayToSave : holiday))
-            : [...prevHolidays, holidayToSave];
-        
-        return updatedHolidays.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    });
-  };
-
-    const handleSaveRecruit = (recruitToSave: Recruit) => {
-        setRecruits((prevRecruits) => {
-            const exists = prevRecruits.some(r => r.id === recruitToSave.id);
-            const updatedRecruits = exists 
-                ? prevRecruits.map((recruit) => (recruit.id === recruitToSave.id ? recruitToSave : recruit))
-                : [...prevRecruits, recruitToSave];
-            
-            return updatedRecruits.sort((a,b) => new Date(b.appliedDate).getTime() - new Date(a.appliedDate).getTime());
-        });
-    };
-
-    const handleSaveAttendance = (attendanceToSave: Attendance) => {
-        setAttendances((prevAttendances) => {
-            const exists = prevAttendances.some(
-                a => a.employee.id === attendanceToSave.employee.id &&
-                a.date.toDateString() === attendanceToSave.date.toDateString()
-            );
-            if (exists) {
-                return prevAttendances.map((att) =>
-                    (att.employee.id === attendanceToSave.employee.id && att.date.toDateString() === attendanceToSave.date.toDateString())
-                        ? attendanceToSave
-                        : att
-                );
-            }
-            return [...prevAttendances, attendanceToSave];
-        });
-    };
-
+  const handleDeleteRoutineTask = (taskId: string) => deleteData('routineTasks', taskId);
 
   const value = {
     loading,
@@ -215,8 +195,8 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     handleSaveHoliday,
     handleSaveRecruit,
     handleSaveAttendance,
-    setKras,
-    setBranches
+    setKras, // This is now mainly for optimistic UI updates if needed, but Firestore is the source of truth.
+    setBranches,
   };
 
   return <DataStoreContext.Provider value={value}>{children}</DataStoreContext.Provider>;

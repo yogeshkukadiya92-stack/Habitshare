@@ -1,0 +1,40 @@
+{
+  "rules": {
+    "kras": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "branches": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "leaves": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "expenses": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "routineTasks": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "habits": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "holidays": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "recruits": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    },
+    "attendances": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    }
+  }
+}
