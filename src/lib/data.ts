@@ -1,3 +1,4 @@
+
 // This file is no longer used. All data is now fetched from and saved to Firebase Firestore.
 // The mock data has been removed to prevent confusion.
 import { v4 as uuidv4 } from 'uuid';
@@ -128,6 +129,38 @@ export const mockKras: KRA[] = [
     target: 30,
     achieved: 15,
   },
+  {
+    id: '8',
+    taskDescription: 'Refactor legacy code for performance improvement.',
+    employee: { id: '8', name: 'Riya Shah', avatarUrl: 'https://placehold.co/32x32.png?text=RS', branch: 'Engineering', email: 'riya.shah@example.com', role: 'Employee' },
+    progress: 25,
+    status: 'Pending',
+    weightage: 15,
+    marksAchieved: 0,
+    bonus: 0,
+    penalty: 0,
+    startDate: new Date('2024-10-01'),
+    endDate: new Date('2025-01-31'),
+    actions: [],
+    target: 100,
+    achieved: 25,
+  },
+  {
+    id: '9',
+    taskDescription: 'Expand sales territory to new region.',
+    employee: { id: '9', name: 'Yogesh Patel', avatarUrl: 'https://placehold.co/32x32.png?text=YP', branch: 'Sales', email: 'yogesh.patel@example.com', role: 'Employee' },
+    progress: 10,
+    status: 'On Track',
+    weightage: 20,
+    marksAchieved: 2,
+    bonus: 0,
+    penalty: 0,
+    startDate: new Date('2024-09-15'),
+    endDate: new Date('2024-12-31'),
+    actions: [],
+    target: 500000,
+    achieved: 50000,
+  }
 ];
 export const mockRoutineTasks: RoutineTask[] = [
     {
@@ -261,3 +294,5 @@ export const mockRecruits: Recruit[] = [
         resumeUrl: 'https://example.com'
     }
 ];
+
+    
