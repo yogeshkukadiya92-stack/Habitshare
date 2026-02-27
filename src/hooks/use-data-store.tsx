@@ -1,52 +1,9 @@
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { mockKras, mockLeaves, mockExpenses, mockRoutineTasks, mockHabits, mockHolidays, mockRecruits, mockAttendances } from '@/lib/data';
 import type { Employee, KRA, Branch, Leave, Expense, RoutineTask, Habit, Holiday, Recruit, Attendance } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
-
-// Helper function to get data from localStorage
-const useLocalStorage = <T,>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] => {
-  const [storedValue, setStoredValue] = useState<T>(() => {
-    if (typeof window === 'undefined') {
-      return initialValue;
-    }
-    try {
-      const item = window.localStorage.getItem(key);
-      // Need to handle date strings on parse
-      return item ? JSON.parse(item, (key, value) => {
-        if (key.includes('Date') || key.includes('date') || key === 'checkIns') {
-            if (Array.isArray(value)) {
-                return value.map(v => new Date(v));
-            }
-            if(typeof value === 'string' && value.match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/)) {
-                return new Date(value);
-            }
-        }
-        return value;
-      }) : initialValue;
-    } catch (error) {
-      console.error(error);
-      return initialValue;
-    }
-  });
-
-  const setValue: React.Dispatch<React.SetStateAction<T>> = (value) => {
-    try {
-      const valueToStore = value instanceof Function ? value(storedValue) : value;
-      setStoredValue(valueToStore);
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem(key, JSON.stringify(valueToStore));
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  return [storedValue, setValue];
-};
-
 
 interface DataStoreContextType {
   loading: boolean;
@@ -81,20 +38,59 @@ const DataStoreContext = createContext<DataStoreContextType | undefined>(undefin
 
 export const DataStoreProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
-  const [kras, setKras] = useLocalStorage<KRA[]>('kras', mockKras);
-  const [branches, setBranches] = useLocalStorage<Branch[]>('branches', []);
-  const [leaves, setLeaves] = useLocalStorage<Leave[]>('leaves', mockLeaves);
-  const [expenses, setExpenses] = useLocalStorage<Expense[]>('expenses', mockExpenses);
-  const [routineTasks, setRoutineTasks] = useLocalStorage<RoutineTask[]>('routineTasks', mockRoutineTasks);
-  const [habits, setHabits] = useLocalStorage<Habit[]>('habits', mockHabits);
-  const [holidays, setHolidays] = useLocalStorage<Holiday[]>('holidays', mockHolidays);
-  const [recruits, setRecruits] = useLocalStorage<Recruit[]>('recruits', mockRecruits);
-  const [attendances, setAttendances] = useLocalStorage<Attendance[]>('attendances', mockAttendances);
+  const [kras, setKras] = useState<KRA[]>(mockKras);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [leaves, setLeaves] = useState<Leave[]>(mockLeaves);
+  const [expenses, setExpenses] = useState<Expense[]>(mockExpenses);
+  const [routineTasks, setRoutineTasks] = useState<RoutineTask[]>(mockRoutineTasks);
+  const [habits, setHabits] = useState<Habit[]>(mockHabits);
+  const [holidays, setHolidays] = useState<Holiday[]>(mockHolidays);
+  const [recruits, setRecruits] = useState<Recruit[]>(mockRecruits);
+  const [attendances, setAttendances] = useState<Attendance[]>(mockAttendances);
 
+  // Hydration-safe localStorage loading
   useEffect(() => {
-    // Data is now loaded from localStorage, so loading is quicker.
+    const loadData = (key: string, initialValue: any, setter: Function) => {
+      try {
+        const item = window.localStorage.getItem(key);
+        if (item) {
+          const parsed = JSON.parse(item, (key, value) => {
+            if (key.includes('Date') || key.includes('date') || key === 'checkIns') {
+              if (Array.isArray(value)) return value.map(v => new Date(v));
+              if (typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)) return new Date(value);
+            }
+            return value;
+          });
+          setter(parsed);
+        }
+      } catch (error) {
+        console.error(`Error loading ${key} from localStorage:`, error);
+      }
+    };
+
+    loadData('kras', mockKras, setKras);
+    loadData('branches', [], setBranches);
+    loadData('leaves', mockLeaves, setLeaves);
+    loadData('expenses', mockExpenses, setExpenses);
+    loadData('routineTasks', mockRoutineTasks, setRoutineTasks);
+    loadData('habits', mockHabits, setHabits);
+    loadData('holidays', mockHolidays, setHolidays);
+    loadData('recruits', mockRecruits, setRecruits);
+    loadData('attendances', mockAttendances, setAttendances);
+    
     setLoading(false);
   }, []);
+
+  // Sync to localStorage on changes
+  useEffect(() => { if (!loading) window.localStorage.setItem('kras', JSON.stringify(kras)); }, [kras, loading]);
+  useEffect(() => { if (!loading) window.localStorage.setItem('branches', JSON.stringify(branches)); }, [branches, loading]);
+  useEffect(() => { if (!loading) window.localStorage.setItem('leaves', JSON.stringify(leaves)); }, [leaves, loading]);
+  useEffect(() => { if (!loading) window.localStorage.setItem('expenses', JSON.stringify(expenses)); }, [expenses, loading]);
+  useEffect(() => { if (!loading) window.localStorage.setItem('routineTasks', JSON.stringify(routineTasks)); }, [routineTasks, loading]);
+  useEffect(() => { if (!loading) window.localStorage.setItem('habits', JSON.stringify(habits)); }, [habits, loading]);
+  useEffect(() => { if (!loading) window.localStorage.setItem('holidays', JSON.stringify(holidays)); }, [holidays, loading]);
+  useEffect(() => { if (!loading) window.localStorage.setItem('recruits', JSON.stringify(recruits)); }, [recruits, loading]);
+  useEffect(() => { if (!loading) window.localStorage.setItem('attendances', JSON.stringify(attendances)); }, [attendances, loading]);
 
   const employees: Employee[] = React.useMemo(() => {
     const employeeMap = new Map<string, Employee>();
@@ -107,30 +103,21 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   }, [kras]);
 
   const handleSaveKra = (kraToSave: KRA) => {
-    setKras(prevKras => {
-      const exists = prevKras.some(k => k.id === kraToSave.id);
-      if (exists) {
-        return prevKras.map(kra => (kra.id === kraToSave.id ? kraToSave : kra));
-      }
-      return [...prevKras, kraToSave];
+    setKras(prev => {
+      const exists = prev.some(k => k.id === kraToSave.id);
+      return exists ? prev.map(k => (k.id === kraToSave.id ? kraToSave : k)) : [...prev, kraToSave];
     });
   };
 
   const handleSaveEmployee = (employeeToSave: Employee) => {
-    setKras(prevKras => {
-      const employeeExists = prevKras.some(k => k.employee.id === employeeToSave.id);
-
+    setKras(prev => {
+      const employeeExists = prev.some(k => k.employee.id === employeeToSave.id);
       if (employeeExists) {
-        return prevKras.map(kra => {
-          if (kra.employee.id === employeeToSave.id) {
-            return { ...kra, employee: employeeToSave };
-          }
-          return kra;
-        });
+        return prev.map(kra => kra.employee.id === employeeToSave.id ? { ...kra, employee: employeeToSave } : kra);
       } else {
         const newPlaceholderKra: KRA = {
           id: `KRA-placeholder-${employeeToSave.id}`,
-          taskDescription: 'Placeholder KRA for new employee',
+          taskDescription: 'Placeholder KRA',
           employee: employeeToSave,
           progress: 0,
           status: 'Pending',
@@ -142,134 +129,85 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
           endDate: new Date(),
           actions: [],
         };
-        return [...prevKras, newPlaceholderKra];
+        return [...prev, newPlaceholderKra];
       }
     });
   };
 
   const handleDeleteEmployee = (employeeId: string) => {
-    setKras(prevKras => prevKras.filter(kra => kra.employee.id !== employeeId));
+    setKras(prev => prev.filter(kra => kra.employee.id !== employeeId));
   };
   
   const handleSaveLeave = (leaveToSave: Leave) => {
-    setLeaves((prevLeaves) => {
-        const exists = prevLeaves.some(l => l.id === leaveToSave.id);
-        if (exists) {
-            return prevLeaves.map((leave) => (leave.id === leaveToSave.id ? leaveToSave : leave));
-        }
-        return [leaveToSave, ...prevLeaves].sort((a,b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
+    setLeaves(prev => {
+      const exists = prev.some(l => l.id === leaveToSave.id);
+      const updated = exists ? prev.map(l => (l.id === leaveToSave.id ? leaveToSave : l)) : [leaveToSave, ...prev];
+      return updated.sort((a,b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
     });
   };
 
   const handleDeleteLeave = (leaveId: string) => {
-    setLeaves(prevLeaves => prevLeaves.filter(l => l.id !== leaveId));
+    setLeaves(prev => prev.filter(l => l.id !== leaveId));
   };
 
   const handleSaveExpense = (expenseToSave: Expense) => {
-    setExpenses((prevExpenses) => {
-        const exists = prevExpenses.some(l => l.id === expenseToSave.id);
-        if (exists) {
-            return prevExpenses.map((expense) => (expense.id === expenseToSave.id ? expenseToSave : expense));
-        }
-        return [expenseToSave, ...prevExpenses].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    setExpenses(prev => {
+      const exists = prev.some(e => e.id === expenseToSave.id);
+      const updated = exists ? prev.map(e => (e.id === expenseToSave.id ? expenseToSave : e)) : [expenseToSave, ...prev];
+      return updated.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     });
   };
 
   const handleDeleteExpense = (expenseId: string) => {
-    setExpenses(prevExpenses => prevExpenses.filter(expense => expense.id !== expenseId));
+    setExpenses(prev => prev.filter(e => e.id !== expenseId));
   };
 
   const handleSaveRoutineTask = (taskToSave: RoutineTask) => {
-    setRoutineTasks((prevTasks) => {
-        const exists = prevTasks.some(t => t.id === taskToSave.id);
-        if (exists) {
-            return prevTasks.map((task) => (task.id === taskToSave.id ? taskToSave : task));
-        }
-        return [taskToSave, ...prevTasks];
+    setRoutineTasks(prev => {
+      const exists = prev.some(t => t.id === taskToSave.id);
+      return exists ? prev.map(t => (t.id === taskToSave.id ? taskToSave : t)) : [taskToSave, ...prev];
     });
   };
 
   const handleDeleteRoutineTask = (taskId: string) => {
-    setRoutineTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
+    setRoutineTasks(prev => prev.filter(t => t.id !== taskId));
   };
 
   const handleSaveHabit = (habitToSave: Habit) => {
-    setHabits((prevHabits) => {
-        const exists = prevHabits.some(h => h.id === habitToSave.id);
-        if (exists) {
-            return prevHabits.map((habit) => (habit.id === habitToSave.id ? habitToSave : habit));
-        }
-        return [...prevHabits, habitToSave];
+    setHabits(prev => {
+      const exists = prev.some(h => h.id === habitToSave.id);
+      return exists ? prev.map(h => (h.id === habitToSave.id ? habitToSave : h)) : [...prev, habitToSave];
     });
   };
 
   const handleSaveHoliday = (holidayToSave: Holiday) => {
-    setHolidays((prevHolidays) => {
-        const exists = prevHolidays.some(h => h.id === holidayToSave.id);
-        const updatedHolidays = exists 
-            ? prevHolidays.map((holiday) => (holiday.id === holidayToSave.id ? holidayToSave : holiday))
-            : [...prevHolidays, holidayToSave];
-        
-        return updatedHolidays.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    setHolidays(prev => {
+      const exists = prev.some(h => h.id === holidayToSave.id);
+      const updated = exists ? prev.map(h => (h.id === holidayToSave.id ? holidayToSave : h)) : [...prev, holidayToSave];
+      return updated.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     });
   };
 
-    const handleSaveRecruit = (recruitToSave: Recruit) => {
-        setRecruits((prevRecruits) => {
-            const exists = prevRecruits.some(r => r.id === recruitToSave.id);
-            const updatedRecruits = exists 
-                ? prevRecruits.map((recruit) => (recruit.id === recruitToSave.id ? recruitToSave : recruit))
-                : [...prevRecruits, recruitToSave];
-            
-            return updatedRecruits.sort((a,b) => new Date(b.appliedDate).getTime() - new Date(a.appliedDate).getTime());
-        });
-    };
+  const handleSaveRecruit = (recruitToSave: Recruit) => {
+    setRecruits(prev => {
+      const exists = prev.some(r => r.id === recruitToSave.id);
+      const updated = exists ? prev.map(r => (r.id === recruitToSave.id ? recruitToSave : r)) : [...prev, recruitToSave];
+      return updated.sort((a,b) => new Date(b.appliedDate).getTime() - new Date(a.appliedDate).getTime());
+    });
+  };
 
-    const handleSaveAttendance = (attendanceToSave: Attendance) => {
-        setAttendances((prevAttendances) => {
-            const exists = prevAttendances.some(
-                a => a.employee.id === attendanceToSave.employee.id &&
-                new Date(a.date).toDateString() === new Date(attendanceToSave.date).toDateString()
-            );
-            if (exists) {
-                return prevAttendances.map((att) =>
-                    (att.employee.id === attendanceToSave.employee.id && new Date(att.date).toDateString() === new Date(attendanceToSave.date).toDateString())
-                        ? attendanceToSave
-                        : att
-                );
-            }
-            return [...prevAttendances, attendanceToSave];
-        });
-    };
-
+  const handleSaveAttendance = (attendanceToSave: Attendance) => {
+    setAttendances(prev => {
+      const exists = prev.some(a => a.employee.id === attendanceToSave.employee.id && new Date(a.date).toDateString() === new Date(attendanceToSave.date).toDateString());
+      return exists ? prev.map(a => (a.employee.id === attendanceToSave.employee.id && new Date(a.date).toDateString() === new Date(attendanceToSave.date).toDateString()) ? attendanceToSave : a) : [...prev, attendanceToSave];
+    });
+  };
 
   const value = {
-    loading,
-    kras,
-    employees,
-    branches,
-    leaves,
-    expenses,
-    routineTasks,
-    habits,
-    holidays,
-    recruits,
-    attendances,
-    handleSaveKra,
-    handleSaveEmployee,
-    handleDeleteEmployee,
-    handleSaveLeave,
-    handleDeleteLeave,
-    handleSaveExpense,
-    handleDeleteExpense,
-    handleSaveRoutineTask,
-    handleDeleteRoutineTask,
-    handleSaveHabit,
-    handleSaveHoliday,
-    handleSaveRecruit,
-    handleSaveAttendance,
-    setKras,
-    setBranches
+    loading, kras, employees, branches, leaves, expenses, routineTasks, habits, holidays, recruits, attendances,
+    handleSaveKra, handleSaveEmployee, handleDeleteEmployee, handleSaveLeave, handleDeleteLeave, handleSaveExpense, handleDeleteExpense,
+    handleSaveRoutineTask, handleDeleteRoutineTask, handleSaveHabit, handleSaveHoliday, handleSaveRecruit, handleSaveAttendance,
+    setKras, setBranches
   };
 
   return <DataStoreContext.Provider value={value}>{children}</DataStoreContext.Provider>;
@@ -277,8 +215,6 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
 
 export const useDataStore = () => {
   const context = useContext(DataStoreContext);
-  if (context === undefined) {
-    throw new Error('useDataStore must be used within a DataStoreProvider');
-  }
+  if (context === undefined) throw new Error('useDataStore must be used within a DataStoreProvider');
   return context;
 };
