@@ -1,9 +1,7 @@
-
-
 'use client';
 
 import * as React from 'react';
-import { MoreHorizontal, CalendarCheck2, ChevronRight, MessageSquare, Edit } from 'lucide-react';
+import { MoreHorizontal, CalendarCheck2, ChevronRight, MessageSquare, Edit, Trash2 } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -38,10 +36,22 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collap
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { useDataStore } from '@/hooks/use-data-store';
 
 const statusStyles: Record<KRAStatus, string> = {
   'On Track': 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/40 dark:text-green-300 dark:border-green-800',
-  'At Risk': 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200 dark:bg-yellow-900/40 dark:text-yellow-300 dark:border-yellow-800',
+  'At Risk': 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200 dark:bg-yellow-900/40 dark:text-yellow-300 dark:border-green-800',
   Completed: 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-800',
   Pending: 'bg-gray-100 text-gray-800 border-gray-200 hover:bg-gray-200 dark:bg-gray-800/40 dark:text-gray-300 dark:border-gray-700',
 };
@@ -198,112 +208,181 @@ const KpiRow = ({ kra, action, onSave }: { kra: KRA, action: ActionItem, onSave:
 
 
 export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
-  
+  const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
+  const { handleDeleteMultipleKras } = useDataStore();
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(kras.map(k => k.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectOne = (id: string, checked: boolean) => {
+    if (checked) {
+      setSelectedIds(prev => [...prev, id]);
+    } else {
+      setSelectedIds(prev => prev.filter(i => i !== id));
+    }
+  };
+
+  const handleBulkDelete = () => {
+    handleDeleteMultipleKras(selectedIds);
+    setSelectedIds([]);
+  };
+
   return (
      <TooltipProvider>
-    <div className='border rounded-lg'>
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Employee</TableHead>
-          <TableHead className='w-[450px]'>KRA-KPI</TableHead>
-          <TableHead>Weightage</TableHead>
-          <TableHead>Marks Achieved</TableHead>
-          <TableHead>
-            <span className="sr-only">Actions</span>
-          </TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {kras.map((kra) => {
-          const baseMarks = kra.marksAchieved ?? 0;
-          const bonus = kra.bonus ?? 0;
-          const penalty = kra.penalty ?? 0;
-          const finalMarks = baseMarks + bonus - penalty;
-          const hasBonusOrPenalty = bonus > 0 || penalty > 0;
-
-          return (
-          <TableRow key={kra.id}>
-            <TableCell>
-              <div className="flex items-center gap-3">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={kra.employee.avatarUrl} alt={kra.employee.name} data-ai-hint="people" />
-                  <AvatarFallback>{kra.employee.name.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div className="font-medium">{kra.employee.name}</div>
-              </div>
-            </TableCell>
-            <TableCell className="max-w-sm align-top">
-                <AddKraDialog kra={kra} onSave={onSave} employees={employees}>
-                    <div className="cursor-pointer">
-                        <p className="font-semibold hover:underline">{kra.taskDescription || "KRA"}</p>
-                        <p className="text-xs text-muted-foreground">Due: {format(kra.endDate, 'MMM d, yyyy')}</p>
-                    </div>
-                </AddKraDialog>
-                {(kra.actions && kra.actions.length > 0) && (
-                    <div className='mt-2 space-y-1 pl-4 border-l ml-2'>
-                        <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground py-1">
-                            <span className="flex-1">KPI</span>
-                            <span className='w-12 text-center'>Weight</span>
-                            <span className='w-12 text-center'>Marks</span>
-                            <span className='w-6'></span>
-                        </div>
-                        {kra.actions.map((action) => (
-                           <KpiRow key={action.id} kra={kra} action={action} onSave={onSave} />
-                        ))}
-                    </div>
-                )}
-            </TableCell>
-            <TableCell className="align-top">
-                 {kra.weightage !== null ? (
-                    <span className="font-semibold text-base">{kra.weightage}</span>
-                ) : (
-                    <span className="text-muted-foreground">-</span>
-                )}
-            </TableCell>
-            <TableCell className="align-top">
-                <Tooltip>
-                    <TooltipTrigger>
-                        <span className={cn("font-semibold text-base", hasBonusOrPenalty && 'underline decoration-dotted')}>
-                            {finalMarks.toFixed(2)}
-                        </span>
-                    </TooltipTrigger>
-                     {hasBonusOrPenalty && (
-                        <TooltipContent>
-                            <div className="text-xs">
-                                <p>Base: {baseMarks.toFixed(2)}</p>
-                                {bonus > 0 && <p>Bonus: +{bonus}</p>}
-                                {penalty > 0 && <p>Penalty: -{penalty}</p>}
-                                <p className="font-bold border-t mt-1 pt-1">Total: {finalMarks.toFixed(2)}</p>
-                            </div>
-                        </TooltipContent>
-                    )}
-                </Tooltip>
-            </TableCell>
-            <TableCell className="align-top">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button aria-haspopup="true" size="icon" variant="ghost">
-                      <MoreHorizontal className="h-4 w-4" />
-                      <span className="sr-only">Toggle menu</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                    <AddKraDialog kra={kra} onSave={onSave} employees={employees}>
-                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                            Edit
-                        </DropdownMenuItem>
-                    </AddKraDialog>
-                    <DropdownMenuItem onClick={() => onDelete(kra.id)} className="text-destructive">Delete</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-            </TableCell>
+    <div className='space-y-4'>
+      {selectedIds.length > 0 && (
+        <div className="flex items-center justify-between p-2 bg-muted rounded-md border border-primary/20">
+          <span className="text-sm font-medium">{selectedIds.length} items selected</span>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm" className="gap-2">
+                <Trash2 className="h-4 w-4" />
+                Delete Selected
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete {selectedIds.length} KRAs. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive hover:bg-destructive/90">
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      )}
+      <div className='border rounded-lg'>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-[50px]">
+              <Checkbox 
+                checked={selectedIds.length === kras.length && kras.length > 0}
+                onCheckedChange={(checked) => handleSelectAll(!!checked)}
+              />
+            </TableHead>
+            <TableHead>Employee</TableHead>
+            <TableHead className='w-[450px]'>KRA-KPI</TableHead>
+            <TableHead>Weightage</TableHead>
+            <TableHead>Marks Achieved</TableHead>
+            <TableHead>
+              <span className="sr-only">Actions</span>
+            </TableHead>
           </TableRow>
-          );
-        })}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {kras.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={6} className="h-24 text-center">No KRAs found.</TableCell>
+            </TableRow>
+          )}
+          {kras.map((kra) => {
+            const baseMarks = kra.marksAchieved ?? 0;
+            const bonus = kra.bonus ?? 0;
+            const penalty = kra.penalty ?? 0;
+            const finalMarks = baseMarks + bonus - penalty;
+            const hasBonusOrPenalty = bonus > 0 || penalty > 0;
+
+            return (
+            <TableRow key={kra.id}>
+              <TableCell>
+                <Checkbox 
+                  checked={selectedIds.includes(kra.id)}
+                  onCheckedChange={(checked) => handleSelectOne(kra.id, !!checked)}
+                />
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={kra.employee.avatarUrl} alt={kra.employee.name} data-ai-hint="people" />
+                    <AvatarFallback>{kra.employee.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div className="font-medium">{kra.employee.name}</div>
+                </div>
+              </TableCell>
+              <TableCell className="max-w-sm align-top">
+                  <AddKraDialog kra={kra} onSave={onSave} employees={employees}>
+                      <div className="cursor-pointer">
+                          <p className="font-semibold hover:underline">{kra.taskDescription || "KRA"}</p>
+                          <p className="text-xs text-muted-foreground">Due: {format(kra.endDate, 'MMM d, yyyy')}</p>
+                      </div>
+                  </AddKraDialog>
+                  {(kra.actions && kra.actions.length > 0) && (
+                      <div className='mt-2 space-y-1 pl-4 border-l ml-2'>
+                          <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground py-1">
+                              <span className="flex-1">KPI</span>
+                              <span className='w-12 text-center'>Weight</span>
+                              <span className='w-12 text-center'>Marks</span>
+                              <span className='w-6'></span>
+                          </div>
+                          {kra.actions.map((action) => (
+                             <KpiRow key={action.id} kra={kra} action={action} onSave={onSave} />
+                          ))}
+                      </div>
+                  )}
+              </TableCell>
+              <TableCell className="align-top">
+                   {kra.weightage !== null ? (
+                      <span className="font-semibold text-base">{kra.weightage}</span>
+                  ) : (
+                      <span className="text-muted-foreground">-</span>
+                  )}
+              </TableCell>
+              <TableCell className="align-top">
+                  <Tooltip>
+                      <TooltipTrigger>
+                          <span className={cn("font-semibold text-base", hasBonusOrPenalty && 'underline decoration-dotted')}>
+                              {finalMarks.toFixed(2)}
+                          </span>
+                      </TooltipTrigger>
+                       {hasBonusOrPenalty && (
+                          <TooltipContent>
+                              <div className="text-xs">
+                                  <p>Base: {baseMarks.toFixed(2)}</p>
+                                  {bonus > 0 && <p>Bonus: +{bonus}</p>}
+                                  {penalty > 0 && <p>Penalty: -{penalty}</p>}
+                                  <p className="font-bold border-t mt-1 pt-1">Total: {finalMarks.toFixed(2)}</p>
+                              </div>
+                          </TooltipContent>
+                      )}
+                  </Tooltip>
+              </TableCell>
+              <TableCell className="align-top">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button aria-haspopup="true" size="icon" variant="ghost">
+                        <MoreHorizontal className="h-4 w-4" />
+                        <span className="sr-only">Toggle menu</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      <AddKraDialog kra={kra} onSave={onSave} employees={employees}>
+                          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                              Edit
+                          </DropdownMenuItem>
+                      </AddKraDialog>
+                      <DropdownMenuItem onClick={() => onDelete(kra.id)} className="text-destructive">Delete</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+              </TableCell>
+            </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+      </div>
     </div>
     </TooltipProvider>
   );

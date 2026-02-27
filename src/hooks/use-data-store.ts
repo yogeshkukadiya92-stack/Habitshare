@@ -18,17 +18,26 @@ interface DataStoreContextType {
   recruits: Recruit[];
   attendances: Attendance[];
   handleSaveKra: (kra: KRA) => void;
+  handleDeleteKra: (kraId: string) => void;
+  handleDeleteMultipleKras: (ids: string[]) => void;
   handleSaveEmployee: (employee: Employee) => void;
   handleDeleteEmployee: (employeeId: string) => void;
+  handleDeleteMultipleEmployees: (ids: string[]) => void;
   handleSaveLeave: (leave: Leave) => void;
   handleDeleteLeave: (leaveId: string) => void;
+  handleDeleteMultipleLeaves: (ids: string[]) => void;
   handleSaveExpense: (expense: Expense) => void;
   handleDeleteExpense: (expenseId: string) => void;
+  handleDeleteMultipleExpenses: (ids: string[]) => void;
   handleSaveRoutineTask: (task: RoutineTask) => void;
   handleDeleteRoutineTask: (taskId: string) => void;
+  handleDeleteMultipleRoutineTasks: (ids: string[]) => void;
   handleSaveHabit: (habit: Habit) => void;
   handleSaveHoliday: (holiday: Holiday) => void;
+  handleDeleteHoliday: (id: string) => void;
   handleSaveRecruit: (recruit: Recruit) => void;
+  handleDeleteRecruit: (id: string) => void;
+  handleDeleteMultipleRecruits: (ids: string[]) => void;
   handleSaveAttendance: (attendance: Attendance) => void;
   setKras: React.Dispatch<React.SetStateAction<KRA[]>>;
   setBranches: React.Dispatch<React.SetStateAction<Branch[]>>;
@@ -51,6 +60,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   useEffect(() => {
     const loadData = (key: string, initialValue: any, setter: Function) => {
       try {
+        if (typeof window === 'undefined') return;
         const item = window.localStorage.getItem(key);
         if (item) {
           const parsed = JSON.parse(item, (key, value) => {
@@ -80,15 +90,15 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     setLoading(false);
   }, []);
 
-  useEffect(() => { if (!loading) window.localStorage.setItem('kras', JSON.stringify(kras)); }, [kras, loading]);
-  useEffect(() => { if (!loading) window.localStorage.setItem('branches', JSON.stringify(branches)); }, [branches, loading]);
-  useEffect(() => { if (!loading) window.localStorage.setItem('leaves', JSON.stringify(leaves)); }, [leaves, loading]);
-  useEffect(() => { if (!loading) window.localStorage.setItem('expenses', JSON.stringify(expenses)); }, [expenses, loading]);
-  useEffect(() => { if (!loading) window.localStorage.setItem('routineTasks', JSON.stringify(routineTasks)); }, [routineTasks, loading]);
-  useEffect(() => { if (!loading) window.localStorage.setItem('habits', JSON.stringify(habits)); }, [habits, loading]);
-  useEffect(() => { if (!loading) window.localStorage.setItem('holidays', JSON.stringify(holidays)); }, [holidays, loading]);
-  useEffect(() => { if (!loading) window.localStorage.setItem('recruits', JSON.stringify(recruits)); }, [recruits, loading]);
-  useEffect(() => { if (!loading) window.localStorage.setItem('attendances', JSON.stringify(attendances)); }, [attendances, loading]);
+  useEffect(() => { if (!loading && typeof window !== 'undefined') window.localStorage.setItem('kras', JSON.stringify(kras)); }, [kras, loading]);
+  useEffect(() => { if (!loading && typeof window !== 'undefined') window.localStorage.setItem('branches', JSON.stringify(branches)); }, [branches, loading]);
+  useEffect(() => { if (!loading && typeof window !== 'undefined') window.localStorage.setItem('leaves', JSON.stringify(leaves)); }, [leaves, loading]);
+  useEffect(() => { if (!loading && typeof window !== 'undefined') window.localStorage.setItem('expenses', JSON.stringify(expenses)); }, [expenses, loading]);
+  useEffect(() => { if (!loading && typeof window !== 'undefined') window.localStorage.setItem('routineTasks', JSON.stringify(routineTasks)); }, [routineTasks, loading]);
+  useEffect(() => { if (!loading && typeof window !== 'undefined') window.localStorage.setItem('habits', JSON.stringify(habits)); }, [habits, loading]);
+  useEffect(() => { if (!loading && typeof window !== 'undefined') window.localStorage.setItem('holidays', JSON.stringify(holidays)); }, [holidays, loading]);
+  useEffect(() => { if (!loading && typeof window !== 'undefined') window.localStorage.setItem('recruits', JSON.stringify(recruits)); }, [recruits, loading]);
+  useEffect(() => { if (!loading && typeof window !== 'undefined') window.localStorage.setItem('attendances', JSON.stringify(attendances)); }, [attendances, loading]);
 
   const employees: Employee[] = React.useMemo(() => {
     const employeeMap = new Map<string, Employee>();
@@ -105,6 +115,14 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
       const exists = prev.some(k => k.id === kraToSave.id);
       return exists ? prev.map(k => (k.id === kraToSave.id ? kraToSave : k)) : [...prev, kraToSave];
     });
+  };
+
+  const handleDeleteKra = (kraId: string) => {
+    setKras(prev => prev.filter(k => k.id !== kraId));
+  };
+
+  const handleDeleteMultipleKras = (ids: string[]) => {
+    setKras(prev => prev.filter(k => !ids.includes(k.id)));
   };
 
   const handleSaveEmployee = (employeeToSave: Employee) => {
@@ -135,6 +153,10 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   const handleDeleteEmployee = (employeeId: string) => {
     setKras(prev => prev.filter(kra => kra.employee.id !== employeeId));
   };
+
+  const handleDeleteMultipleEmployees = (ids: string[]) => {
+    setKras(prev => prev.filter(kra => !ids.includes(kra.employee.id)));
+  };
   
   const handleSaveLeave = (leaveToSave: Leave) => {
     setLeaves(prev => {
@@ -146,6 +168,10 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
 
   const handleDeleteLeave = (leaveId: string) => {
     setLeaves(prev => prev.filter(l => l.id !== leaveId));
+  };
+
+  const handleDeleteMultipleLeaves = (ids: string[]) => {
+    setLeaves(prev => prev.filter(l => !ids.includes(l.id)));
   };
 
   const handleSaveExpense = (expenseToSave: Expense) => {
@@ -160,6 +186,10 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     setExpenses(prev => prev.filter(e => e.id !== expenseId));
   };
 
+  const handleDeleteMultipleExpenses = (ids: string[]) => {
+    setExpenses(prev => prev.filter(e => !ids.includes(e.id)));
+  };
+
   const handleSaveRoutineTask = (taskToSave: RoutineTask) => {
     setRoutineTasks(prev => {
       const exists = prev.some(t => t.id === taskToSave.id);
@@ -169,6 +199,10 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
 
   const handleDeleteRoutineTask = (taskId: string) => {
     setRoutineTasks(prev => prev.filter(t => t.id !== taskId));
+  };
+
+  const handleDeleteMultipleRoutineTasks = (ids: string[]) => {
+    setRoutineTasks(prev => prev.filter(t => !ids.includes(t.id)));
   };
 
   const handleSaveHabit = (habitToSave: Habit) => {
@@ -186,12 +220,24 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     });
   };
 
+  const handleDeleteHoliday = (id: string) => {
+    setHolidays(prev => prev.filter(h => h.id !== id));
+  };
+
   const handleSaveRecruit = (recruitToSave: Recruit) => {
     setRecruits(prev => {
       const exists = prev.some(r => r.id === recruitToSave.id);
       const updated = exists ? prev.map(r => (r.id === recruitToSave.id ? recruitToSave : r)) : [...prev, recruitToSave];
       return updated.sort((a,b) => new Date(b.appliedDate).getTime() - new Date(a.appliedDate).getTime());
     });
+  };
+
+  const handleDeleteRecruit = (id: string) => {
+    setRecruits(prev => prev.filter(r => r.id !== id));
+  };
+
+  const handleDeleteMultipleRecruits = (ids: string[]) => {
+    setRecruits(prev => prev.filter(r => !ids.includes(r.id)));
   };
 
   const handleSaveAttendance = (attendanceToSave: Attendance) => {
@@ -203,8 +249,8 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
 
   const value = {
     loading, kras, employees, branches, leaves, expenses, routineTasks, habits, holidays, recruits, attendances,
-    handleSaveKra, handleSaveEmployee, handleDeleteEmployee, handleSaveLeave, handleDeleteLeave, handleSaveExpense, handleDeleteExpense,
-    handleSaveRoutineTask, handleDeleteRoutineTask, handleSaveHabit, handleSaveHoliday, handleSaveRecruit, handleSaveAttendance,
+    handleSaveKra, handleDeleteKra, handleDeleteMultipleKras, handleSaveEmployee, handleDeleteEmployee, handleDeleteMultipleEmployees, handleSaveLeave, handleDeleteLeave, handleDeleteMultipleLeaves, handleSaveExpense, handleDeleteExpense, handleDeleteMultipleExpenses,
+    handleSaveRoutineTask, handleDeleteRoutineTask, handleDeleteMultipleRoutineTasks, handleSaveHabit, handleSaveHoliday, handleDeleteHoliday, handleSaveRecruit, handleDeleteRecruit, handleDeleteMultipleRecruits, handleSaveAttendance,
     setKras, setBranches
   };
 

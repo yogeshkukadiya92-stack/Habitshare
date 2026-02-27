@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -26,7 +25,7 @@ import Link from 'next/link';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Eye, ShieldCheck, Users, TrendingUp, PlusCircle, Download, Upload, FileSpreadsheet } from 'lucide-react';
+import { Eye, ShieldCheck, Users, TrendingUp, PlusCircle, Download, Upload, FileSpreadsheet, Trash2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
@@ -39,6 +38,18 @@ import { useDataStore } from '@/hooks/use-data-store';
 import { KraTable } from '@/components/kra-table';
 import * as XLSX from 'xlsx';
 import { useToast } from '@/hooks/use-toast';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 
 interface EmployeeSummary {
@@ -63,12 +74,13 @@ function DashboardContent() {
     employees, 
     handleSaveKra, 
     handleSaveEmployee,
-    handleDeleteEmployee
+    handleDeleteMultipleEmployees
   } = useDataStore();
   const [selectedBranch, setSelectedBranch] = React.useState('all');
   const [selectedYear, setSelectedYear] = React.useState<string>('all');
   const [selectedMonth, setSelectedMonth] = React.useState<string>('all');
   const [view, setView] = React.useState<'list' | 'grid'>('list');
+  const [selectedEmployeeIds, setSelectedEmployeeIds] = React.useState<string[]>([]);
   const { currentUser, getPermission } = useAuth();
   const pagePermission = getPermission('employees');
   const { toast } = useToast();
@@ -194,6 +206,28 @@ function DashboardContent() {
         localStorage.setItem('employeeView', newView);
     };
 
+    const handleSelectAll = (checked: boolean) => {
+      if (checked) {
+        setSelectedEmployeeIds(filteredEmployeeSummary.map(s => s.employee.id));
+      } else {
+        setSelectedEmployeeIds([]);
+      }
+    };
+
+    const handleSelectOne = (id: string, checked: boolean) => {
+      if (checked) {
+        setSelectedEmployeeIds(prev => [...prev, id]);
+      } else {
+        setSelectedEmployeeIds(prev => prev.filter(i => i !== id));
+      }
+    };
+
+    const handleBulkDelete = () => {
+      handleDeleteMultipleEmployees(selectedEmployeeIds);
+      setSelectedEmployeeIds([]);
+      toast({ title: "Bulk Delete Successful", description: `${selectedEmployeeIds.length} employees removed.` });
+    };
+
     const handleExport = () => {
         const dataToExport = employees.map(e => ({
             'ID': e.id,
@@ -296,7 +330,7 @@ function DashboardContent() {
                                kras={employeeKras}
                                employees={employees}
                                onSave={handleSaveKra}
-                               onDelete={handleDeleteEmployee}
+                               onDelete={() => {}}
                             />
                         )}
                     </CardContent>
@@ -402,11 +436,42 @@ function DashboardContent() {
                             <TabsTrigger value="performance" className='gap-2'><TrendingUp className="h-4 w-4" /> Performance Chart</TabsTrigger>
                         </TabsList>
                         <TabsContent value="list" className="mt-4">
+                             {selectedEmployeeIds.length > 0 && (
+                                <div className="flex items-center justify-between p-3 mb-4 bg-muted border border-primary/20 rounded-md">
+                                  <span className="text-sm font-medium">{selectedEmployeeIds.length} employees selected</span>
+                                  <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                      <Button variant="destructive" size="sm" className="gap-2">
+                                        <Trash2 className="h-4 w-4" />
+                                        Delete Selected
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                          This will permanently delete {selectedEmployeeIds.length} employees and all their associated KRAs.
+                                        </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                                      </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                  </AlertDialog>
+                                </div>
+                             )}
                              {view === 'list' || pagePermission === 'employee_only' ? (
                                 <div className="border rounded-lg">
                                     <Table>
                                         <TableHeader>
                                             <TableRow>
+                                                <TableHead className="w-[50px]">
+                                                  <Checkbox 
+                                                    checked={selectedEmployeeIds.length === filteredEmployeeSummary.length && filteredEmployeeSummary.length > 0}
+                                                    onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                                                  />
+                                                </TableHead>
                                                 <TableHead>Employee</TableHead>
                                                 <TableHead>Branch</TableHead>
                                                 <TableHead>KRAs Assigned</TableHead>
@@ -418,6 +483,7 @@ function DashboardContent() {
                                             {loading ? (
                                                 Array.from({ length: 5 }).map((_, i) => (
                                                 <TableRow key={i}>
+                                                    <TableCell><Skeleton className="h-4 w-4" /></TableCell>
                                                     <TableCell>
                                                         <div className="flex items-center gap-3">
                                                             <Skeleton className="h-10 w-10 rounded-full" />
@@ -440,6 +506,12 @@ function DashboardContent() {
                                             ) : (
                                                 filteredEmployeeSummary.map(({ employee, kraCount, averagePerformance }) => (
                                                     <TableRow key={employee.id}>
+                                                        <TableCell>
+                                                          <Checkbox 
+                                                            checked={selectedEmployeeIds.includes(employee.id)}
+                                                            onCheckedChange={(checked) => handleSelectOne(employee.id, !!checked)}
+                                                          />
+                                                        </TableCell>
                                                         <TableCell>
                                                             <div className="flex items-center gap-3">
                                                                 <Avatar className="h-10 w-10">
@@ -487,7 +559,16 @@ function DashboardContent() {
                              ) : (
                                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                     {filteredEmployeeSummary.map((summary) => (
-                                        <EmployeeCard key={summary.employee.id} summary={summary} />
+                                        <div key={summary.employee.id} className="relative group">
+                                          <div className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Checkbox 
+                                              checked={selectedEmployeeIds.includes(summary.employee.id)}
+                                              onCheckedChange={(checked) => handleSelectOne(summary.employee.id, !!checked)}
+                                              className="bg-background shadow-md"
+                                            />
+                                          </div>
+                                          <EmployeeCard summary={summary} />
+                                        </div>
                                     ))}
                                  </div>
                              )}

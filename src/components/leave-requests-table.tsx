@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import * as React from 'react';
@@ -34,6 +32,19 @@ import {
 } from '@/components/ui/tooltip';
 import { AddLeaveRequestDialog } from './add-leave-request-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { Checkbox } from './ui/checkbox';
+import { useDataStore } from '@/hooks/use-data-store';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 const statusConfig: Record<LeaveStatus, { className: string; icon: React.ElementType }> = {
   'Pending': { 
@@ -59,6 +70,8 @@ interface LeaveRequestsTableProps {
 
 export function LeaveRequestsTable({ leaves, employees, onSave, onDelete }: LeaveRequestsTableProps) {
   const { toast } = useToast();
+  const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
+  const { handleDeleteMultipleLeaves } = useDataStore();
 
   const handleStatusChange = (leave: Leave, status: LeaveStatus) => {
     onSave({ ...leave, status });
@@ -68,109 +81,172 @@ export function LeaveRequestsTable({ leaves, employees, onSave, onDelete }: Leav
     })
   }
 
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(leaves.map(l => l.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectOne = (id: string, checked: boolean) => {
+    if (checked) {
+      setSelectedIds(prev => [...prev, id]);
+    } else {
+      setSelectedIds(prev => prev.filter(i => i !== id));
+    }
+  };
+
+  const handleBulkDelete = () => {
+    handleDeleteMultipleLeaves(selectedIds);
+    setSelectedIds([]);
+    toast({ title: "Bulk Delete Successful", description: `${selectedIds.length} requests removed.` });
+  };
+
   return (
      <TooltipProvider>
-      <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Employee</TableHead>
-              <TableHead>Dates</TableHead>
-              <TableHead>Days</TableHead>
-              <TableHead>Reason</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>
-                <span className="sr-only">Actions</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {leaves.length === 0 && (
-                <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center">
-                        No leave requests found.
-                    </TableCell>
-                </TableRow>
-            )}
-            {leaves.map((leave) => {
-               const Icon = statusConfig[leave.status].icon;
-               const duration = leave.duration ?? (differenceInDays(leave.endDate, leave.startDate) + 1);
-               return(
-              <TableRow key={leave.id}>
-                <TableCell>
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={leave.employee.avatarUrl} alt={leave.employee.name} data-ai-hint="people" />
-                      <AvatarFallback>{leave.employee.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <div className="font-medium">{leave.employee.name}</div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Calendar className="h-4 w-4" />
-                        <span>{format(leave.startDate, 'MMM d')} - {format(leave.endDate, 'MMM d, yyyy')}</span>
-                    </div>
-                </TableCell>
-                <TableCell>
-                    <Badge variant="outline">{duration} day{duration > 1 ? 's' : ''}</Badge>
-                </TableCell>
-                <TableCell className="max-w-xs">
-                     <Tooltip>
-                        <TooltipTrigger>
-                           <p className="truncate">{leave.reason}</p>
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-sm">
-                           <p>{leave.reason}</p>
-                        </TooltipContent>
-                    </Tooltip>
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline" className={cn('gap-1.5', statusConfig[leave.status].className)}>
-                    <Icon className="h-3.5 w-3.5" />
-                    {leave.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button aria-haspopup="true" size="icon" variant="ghost">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Toggle menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                         <AddLeaveRequestDialog leave={leave} onSave={onSave} employees={employees}>
-                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                Edit
-                            </DropdownMenuItem>
-                        </AddLeaveRequestDialog>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleStatusChange(leave, 'Approved')} disabled={leave.status === 'Approved'}>
-                            <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
-                            Approve
-                        </DropdownMenuItem>
-                         <DropdownMenuItem onClick={() => handleStatusChange(leave, 'Rejected')} disabled={leave.status === 'Rejected'}>
-                            <XCircle className="mr-2 h-4 w-4 text-red-500" />
-                            Reject
-                        </DropdownMenuItem>
-                         <DropdownMenuItem onClick={() => handleStatusChange(leave, 'Pending')} disabled={leave.status === 'Pending'}>
-                            <Hourglass className="mr-2 h-4 w-4 text-yellow-500" />
-                            Mark as Pending
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => onDelete(leave.id)} className="text-destructive">
-                           <Trash2 className="mr-2 h-4 w-4" />
-                           Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                </TableCell>
+      <div className="space-y-4">
+        {selectedIds.length > 0 && (
+          <div className="flex items-center justify-between p-2 bg-muted rounded-md border border-primary/20">
+            <span className="text-sm font-medium">{selectedIds.length} items selected</span>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm" className="gap-2">
+                  <Trash2 className="h-4 w-4" />
+                  Delete Selected
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete {selectedIds.length} leave requests. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive hover:bg-destructive/90">
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        )}
+        <div className="border rounded-lg">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[50px]">
+                  <Checkbox 
+                    checked={selectedIds.length === leaves.length && leaves.length > 0}
+                    onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                  />
+                </TableHead>
+                <TableHead>Employee</TableHead>
+                <TableHead>Dates</TableHead>
+                <TableHead>Days</TableHead>
+                <TableHead>Reason</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>
+                  <span className="sr-only">Actions</span>
+                </TableHead>
               </TableRow>
-            )})}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {leaves.length === 0 && (
+                  <TableRow>
+                      <TableCell colSpan={7} className="h-24 text-center">
+                          No leave requests found.
+                      </TableCell>
+                  </TableRow>
+              )}
+              {leaves.map((leave) => {
+                 const Icon = statusConfig[leave.status].icon;
+                 const duration = leave.duration ?? (differenceInDays(leave.endDate, leave.startDate) + 1);
+                 return(
+                <TableRow key={leave.id}>
+                  <TableCell>
+                    <Checkbox 
+                      checked={selectedIds.includes(leave.id)}
+                      onCheckedChange={(checked) => handleSelectOne(leave.id, !!checked)}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={leave.employee.avatarUrl} alt={leave.employee.name} data-ai-hint="people" />
+                        <AvatarFallback>{leave.employee.name.charAt(0)}</AvatarFallback>
+                      </Avatar>
+                      <div className="font-medium">{leave.employee.name}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Calendar className="h-4 w-4" />
+                          <span>{format(leave.startDate, 'MMM d')} - {format(leave.endDate, 'MMM d, yyyy')}</span>
+                      </div>
+                  </TableCell>
+                  <TableCell>
+                      <Badge variant="outline">{duration} day{duration > 1 ? 's' : ''}</Badge>
+                  </TableCell>
+                  <TableCell className="max-w-xs">
+                       <Tooltip>
+                          <TooltipTrigger>
+                             <p className="truncate">{leave.reason}</p>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-sm">
+                             <p>{leave.reason}</p>
+                          </TooltipContent>
+                      </Tooltip>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={cn('gap-1.5', statusConfig[leave.status].className)}>
+                      <Icon className="h-3.5 w-3.5" />
+                      {leave.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button aria-haspopup="true" size="icon" variant="ghost">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Toggle menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                           <AddLeaveRequestDialog leave={leave} onSave={onSave} employees={employees}>
+                              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                  Edit
+                              </DropdownMenuItem>
+                          </AddLeaveRequestDialog>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => handleStatusChange(leave, 'Approved')} disabled={leave.status === 'Approved'}>
+                              <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                              Approve
+                          </DropdownMenuItem>
+                           <DropdownMenuItem onClick={() => handleStatusChange(leave, 'Rejected')} disabled={leave.status === 'Rejected'}>
+                              <XCircle className="mr-2 h-4 w-4 text-red-500" />
+                              Reject
+                          </DropdownMenuItem>
+                           <DropdownMenuItem onClick={() => handleStatusChange(leave, 'Pending')} disabled={leave.status === 'Pending'}>
+                              <Hourglass className="mr-2 h-4 w-4 text-yellow-500" />
+                              Mark as Pending
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => onDelete(leave.id)} className="text-destructive">
+                             <Trash2 className="mr-2 h-4 w-4" />
+                             Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              )})}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     </TooltipProvider>
   );
