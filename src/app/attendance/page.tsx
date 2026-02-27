@@ -1,10 +1,9 @@
 
-
 'use client';
 
 import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { UserCheck, Upload, Download, TrendingUp } from "lucide-react";
+import { UserCheck, Upload, Download, TrendingUp, FileSpreadsheet } from "lucide-react";
 import type { Employee, KRA, Attendance, AttendanceStatus } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AttendanceTable } from '@/components/attendance-table';
@@ -23,6 +22,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/components/auth-provider';
 import { useDataStore } from '@/hooks/use-data-store';
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 interface MonthlyStat {
@@ -58,6 +58,21 @@ export default function AttendancePage() {
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Attendance');
         XLSX.writeFile(workbook, `AttendanceData_${format(new Date(), 'yyyyMMdd')}.xlsx`);
         toast({ title: "Export Successful", description: "Attendance data has been exported." });
+    };
+
+    const handleDownloadSample = () => {
+        const sampleData = [
+            {
+                'Employee ID': 'EMP001',
+                'Employee Name': 'Rahul Mehta',
+                'Date': '2024-03-01',
+                'Status': 'Present'
+            }
+        ];
+        const worksheet = XLSX.utils.json_to_sheet(sampleData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Sample_Attendance');
+        XLSX.writeFile(workbook, 'Sample_Attendance_Template.xlsx');
     };
     
     const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -165,6 +180,7 @@ export default function AttendancePage() {
 
 
     return (
+     <TooltipProvider>
         <div className="flex flex-col gap-6">
             <h1 className="text-2xl font-semibold">Attendance Management</h1>
             <Card>
@@ -188,11 +204,20 @@ export default function AttendancePage() {
                                     className="hidden"
                                     accept=".xlsx, .xls"
                                 />
-                                <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+                                <UITooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button variant="outline" size="sm" onClick={handleDownloadSample}>
+                                            <FileSpreadsheet className="mr-2 h-4 w-4" />
+                                            Sample
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Download sample attendance template</TooltipContent>
+                                </UITooltip>
+                                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
                                     <Upload className="mr-2 h-4 w-4" />
                                     Import
                                 </Button>
-                                <Button variant="outline" onClick={handleExport}>
+                                <Button variant="outline" size="sm" onClick={handleExport}>
                                     <Download className="mr-2 h-4 w-4" />
                                     Export
                                 </Button>
@@ -348,5 +373,6 @@ export default function AttendancePage() {
                 </CardContent>
             </Card>
         </div>
+     </TooltipProvider>
     )
 }

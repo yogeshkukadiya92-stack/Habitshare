@@ -1,10 +1,9 @@
 
-
 'use client';
 
 import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Briefcase, Download, PlusCircle, Upload } from "lucide-react";
+import { Briefcase, Download, PlusCircle, Upload, FileSpreadsheet } from "lucide-react";
 import type { Recruit } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -24,6 +23,7 @@ import * as XLSX from 'xlsx';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { useDataStore } from '@/hooks/use-data-store';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default function RecruitmentPage() {
     const { recruits, loading, handleSaveRecruit } = useDataStore();
@@ -81,6 +81,26 @@ export default function RecruitmentPage() {
         toast({ title: "Export Successful", description: "Recruitment data has been exported." });
     };
 
+    const handleDownloadSample = () => {
+        const sampleData = [
+            {
+                'Name': 'Sunil Kumar',
+                'Email': 'sunil.k@example.com',
+                'Phone': '9876543210',
+                'Position': 'Marketing Head',
+                'Branch': 'Marketing',
+                'Applied Date': '2024-02-15',
+                'Status': 'Applied',
+                'Notes': 'Strong experience in digital ads',
+                'Comment': ''
+            }
+        ];
+        const worksheet = XLSX.utils.json_to_sheet(sampleData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Sample_Recruits');
+        XLSX.writeFile(workbook, 'Sample_Recruitment_Template.xlsx');
+    };
+
     const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
@@ -131,6 +151,7 @@ export default function RecruitmentPage() {
     };
 
     return (
+     <TooltipProvider>
         <div className="flex flex-col gap-4">
             <h1 className="text-2xl font-semibold">Recruitment Data Bank</h1>
             <Card>
@@ -171,6 +192,15 @@ export default function RecruitmentPage() {
                                     className="hidden"
                                     accept=".xlsx, .xls"
                                 />
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button variant="outline" size="sm" onClick={handleDownloadSample}>
+                                            <FileSpreadsheet className="mr-2 h-4 w-4" />
+                                            Sample
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Download sample recruitment template</TooltipContent>
+                                </Tooltip>
                                 <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
                                     <Upload className="mr-2 h-4 w-4" />
                                     Import
@@ -222,5 +252,6 @@ export default function RecruitmentPage() {
                 </CardContent>
             </Card>
         </div>
+     </TooltipProvider>
     )
 }

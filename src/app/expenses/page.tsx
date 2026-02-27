@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ReceiptText, PlusCircle, TrendingUp, Download, Upload } from "lucide-react";
+import { ReceiptText, PlusCircle, TrendingUp, Download, Upload, FileSpreadsheet } from "lucide-react";
 import type { Employee, Expense, KRA, ExpenseType } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -17,7 +17,7 @@ import {
 import { ExpenseClaimsTable } from '@/components/expense-claims-table';
 import { AddExpenseClaimDialog } from '@/components/add-expense-claim-dialog';
 import { format, getMonth, getYear } from 'date-fns';
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +27,7 @@ import { useDataStore } from '@/hooks/use-data-store';
 import * as XLSX from 'xlsx';
 import { useAuth } from '@/components/auth-provider';
 import { useToast } from '@/hooks/use-toast';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 interface MonthlyExpenseStat {
@@ -156,6 +157,24 @@ export default function ExpenseManagementPage() {
         toast({ title: "Export Successful", description: "Expense data has been exported." });
     };
 
+    const handleDownloadSample = () => {
+        const sampleData = [
+            {
+                'Employee ID': 'EMP001',
+                'Employee Name': 'Rahul Mehta',
+                'Date': '2024-03-05',
+                'Type': 'Travel',
+                'Description': 'Client meeting in Vadodara',
+                'Total Amount': 1200,
+                'Status': 'Pending'
+            }
+        ];
+        const worksheet = XLSX.utils.json_to_sheet(sampleData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Sample_Expenses');
+        XLSX.writeFile(workbook, 'Sample_Expenses_Template.xlsx');
+    };
+
     const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
@@ -200,6 +219,7 @@ export default function ExpenseManagementPage() {
     };
 
     return (
+     <TooltipProvider>
         <div className="flex flex-col gap-6">
             <h1 className="text-2xl font-semibold">Expense Management</h1>
             <Card>
@@ -259,6 +279,15 @@ export default function ExpenseManagementPage() {
                                     className="hidden"
                                     accept=".xlsx, .xls"
                                 />
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button variant="outline" size="sm" onClick={handleDownloadSample}>
+                                            <FileSpreadsheet className="mr-2 h-4 w-4" />
+                                            Sample
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Download sample expenses template</TooltipContent>
+                                </Tooltip>
                                 <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
                                     <Upload className="mr-2 h-4 w-4" />
                                     Import
@@ -335,7 +364,7 @@ export default function ExpenseManagementPage() {
                                     <CartesianGrid strokeDasharray="3 3" />
                                     <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                                     <YAxis tickFormatter={(value) => `₹${(value as number / 1000)}k`}/>
-                                    <Tooltip
+                                    <RechartsTooltip
                                         cursor={{fill: 'hsl(var(--muted))'}}
                                         content={<ChartTooltipContent indicator="dot" formatter={(value) => `₹${(value as number).toLocaleString('en-IN')}`} />}
                                     />
@@ -382,5 +411,6 @@ export default function ExpenseManagementPage() {
                 </CardContent>
             </Card>
         </div>
+     </TooltipProvider>
     )
 }

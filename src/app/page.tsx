@@ -26,7 +26,7 @@ import Link from 'next/link';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Eye, ShieldCheck, Users, TrendingUp, PlusCircle, Download, Upload } from 'lucide-react';
+import { Eye, ShieldCheck, Users, TrendingUp, PlusCircle, Download, Upload, FileSpreadsheet } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
@@ -214,6 +214,26 @@ function DashboardContent() {
         toast({ title: "Export Successful", description: "Employee data has been exported for Google Sheets." });
     };
 
+    const handleDownloadSample = () => {
+        const sampleData = [
+            {
+                'ID': 'EMP001',
+                'Name': 'Rahul Mehta',
+                'Email': 'rahul.mehta@example.com',
+                'Branch': 'Sales',
+                'Role': 'Employee',
+                'Joining Date': '2023-01-15',
+                'Birth Date': '1995-05-20',
+                'Address': '123 Street, Ahmedabad, Gujarat',
+                'Family Contact': '9876543210'
+            }
+        ];
+        const worksheet = XLSX.utils.json_to_sheet(sampleData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Sample_Employees');
+        XLSX.writeFile(workbook, 'Sample_Employees_Template.xlsx');
+    };
+
     const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
@@ -345,6 +365,15 @@ function DashboardContent() {
                                 className="hidden"
                                 accept=".xlsx, .xls"
                             />
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="outline" size="sm" onClick={handleDownloadSample}>
+                                        <FileSpreadsheet className="mr-2 h-4 w-4" />
+                                        Sample
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Download sample Excel template</TooltipContent>
+                            </Tooltip>
                             <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
                                 <Upload className="mr-2 h-4 w-4" />
                                 Import

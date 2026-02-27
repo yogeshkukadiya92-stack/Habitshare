@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import * as React from 'react';
@@ -9,7 +8,7 @@ import type { Employee, KRA, Holiday, HolidayWithEvents } from '@/lib/types';
 import { getMonth, getYear, isSameDay, format, getDate } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Cake, PartyPopper, Briefcase, PlusCircle, Upload, Download, CalendarDays } from 'lucide-react';
+import { Cake, PartyPopper, Briefcase, PlusCircle, Upload, Download, CalendarDays, FileSpreadsheet } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDataStore } from '@/hooks/use-data-store';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -20,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AddHolidayDialog } from '@/components/add-holiday-dialog';
 import * as XLSX from 'xlsx';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 type EventType = 'birthday' | 'anniversary' | 'holiday';
 
@@ -156,6 +156,20 @@ export default function HRCalendarPage() {
         toast({ title: "Export Successful", description: "Holiday data has been exported." });
     };
 
+    const handleDownloadSample = () => {
+        const sampleData = [
+            {
+                'Name': 'Diwali',
+                'Date': '2024-11-01',
+                'Type': 'Full Day'
+            }
+        ];
+        const worksheet = XLSX.utils.json_to_sheet(sampleData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Sample_Holidays');
+        XLSX.writeFile(workbook, 'Sample_Holidays_Template.xlsx');
+    };
+
     const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
@@ -205,6 +219,7 @@ export default function HRCalendarPage() {
     };
 
     return (
+     <TooltipProvider>
         <div className="flex flex-col gap-4">
             <h1 className="text-2xl font-semibold">Calendar & Holidays</h1>
             <Tabs defaultValue="calendar">
@@ -317,6 +332,15 @@ export default function HRCalendarPage() {
                                         className="hidden"
                                         accept=".xlsx, .xls"
                                     />
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button variant="outline" size="sm" onClick={handleDownloadSample}>
+                                                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                                                Sample
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>Download sample holidays template</TooltipContent>
+                                    </Tooltip>
                                     <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
                                         <Upload className="mr-2 h-4 w-4" />
                                         Import
@@ -358,5 +382,6 @@ export default function HRCalendarPage() {
                 </TabsContent>
             </Tabs>
         </div>
+     </TooltipProvider>
     )
 }

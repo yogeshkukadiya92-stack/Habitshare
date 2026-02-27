@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Target, PlusCircle, Download, Upload } from "lucide-react";
+import { Target, PlusCircle, Download, Upload, FileSpreadsheet } from "lucide-react";
 import type { Employee, Habit } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -21,6 +21,7 @@ import * as XLSX from 'xlsx';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { useAuth } from '@/components/auth-provider';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default function HabitTrackerPage() {
     const { employees, habits, loading, handleSaveHabit } = useDataStore();
@@ -50,6 +51,24 @@ export default function HabitTrackerPage() {
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Habits');
         XLSX.writeFile(workbook, `HabitData_${format(new Date(), 'yyyyMMdd')}.xlsx`);
         toast({ title: "Export Successful", description: "Habit data has been exported for Google Sheets." });
+    };
+
+    const handleDownloadSample = () => {
+        const sampleData = [
+            {
+                'Employee ID': 'EMP001',
+                'Employee Name': 'Rahul Mehta',
+                'Habit Name': 'Read 30 mins',
+                'Description': 'Read a professional development book',
+                'Goal Days': 30,
+                'Start Date': '2024-03-01',
+                'Check-in Dates': '2024-03-01, 2024-03-02'
+            }
+        ];
+        const worksheet = XLSX.utils.json_to_sheet(sampleData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Sample_Habits');
+        XLSX.writeFile(workbook, 'Sample_HabitTracker_Template.xlsx');
     };
 
     const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -104,6 +123,7 @@ export default function HabitTrackerPage() {
     };
 
     return (
+     <TooltipProvider>
         <div className="flex flex-col gap-4">
             <h1 className="text-2xl font-semibold">Habit Tracker</h1>
             <Card>
@@ -141,6 +161,15 @@ export default function HabitTrackerPage() {
                                     className="hidden"
                                     accept=".xlsx, .xls"
                                 />
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button variant="outline" size="sm" onClick={handleDownloadSample}>
+                                            <FileSpreadsheet className="mr-2 h-4 w-4" />
+                                            Sample
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Download sample habits template</TooltipContent>
+                                </Tooltip>
                                 <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
                                     <Upload className="mr-2 h-4 w-4" />
                                     Import
@@ -181,5 +210,6 @@ export default function HabitTrackerPage() {
                 </CardContent>
             </Card>
         </div>
+     </TooltipProvider>
     )
 }

@@ -21,13 +21,14 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Protected } from '@/components/protected';
-import { PlusCircle, ListChecks, Download, Upload } from 'lucide-react';
+import { PlusCircle, ListChecks, Download, Upload, FileSpreadsheet } from 'lucide-react';
 import { getYear, getMonth, startOfMonth, endOfMonth, format } from 'date-fns';
 import { useDataStore } from '@/hooks/use-data-store';
 import { KraTable } from '@/components/kra-table';
 import { useAuth } from '@/components/auth-provider';
 import * as XLSX from 'xlsx';
 import { useToast } from '@/hooks/use-toast';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 function KraManagementPage() {
@@ -128,6 +129,26 @@ function KraManagementPage() {
         toast({ title: "Export Successful", description: "KRA data has been exported." });
     };
 
+    const handleDownloadSample = () => {
+        const sampleData = [
+            {
+                'Employee ID': 'EMP001',
+                'Task Description': 'Achieve 100% sales target',
+                'Weightage': 20,
+                'Target': 100000,
+                'Achieved': 0,
+                'Marks Achieved': 0,
+                'Bonus': 0,
+                'Penalty': 0,
+                'End Date': '2024-12-31'
+            }
+        ];
+        const worksheet = XLSX.utils.json_to_sheet(sampleData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Sample_KRA');
+        XLSX.writeFile(workbook, 'Sample_KRA_Template.xlsx');
+    };
+
     const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
@@ -178,6 +199,7 @@ function KraManagementPage() {
     };
 
   return (
+     <TooltipProvider>
         <div className="flex-1 flex flex-col gap-4">
             <h1 className="text-2xl font-semibold">KRA Management</h1>
             <Card>
@@ -238,6 +260,15 @@ function KraManagementPage() {
                                 className="hidden"
                                 accept=".xlsx, .xls"
                             />
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="outline" size="sm" onClick={handleDownloadSample}>
+                                        <FileSpreadsheet className="mr-2 h-4 w-4" />
+                                        Sample
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Download sample KRA template</TooltipContent>
+                            </Tooltip>
                             <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
                                 <Upload className="mr-2 h-4 w-4" />
                                 Import
@@ -277,6 +308,7 @@ function KraManagementPage() {
                 </CardContent>
             </Card>
         </div>
+     </TooltipProvider>
   );
 }
 

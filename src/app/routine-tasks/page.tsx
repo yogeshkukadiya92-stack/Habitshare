@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ListTodo, PlusCircle, Download, Upload } from "lucide-react";
+import { ListTodo, PlusCircle, Download, Upload, FileSpreadsheet } from "lucide-react";
 import type { Employee, RoutineTask, KRA, RoutineTaskStatus } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -23,6 +23,7 @@ import { useDataStore } from '@/hooks/use-data-store';
 import * as XLSX from 'xlsx';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/auth-provider';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 export default function RoutineTasksPage() {
@@ -98,6 +99,26 @@ export default function RoutineTasksPage() {
         toast({ title: "Export Successful", description: "Routine task data has been exported." });
     };
 
+    const handleDownloadSample = () => {
+        const sampleData = [
+            {
+                'Employee ID': 'EMP001',
+                'Employee Name': 'Rahul Mehta',
+                'Title': 'Weekly Report Submission',
+                'Description': 'Prepare and submit the weekly progress report.',
+                'Assigned Date': '2024-03-01',
+                'Due Date': '2024-03-07',
+                'Status': 'To Do',
+                'Priority': 'Medium',
+                'Remarks': ''
+            }
+        ];
+        const worksheet = XLSX.utils.json_to_sheet(sampleData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Sample_Tasks');
+        XLSX.writeFile(workbook, 'Sample_RoutineTasks_Template.xlsx');
+    };
+
     const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
@@ -144,6 +165,7 @@ export default function RoutineTasksPage() {
     };
 
     return (
+     <TooltipProvider>
         <div className="flex flex-col gap-4">
             <h1 className="text-2xl font-semibold">Routine Tasks</h1>
             <Card>
@@ -213,6 +235,15 @@ export default function RoutineTasksPage() {
                                     className="hidden"
                                     accept=".xlsx, .xls"
                                 />
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button variant="outline" size="sm" onClick={handleDownloadSample}>
+                                            <FileSpreadsheet className="mr-2 h-4 w-4" />
+                                            Sample
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Download sample tasks template</TooltipContent>
+                                </Tooltip>
                                 <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
                                     <Upload className="mr-2 h-4 w-4" />
                                     Import
@@ -263,5 +294,6 @@ export default function RoutineTasksPage() {
                 </CardContent>
             </Card>
         </div>
+     </TooltipProvider>
     )
 }

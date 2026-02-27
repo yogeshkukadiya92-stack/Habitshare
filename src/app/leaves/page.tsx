@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plane, PlusCircle, Check, ChevronsUpDown, ShieldCheck, Download, Upload } from "lucide-react";
+import { Plane, PlusCircle, Check, ChevronsUpDown, ShieldCheck, Download, Upload, FileSpreadsheet } from "lucide-react";
 import type { Employee, Leave, KRA } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +30,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { useDataStore } from '@/hooks/use-data-store';
 import * as XLSX from 'xlsx';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface LeaveBalance {
     employeeId: string;
@@ -157,6 +158,24 @@ export default function LeaveManagementPage() {
         toast({ title: "Export Successful", description: "Leave data has been exported." });
     };
 
+    const handleDownloadSample = () => {
+        const sampleData = [
+            {
+                'Employee ID': 'EMP001',
+                'Employee Name': 'Rahul Mehta',
+                'Start Date': '2024-03-10',
+                'End Date': '2024-03-12',
+                'Duration': 3,
+                'Reason': 'Personal Work',
+                'Status': 'Pending'
+            }
+        ];
+        const worksheet = XLSX.utils.json_to_sheet(sampleData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Sample_Leaves');
+        XLSX.writeFile(workbook, 'Sample_Leaves_Template.xlsx');
+    };
+
     const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
@@ -201,6 +220,7 @@ export default function LeaveManagementPage() {
     };
 
     return (
+     <TooltipProvider>
         <div className="flex flex-col gap-6">
             <h1 className="text-2xl font-semibold">Leave Account</h1>
 
@@ -374,6 +394,15 @@ export default function LeaveManagementPage() {
                                     className="hidden"
                                     accept=".xlsx, .xls"
                                 />
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button variant="outline" size="sm" onClick={handleDownloadSample}>
+                                            <FileSpreadsheet className="mr-2 h-4 w-4" />
+                                            Sample
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Download sample leaves template</TooltipContent>
+                                </Tooltip>
                                 <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
                                     <Upload className="mr-2 h-4 w-4" />
                                     Import
@@ -424,5 +453,6 @@ export default function LeaveManagementPage() {
                 </CardContent>
             </Card>
         </div>
+     </TooltipProvider>
     )
 }
