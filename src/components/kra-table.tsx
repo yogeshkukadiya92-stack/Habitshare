@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { MoreHorizontal, CalendarCheck2, ChevronRight, MessageSquare, Edit, Trash2 } from 'lucide-react';
+import { MoreHorizontal, CalendarCheck2, ChevronRight, MessageSquare, Edit, Trash2, History } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -81,13 +81,18 @@ const QuickUpdateDialog = ({ action, onUpdate, children }: { action: ActionItem,
         setOpen(false);
     };
 
+    const pending = Math.max(0, (action.target || 0) - value);
+
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>{children}</DialogTrigger>
             <DialogContent className="sm:max-w-xs">
                 <DialogHeader>
-                    <DialogTitle>Quick Update Progress</DialogTitle>
-                    <DialogDescription>Enter how much you have achieved so far for "{action.name}".</DialogDescription>
+                    <DialogTitle>Quick Progress Update</DialogTitle>
+                    <DialogDescription>
+                        Update achieved units for "{action.name}".
+                        <span className="block mt-1 font-bold text-orange-600">Still Pending: {pending}</span>
+                    </DialogDescription>
                 </DialogHeader>
                 <div className="py-4 space-y-2">
                     <Label htmlFor="achievedValue">Total Work Done (Achieved)</Label>
@@ -98,10 +103,10 @@ const QuickUpdateDialog = ({ action, onUpdate, children }: { action: ActionItem,
                         onChange={(e) => setValue(Number(e.target.value))}
                         placeholder="e.g., 150"
                     />
-                    <p className='text-xs text-muted-foreground'>Goal/Target: {action.target || 'N/A'}</p>
+                    <p className='text-xs text-muted-foreground'>Goal Target: {action.target || 'N/A'}</p>
                 </div>
                 <DialogFooter>
-                    <Button onClick={handleSave} className='w-full'>Save My Progress</Button>
+                    <Button onClick={handleSave} className='w-full'>Update Goal Achieved</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -119,6 +124,8 @@ interface KraTableProps {
 const KpiRow = ({ kra, action, onSave }: { kra: KRA, action: ActionItem, onSave: (kra: KRA) => void }) => {
   const [open, setOpen] = React.useState(false);
   const achieved = action.achieved || action.updates?.reduce((sum, u) => sum + (u.value || 0), 0) || 0;
+  const target = action.target || 0;
+  const pending = Math.max(0, target - achieved);
   
   let marks = 0;
   if(action.target && action.target > 0 && action.weightage && action.weightage > 0) {
@@ -153,16 +160,20 @@ const KpiRow = ({ kra, action, onSave }: { kra: KRA, action: ActionItem, onSave:
 
   return (
     <Collapsible key={action.id} open={open} onOpenChange={setOpen}>
-      <div className='flex items-center gap-2 text-sm py-1 group'>
+      <div className='flex items-center gap-2 text-sm py-1.5 group border-b border-dashed last:border-0 border-muted-foreground/20'>
         <Checkbox 
             id={`action-${kra.id}-${action.id}`}
             checked={action.isCompleted}
             onCheckedChange={handleCheckedChange}
         />
         <div className={cn("flex-1", action.isCompleted && 'line-through text-muted-foreground')}>
-            {action.name} 
+            <span className="font-medium">{action.name}</span>
              {action.target && (
-                <span className='text-muted-foreground text-xs'> ({achieved} / {action.target})</span>
+                <div className='flex gap-2 mt-0.5'>
+                    <span className='text-[10px] text-primary bg-primary/10 px-1.5 rounded'>Tgt: {target}</span>
+                    <span className='text-[10px] text-green-600 bg-green-50 px-1.5 rounded'>Done: {achieved}</span>
+                    <span className='text-[10px] text-orange-600 bg-orange-50 px-1.5 rounded font-bold'>Pending: {pending}</span>
+                </div>
             )}
         </div>
         
@@ -170,15 +181,21 @@ const KpiRow = ({ kra, action, onSave }: { kra: KRA, action: ActionItem, onSave:
             <Tooltip>
                 <TooltipTrigger asChild>
                     <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:text-primary hover:bg-primary/10">
-                        <Edit className="h-3.5 w-3.5" />
+                        <History className="h-3.5 w-3.5" />
                     </Button>
                 </TooltipTrigger>
-                <TooltipContent>Log Progress Towards Goal</TooltipContent>
+                <TooltipContent>Quick Weekly Progress Log</TooltipContent>
             </Tooltip>
         </QuickUpdateDialog>
 
-        <Badge variant="outline" className='font-mono w-12 justify-center'>{action.weightage}</Badge>
-        <Badge variant="secondary" className='font-mono w-12 justify-center'>{marks}</Badge>
+        <div className="flex flex-col items-center">
+            <span className="text-[10px] text-muted-foreground uppercase font-bold">Weight</span>
+            <Badge variant="outline" className='font-mono h-5 px-1 min-w-[30px] justify-center'>{action.weightage}</Badge>
+        </div>
+        <div className="flex flex-col items-center">
+            <span className="text-[10px] text-muted-foreground uppercase font-bold">Marks</span>
+            <Badge variant="secondary" className='font-mono h-5 px-1 min-w-[30px] justify-center'>{marks}</Badge>
+        </div>
         {(action.updates && action.updates.length > 0) && (
               <CollapsibleTrigger asChild>
                 <Button variant="ghost" size="icon" className='h-6 w-6'>
@@ -187,27 +204,27 @@ const KpiRow = ({ kra, action, onSave }: { kra: KRA, action: ActionItem, onSave:
             </CollapsibleTrigger>
         )}
     </div>
-      <CollapsibleContent className='py-2 pr-4 pl-6'>
-        <p className='text-xs font-semibold mb-1'>Updates Log:</p>
-        <div className='border rounded-md max-h-40 overflow-y-auto'>
+      <CollapsibleContent className='py-2 pr-4 pl-6 bg-muted/20 rounded-b-md'>
+        <p className='text-xs font-semibold mb-1 flex items-center gap-1'><History className="h-3 w-3"/> Weekly Progress Logs:</p>
+        <div className='border rounded-md max-h-40 overflow-y-auto bg-background'>
             <Table>
                 <TableHeader>
-                    <TableRow>
-                        <TableHead className='h-8 text-xs'>Date</TableHead>
-                        <TableHead className='h-8 text-xs'>Status</TableHead>
-                        <TableHead className='h-8 text-xs'>Value</TableHead>
-                        <TableHead className='h-8 text-xs'>Comment</TableHead>
+                    <TableRow className="h-7">
+                        <TableHead className='h-7 text-[10px] py-0 px-2'>Date</TableHead>
+                        <TableHead className='h-7 text-[10px] py-0 px-2'>Status</TableHead>
+                        <TableHead className='h-7 text-[10px] py-0 px-2'>Done</TableHead>
+                        <TableHead className='h-7 text-[10px] py-0 px-2'>Comment</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {action.updates?.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(update => (
-                        <TableRow key={update.id}>
-                            <TableCell className='text-xs py-1.5'>{format(new Date(update.date), 'MMM d')}</TableCell>
-                            <TableCell className='py-1.5'>
-                                <Badge variant="outline" className={cn('text-xs', weeklyUpdateStatusStyles[update.status])}>{update.status}</Badge>
+                        <TableRow key={update.id} className="h-7 hover:bg-transparent">
+                            <TableCell className='text-[10px] py-1 px-2'>{format(new Date(update.date), 'MMM d')}</TableCell>
+                            <TableCell className='py-1 px-2'>
+                                <Badge variant="outline" className={cn('text-[9px] px-1 h-4 leading-none', weeklyUpdateStatusStyles[update.status])}>{update.status}</Badge>
                             </TableCell>
-                            <TableCell className='text-xs py-1.5'>{update.value}</TableCell>
-                              <TableCell className='text-xs py-1.5'>{update.comment}</TableCell>
+                            <TableCell className='text-[10px] py-1 px-2 font-bold'>{update.value}</TableCell>
+                              <TableCell className='text-[10px] py-1 px-2 text-muted-foreground line-clamp-1'>{update.comment}</TableCell>
                         </TableRow>
                     ))}
                 </TableBody>
@@ -274,9 +291,9 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
           </AlertDialog>
         </div>
       )}
-      <div className='border rounded-lg'>
+      <div className='border rounded-lg overflow-hidden'>
       <Table>
-        <TableHeader>
+        <TableHeader className="bg-muted/50">
           <TableRow>
             <TableHead className="w-[50px]">
               <Checkbox 
@@ -285,9 +302,9 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
               />
             </TableHead>
             <TableHead>Employee</TableHead>
-            <TableHead className='w-[450px]'>KRA-KPI Tasks</TableHead>
-            <TableHead>Weightage</TableHead>
-            <TableHead>Marks Achieved</TableHead>
+            <TableHead className='w-[450px]'>KRA-KPI Task Details</TableHead>
+            <TableHead className="text-center">Weightage</TableHead>
+            <TableHead className="text-center">Performance</TableHead>
             <TableHead>
               <span className="sr-only">Actions</span>
             </TableHead>
@@ -306,8 +323,18 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
             const finalMarks = baseMarks + bonus - penalty;
             const hasBonusOrPenalty = bonus > 0 || penalty > 0;
 
+            const totalTarget = kra.actions && kra.actions.length > 0 
+                ? kra.actions.reduce((sum, a) => sum + (a.target || 0), 0)
+                : (kra.target || 0);
+            
+            const totalAchieved = kra.actions && kra.actions.length > 0 
+                ? kra.actions.reduce((sum, a) => sum + (a.achieved || 0), 0)
+                : (kra.achieved || 0);
+            
+            const totalPending = Math.max(0, totalTarget - totalAchieved);
+
             return (
-            <TableRow key={kra.id}>
+            <TableRow key={kra.id} className="align-top">
               <TableCell>
                 <Checkbox 
                   checked={selectedIds.includes(kra.id)}
@@ -320,20 +347,25 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
                     <AvatarImage src={kra.employee.avatarUrl} alt={kra.employee.name} data-ai-hint="people" />
                     <AvatarFallback>{kra.employee.name.charAt(0)}</AvatarFallback>
                   </Avatar>
-                  <div className="font-medium">{kra.employee.name}</div>
+                  <div className="font-medium text-xs sm:text-sm">{kra.employee.name}</div>
                 </div>
               </TableCell>
-              <TableCell className="max-w-sm align-top">
+              <TableCell className="max-w-sm">
                   <AddKraDialog kra={kra} onSave={onSave} employees={employees}>
                       <div className="cursor-pointer">
-                          <p className="font-semibold hover:underline">{kra.taskDescription || "KRA"}</p>
-                          <p className="text-xs text-muted-foreground">Due: {format(kra.endDate, 'MMM d, yyyy')}</p>
+                          <p className="font-bold text-primary hover:underline">{kra.taskDescription || "General KRA Task"}</p>
+                          <div className="flex flex-wrap gap-2 mt-1">
+                             <Badge variant="outline" className="text-[10px] h-5 py-0">Goal: {totalTarget}</Badge>
+                             <Badge variant="outline" className="text-[10px] h-5 py-0 text-green-600 bg-green-50 border-green-100">Done: {totalAchieved}</Badge>
+                             <Badge variant="outline" className="text-[10px] h-5 py-0 text-orange-600 bg-orange-50 border-orange-100 font-bold">Pending: {totalPending}</Badge>
+                             <span className="text-[10px] text-muted-foreground self-center">Due: {format(kra.endDate, 'MMM d, yyyy')}</span>
+                          </div>
                       </div>
                   </AddKraDialog>
                   {(kra.actions && kra.actions.length > 0) && (
-                      <div className='mt-2 space-y-1 pl-4 border-l ml-2'>
-                          <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground py-1">
-                              <span className="flex-1">KPI</span>
+                      <div className='mt-3 space-y-1 pl-3 border-l-2 border-primary/20 ml-1'>
+                          <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-wider py-1 border-b mb-1">
+                              <span className="flex-1">KPI Sub-Goals</span>
                               <span className='w-12 text-center'>Weight</span>
                               <span className='w-12 text-center'>Marks</span>
                               <span className='w-6'></span>
@@ -344,33 +376,33 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
                       </div>
                   )}
               </TableCell>
-              <TableCell className="align-top">
+              <TableCell className="text-center">
                    {kra.weightage !== null ? (
-                      <span className="font-semibold text-base">{kra.weightage}</span>
+                      <span className="font-bold text-base text-muted-foreground">{kra.weightage}</span>
                   ) : (
                       <span className="text-muted-foreground">-</span>
                   )}
               </TableCell>
-              <TableCell className="align-top">
+              <TableCell className="text-center">
                   <Tooltip>
                       <TooltipTrigger>
-                          <span className={cn("font-semibold text-base", hasBonusOrPenalty && 'underline decoration-dotted')}>
+                          <span className={cn("font-black text-lg block", finalMarks >= (kra.weightage || 0) ? 'text-green-600' : 'text-primary', hasBonusOrPenalty && 'underline decoration-dotted')}>
                               {finalMarks.toFixed(2)}
                           </span>
                       </TooltipTrigger>
                        {hasBonusOrPenalty && (
                           <TooltipContent>
                               <div className="text-xs">
-                                  <p>Base: {baseMarks.toFixed(2)}</p>
-                                  {bonus > 0 && <p>Bonus: +{bonus}</p>}
-                                  {penalty > 0 && <p>Penalty: -{penalty}</p>}
-                                  <p className="font-bold border-t mt-1 pt-1">Total: {finalMarks.toFixed(2)}</p>
+                                  <p>Base Marks: {baseMarks.toFixed(2)}</p>
+                                  {bonus > 0 && <p className="text-green-600">Bonus: +{bonus}</p>}
+                                  {penalty > 0 && <p className="text-destructive">Penalty: -{penalty}</p>}
+                                  <p className="font-bold border-t mt-1 pt-1">Grand Total: {finalMarks.toFixed(2)}</p>
                               </div>
                           </TooltipContent>
                       )}
                   </Tooltip>
               </TableCell>
-              <TableCell className="align-top">
+              <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button aria-haspopup="true" size="icon" variant="ghost">
@@ -381,11 +413,13 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       <AddKraDialog kra={kra} onSave={onSave} employees={employees}>
-                          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                              Log Progress / Edit
+                          <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="gap-2">
+                              <History className="h-4 w-4"/> Log Progress / Weekly Update
                           </DropdownMenuItem>
                       </AddKraDialog>
-                      <DropdownMenuItem onClick={() => onDelete(kra.id)} className="text-destructive">Delete</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onDelete(kra.id)} className="text-destructive gap-2">
+                          <Trash2 className="h-4 w-4"/> Delete KRA
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
               </TableCell>
