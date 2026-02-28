@@ -85,11 +85,11 @@ const QuickUpdateDialog = ({ action, onUpdate, children }: { action: ActionItem,
             <DialogTrigger asChild>{children}</DialogTrigger>
             <DialogContent className="sm:max-w-xs">
                 <DialogHeader>
-                    <DialogTitle>Quick Update KPI</DialogTitle>
-                    <DialogDescription>Update the total achieved value for "{action.name}".</DialogDescription>
+                    <DialogTitle>Quick Update KPI Progress</DialogTitle>
+                    <DialogDescription>Enter the total achieved value for "{action.name}".</DialogDescription>
                 </DialogHeader>
-                <div className="py-4">
-                    <Label htmlFor="achievedValue">Total Achieved Value</Label>
+                <div className="py-4 space-y-2">
+                    <Label htmlFor="achievedValue">Total Work Done (Achieved)</Label>
                     <Input
                         id="achievedValue"
                         type="number"
@@ -97,9 +97,10 @@ const QuickUpdateDialog = ({ action, onUpdate, children }: { action: ActionItem,
                         onChange={(e) => setValue(Number(e.target.value))}
                         placeholder="e.g., 150"
                     />
+                    <p className='text-xs text-muted-foreground'>Target: {action.target || 'N/A'}</p>
                 </div>
                 <DialogFooter>
-                    <Button onClick={handleSave}>Save</Button>
+                    <Button onClick={handleSave} className='w-full'>Update Progress</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -151,7 +152,7 @@ const KpiRow = ({ kra, action, onSave }: { kra: KRA, action: ActionItem, onSave:
 
   return (
     <Collapsible key={action.id} open={open} onOpenChange={setOpen}>
-      <div className='flex items-center gap-2 text-sm py-1'>
+      <div className='flex items-center gap-2 text-sm py-1 group'>
         <Checkbox 
             id={`action-${kra.id}-${action.id}`}
             checked={action.isCompleted}
@@ -160,11 +161,21 @@ const KpiRow = ({ kra, action, onSave }: { kra: KRA, action: ActionItem, onSave:
         <div className={cn("flex-1", action.isCompleted && 'line-through text-muted-foreground')}>
             {action.name} 
              {action.target && (
-                <QuickUpdateDialog action={{...action, achieved}} onUpdate={handleQuickUpdate}>
-                    <span className='text-muted-foreground text-xs cursor-pointer hover:underline'> ({achieved} / {action.target})</span>
-                 </QuickUpdateDialog>
+                <span className='text-muted-foreground text-xs'> ({achieved} / {action.target})</span>
             )}
         </div>
+        
+        <QuickUpdateDialog action={{...action, achieved}} onUpdate={handleQuickUpdate}>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:text-primary hover:bg-primary/10">
+                        <Edit className="h-3.5 w-3.5" />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent>Log Work Progress</TooltipContent>
+            </Tooltip>
+        </QuickUpdateDialog>
+
         <Badge variant="outline" className='font-mono w-12 justify-center'>{action.weightage}</Badge>
         <Badge variant="secondary" className='font-mono w-12 justify-center'>{marks}</Badge>
         {(action.updates && action.updates.length > 0) && (
@@ -176,7 +187,7 @@ const KpiRow = ({ kra, action, onSave }: { kra: KRA, action: ActionItem, onSave:
         )}
     </div>
       <CollapsibleContent className='py-2 pr-4 pl-6'>
-        <p className='text-xs font-semibold mb-1'>Weekly Updates:</p>
+        <p className='text-xs font-semibold mb-1'>Updates Log:</p>
         <div className='border rounded-md max-h-40 overflow-y-auto'>
             <Table>
                 <TableHeader>
@@ -273,7 +284,7 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
               />
             </TableHead>
             <TableHead>Employee</TableHead>
-            <TableHead className='w-[450px]'>KRA-KPI</TableHead>
+            <TableHead className='w-[450px]'>KRA-KPI Tasks</TableHead>
             <TableHead>Weightage</TableHead>
             <TableHead>Marks Achieved</TableHead>
             <TableHead>
@@ -370,7 +381,7 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       <AddKraDialog kra={kra} onSave={onSave} employees={employees}>
                           <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                              Edit
+                              Edit / Update
                           </DropdownMenuItem>
                       </AddKraDialog>
                       <DropdownMenuItem onClick={() => onDelete(kra.id)} className="text-destructive">Delete</DropdownMenuItem>

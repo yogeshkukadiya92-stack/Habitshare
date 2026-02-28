@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import * as React from 'react';
@@ -96,7 +94,7 @@ const UpdateDialog = ({ onSave, children }: {onSave: (update: WeeklyUpdate) => v
 
     const onSubmit = (data: WeeklyUpdateFormValues) => {
         onSave({ id: uuidv4(), ...data });
-        toast({title: "Update Added", description: "The weekly update has been saved."});
+        toast({title: "Update Logged", description: "Your progress update has been saved."});
         setOpen(false);
         reset();
     };
@@ -107,9 +105,9 @@ const UpdateDialog = ({ onSave, children }: {onSave: (update: WeeklyUpdate) => v
             <DialogContent>
                  <form onSubmit={handleSubmit(onSubmit)}>
                     <DialogHeader>
-                        <DialogTitle>Add Weekly Update</DialogTitle>
+                        <DialogTitle>Log Progress Update</DialogTitle>
                         <DialogDescription>
-                            Provide a status update for this KPI.
+                            Enter how much work you have completed and add a comment.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
@@ -122,7 +120,7 @@ const UpdateDialog = ({ onSave, children }: {onSave: (update: WeeklyUpdate) => v
                                     render={({ field }) => (
                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                                             <SelectTrigger>
-                                                <SelectValue placeholder="Select status" />
+                                                <SelectValue placeholder="Select current status" />
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="On Track">On Track</SelectItem>
@@ -137,32 +135,33 @@ const UpdateDialog = ({ onSave, children }: {onSave: (update: WeeklyUpdate) => v
                             </div>
                         </div>
                         <div className="grid grid-cols-4 items-start gap-4">
-                            <Label htmlFor="value" className="text-right pt-2">Update Value</Label>
+                            <Label htmlFor="value" className="text-right pt-2">Units Done</Label>
                              <div className="col-span-3">
                                 <Controller
                                     name="value"
                                     control={control}
-                                    render={({ field }) => <Input type="number" id="value" {...field} placeholder="e.g. 300"
+                                    render={({ field }) => <Input type="number" id="value" {...field} placeholder="e.g. 10"
                                         value={field.value ?? ''}
                                         onChange={e => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
                                     />}
                                 />
+                                <p className='text-xs text-muted-foreground mt-1'>This will be added to your current achieved total.</p>
                             </div>
                         </div>
                         <div className="grid grid-cols-4 items-start gap-4">
-                            <Label htmlFor="comment" className="text-right pt-2">Comment</Label>
+                            <Label htmlFor="comment" className="text-right pt-2">Work Note</Label>
                             <div className="col-span-3">
                                 <Controller
                                     name="comment"
                                     control={control}
-                                    render={({ field }) => <Textarea id="comment" {...field} placeholder="Add your update comment..."/>}
+                                    render={({ field }) => <Textarea id="comment" {...field} placeholder="Describe the work done..."/>}
                                 />
                                 {errors.comment && <p className="text-xs text-destructive mt-1">{errors.comment.message}</p>}
                             </div>
                         </div>
                     </div>
                      <DialogFooter>
-                        <Button type="submit">Save Update</Button>
+                        <Button type="submit" className='w-full'>Save Update</Button>
                     </DialogFooter>
                 </form>
             </DialogContent>
@@ -351,8 +350,8 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
     };
     onSave?.(newKra);
     toast({
-      title: 'KRA Saved',
-      description: `The KRA for ${selectedEmployee.name} has been saved successfully.`,
+      title: 'KRA Updated',
+      description: `Progress for ${selectedEmployee.name} has been updated.`,
     });
     setOpen(false);
   };
@@ -364,85 +363,86 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
       <DialogContent className="sm:max-w-3xl">
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
-            <DialogTitle>{kra ? 'Edit KRA' : 'Add New KRA'}</DialogTitle>
+            <DialogTitle>{kra ? 'Update KRA & KPI Progress' : 'Add New KRA'}</DialogTitle>
             <DialogDescription>
-              {kra ? 'Update the details for this KRA.' : 'Fill in the details for the new KRA task.'}
+              {kra ? 'Log your work progress and updates for each KPI below.' : 'Fill in the details for the new KRA task.'}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-4">
-            <fieldset disabled={!isAdmin}>
-                <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="employeeName" className="text-right">
-                    Employee
-                </Label>
-                <div className="col-span-3">
-                    <Controller
-                        name="employeeId"
-                        control={control}
-                        render={({ field }) => (
-                        <Popover open={employeeComboboxOpen} onOpenChange={setEmployeeComboboxOpen}>
-                            <PopoverTrigger asChild>
-                            <Button
-                                variant="outline"
-                                role="combobox"
-                                aria-expanded={employeeComboboxOpen}
-                                className="w-full justify-between"
-                                disabled={!isAdmin}
-                            >
-                                {field.value
-                                ? employees.find((employee) => employee.id === field.value)?.name
-                                : "Select employee..."}
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                            <Command>
-                                <CommandInput 
-                                placeholder="Search employee..."
-                                />
-                                <CommandList>
-                                    <CommandEmpty>No employees found.</CommandEmpty>
-                                    <CommandGroup>
-                                    {employees.map((employee) => (
-                                        <CommandItem
-                                        key={employee.id}
-                                        value={employee.name}
-                                        onSelect={() => {
-                                            field.onChange(employee.id)
-                                            setEmployeeComboboxOpen(false);
-                                        }}
-                                        >
-                                        <Check
-                                            className={cn(
-                                            "mr-2 h-4 w-4",
-                                            employee.id === field.value ? "opacity-100" : "opacity-0"
-                                            )}
-                                        />
-                                        {employee.name}
-                                        </CommandItem>
-                                    ))}
-                                    </CommandGroup>
-                                </CommandList>
-                            </Command>
-                            </PopoverContent>
-                        </Popover>
-                        )}
-                    />
-                    {errors.employeeId && <p className="text-xs text-destructive mt-1">{errors.employeeId.message}</p>}
-                </div>
-                </div>
+            
+            <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="employeeName" className="text-right">
+                Employee
+            </Label>
+            <div className="col-span-3">
+                <Controller
+                    name="employeeId"
+                    control={control}
+                    render={({ field }) => (
+                    <Popover open={employeeComboboxOpen} onOpenChange={setEmployeeComboboxOpen}>
+                        <PopoverTrigger asChild>
+                        <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={employeeComboboxOpen}
+                            className="w-full justify-between"
+                            disabled={!isAdmin}
+                        >
+                            {field.value
+                            ? employees.find((employee) => employee.id === field.value)?.name
+                            : "Select employee..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                        <Command>
+                            <CommandInput 
+                            placeholder="Search employee..."
+                            />
+                            <CommandList>
+                                <CommandEmpty>No employees found.</CommandEmpty>
+                                <CommandGroup>
+                                {employees.map((employee) => (
+                                    <CommandItem
+                                    key={employee.id}
+                                    value={employee.name}
+                                    onSelect={() => {
+                                        field.onChange(employee.id)
+                                        setEmployeeComboboxOpen(false);
+                                    }}
+                                    >
+                                    <Check
+                                        className={cn(
+                                        "mr-2 h-4 w-4",
+                                        employee.id === field.value ? "opacity-100" : "opacity-0"
+                                        )}
+                                    />
+                                    {employee.name}
+                                    </CommandItem>
+                                ))}
+                                </CommandGroup>
+                            </CommandList>
+                        </Command>
+                        </PopoverContent>
+                    </Popover>
+                    )}
+                />
+                {errors.employeeId && <p className="text-xs text-destructive mt-1">{errors.employeeId.message}</p>}
+            </div>
+            </div>
 
-                <div className="grid grid-cols-4 items-start gap-4">
-                <Label htmlFor="taskDescription" className="text-right pt-2">
-                    Task
-                </Label>
-                <div className="col-span-3">
-                    <Controller
-                        name="taskDescription"
-                        control={control}
-                        render={({ field }) => <Textarea id="taskDescription" {...field} rows={3} />}
-                    />
-                    {errors.taskDescription && <p className="text-xs text-destructive mt-1">{errors.taskDescription.message}</p>}
+            <div className="grid grid-cols-4 items-start gap-4">
+            <Label htmlFor="taskDescription" className="text-right pt-2">
+                Task
+            </Label>
+            <div className="col-span-3">
+                <Controller
+                    name="taskDescription"
+                    control={control}
+                    render={({ field }) => <Textarea id="taskDescription" {...field} rows={3} disabled={!isAdmin} />}
+                />
+                {errors.taskDescription && <p className="text-xs text-destructive mt-1">{errors.taskDescription.message}</p>}
+                {isAdmin && (
                     <Button
                     type="button"
                     variant="outline"
@@ -458,73 +458,73 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                     )}
                     Refine with AI
                     </Button>
-                </div>
-                </div>
-                 <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="weightage" className="text-right">
-                       Details
-                    </Label>
-                     <div className="col-span-3 grid grid-cols-3 gap-2">
-                        <div>
-                             <Label className="text-xs text-muted-foreground">Weightage</Label>
-                            <Controller
-                            name="weightage"
-                            control={control}
-                            render={({ field }) => (
-                                <Input 
-                                    id="weightage" 
-                                    type="number" 
-                                    {...field} 
-                                    value={field.value ?? ''}
-                                    onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
-                                    placeholder="e.g. 15"
-                                />
-                            )}
+                )}
+            </div>
+            </div>
+             <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="weightage" className="text-right">
+                   Target & Weights
+                </Label>
+                 <div className="col-span-3 grid grid-cols-3 gap-2">
+                    <div>
+                         <Label className="text-xs text-muted-foreground">Weightage</Label>
+                        <Controller
+                        name="weightage"
+                        control={control}
+                        render={({ field }) => (
+                            <Input 
+                                id="weightage" 
+                                type="number" 
+                                {...field} 
+                                value={field.value ?? ''}
+                                onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
+                                placeholder="e.g. 15"
+                                disabled={!isAdmin}
                             />
-                            {errors.weightage && <p className="text-xs text-destructive mt-1">{errors.weightage.message}</p>}
-                        </div>
-                         <div>
-                            <Label className="text-xs text-muted-foreground">Target</Label>
-                             <Controller
-                            name="target"
-                            control={control}
-                            render={({ field }) => (
-                                <Input 
-                                    id="target" 
-                                    type="number" 
-                                    {...field} 
-                                    value={field.value ?? ''}
-                                    onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
-                                    placeholder="e.g. 1500"
-                                />
-                            )}
+                        )}
+                        />
+                    </div>
+                     <div>
+                        <Label className="text-xs text-muted-foreground">Target</Label>
+                         <Controller
+                        name="target"
+                        control={control}
+                        render={({ field }) => (
+                            <Input 
+                                id="target" 
+                                type="number" 
+                                {...field} 
+                                value={field.value ?? ''}
+                                onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
+                                placeholder="e.g. 1500"
+                                disabled={!isAdmin}
                             />
-                            {errors.target && <p className="text-xs text-destructive mt-1">{errors.target.message}</p>}
-                        </div>
-                         <div>
-                            <Label className="text-xs text-muted-foreground">Achieved</Label>
-                             <Controller
-                            name="achieved"
-                            control={control}
-                            render={({ field }) => (
-                                <Input 
-                                    id="achieved" 
-                                    type="number" 
-                                    {...field} 
-                                    value={field.value ?? ''}
-                                    onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
-                                    placeholder="e.g. 1200"
-                                />
-                            )}
+                        )}
+                        />
+                    </div>
+                     <div>
+                        <Label className="text-xs text-muted-foreground font-semibold text-primary">Total Achieved</Label>
+                         <Controller
+                        name="achieved"
+                        control={control}
+                        render={({ field }) => (
+                            <Input 
+                                id="achieved" 
+                                type="number" 
+                                {...field} 
+                                value={field.value ?? ''}
+                                onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
+                                placeholder="Work Done"
+                                className='border-primary/50'
                             />
-                            {errors.achieved && <p className="text-xs text-destructive mt-1">{errors.achieved.message}</p>}
-                        </div>
+                        )}
+                        />
                     </div>
                 </div>
-            </fieldset>
+            </div>
 
              <div className="grid grid-cols-4 items-start gap-4">
-                <Label className="text-right pt-2">KPIs</Label>
+                <Label className="text-right pt-2 font-semibold">KPI Details</Label>
                 <div className="col-span-3 space-y-3">
                     {fields.map((field, index) => (
                     <div key={field.id} className="space-y-2 p-3 border rounded-md bg-muted/50">
@@ -546,9 +546,10 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                     render={({ field: nameField }) => (
                                         <Input 
                                             type="text"
-                                            placeholder="KPI Description (e.g. Calls, Visits)"
+                                            placeholder="KPI Description"
                                             className="bg-background"
                                             {...nameField}
+                                            disabled={!isAdmin}
                                         />
                                     )}
                                 />
@@ -563,13 +564,16 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                             {...targetField}
                                             value={targetField.value ?? ''}
                                             onChange={e => targetField.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
+                                            disabled={!isAdmin}
                                         />
                                     )}
                                 />
                             </div>
-                            <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
+                            {isAdmin && (
+                                <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                            )}
                         </div>
                         <div className='flex items-end gap-2 pl-6'>
                              <div className='flex-1 space-y-1'>
@@ -583,138 +587,151 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                             className='w-full bg-background'
                                             value={format(new Date(dateField.value), 'yyyy-MM-dd')}
                                             onChange={e => dateField.onChange(new Date(e.target.value))}
+                                            disabled={!isAdmin}
                                         />
                                     )}
                                 />
                             </div>
-                            <UpdateDialog onSave={(update) => {
+                            <div className='w-24 space-y-1'>
+                                <Label className='text-xs font-semibold text-primary'>Achieved</Label>
+                                <Controller
+                                    name={`actions.${index}.achieved`}
+                                    control={control}
+                                    render={({ field: achievedField }) => (
+                                        <Input 
+                                            type="number"
+                                            className='w-full bg-background border-primary/30'
+                                            placeholder="Done"
+                                            {...achievedField}
+                                            value={achievedField.value ?? ''}
+                                            onChange={e => achievedField.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
+                                        />
+                                    )}
+                                />
+                            </div>
+                            <UpdateDialog onSave={(updateData) => {
                                 const currentUpdates = field.updates || [];
-                                update.id = uuidv4();
-                                update.date = new Date();
-                                const newUpdates = [...currentUpdates, update];
+                                const newUpdates = [...currentUpdates, { ...updateData, id: uuidv4(), date: new Date() }];
                                 
                                 const currentAchieved = field.achieved || 0;
-                                const newAchieved = currentAchieved + (update.value || 0);
+                                const newAchieved = currentAchieved + (updateData.value || 0);
 
                                 update(index, {...field, updates: newUpdates, achieved: newAchieved });
                             }}>
-                                <Button type="button" size="sm" variant="outline" className='gap-2 bg-background'>
-                                    <MessageSquare className='h-4 w-4'/> Add Update
+                                <Button type="button" size="sm" variant="outline" className='gap-2 bg-background border-primary/20 text-primary hover:bg-primary/5'>
+                                    <MessageSquare className='h-4 w-4'/> Update
                                 </Button>
                             </UpdateDialog>
                         </div>
                     </div>
                     ))}
-                    <Button type="button" size="sm" variant="outline" onClick={() => append({ id: uuidv4(), name: '', dueDate: new Date(), isCompleted: false, weightage: 0, updates: [] })}>
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Add KPI
-                    </Button>
-                     {errors.actions && <p className="text-xs text-destructive mt-1">{errors.actions.message}</p>}
+                    {isAdmin && (
+                        <Button type="button" size="sm" variant="outline" onClick={() => append({ id: uuidv4(), name: '', dueDate: new Date(), isCompleted: false, weightage: 0, updates: [] })}>
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Add New KPI
+                        </Button>
+                    )}
                 </div>
             </div>
             
             <Separator />
 
-            <fieldset disabled={!isAdmin}>
-                <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="marksAchieved" className="text-right">
-                    Marks Achieved
-                </Label>
-                <div className="col-span-3">
-                    <Controller
-                    name="marksAchieved"
-                    control={control}
-                    render={({ field }) => (
-                        <Input 
-                            id="marksAchieved" 
-                            type="number" 
-                            {...field} 
-                            value={field.value ?? ''}
-                            onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
-                            placeholder="Auto-calculated"
-                            readOnly
-                            className='bg-muted'
-                        />
-                    )}
+            <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="marksAchieved" className="text-right">
+                Marks Achieved
+            </Label>
+            <div className="col-span-3">
+                <Controller
+                name="marksAchieved"
+                control={control}
+                render={({ field }) => (
+                    <Input 
+                        id="marksAchieved" 
+                        type="number" 
+                        {...field} 
+                        value={field.value ?? ''}
+                        onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
+                        placeholder="Auto-calculated"
+                        readOnly
+                        className='bg-muted font-bold'
                     />
-                    {errors.marksAchieved && <p className="text-xs text-destructive mt-1">{errors.marksAchieved.message}</p>}
-                </div>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="bonus" className="text-right">
-                    Bonus Marks
-                </Label>
-                <div className="col-span-3">
-                    <Controller
-                    name="bonus"
-                    control={control}
-                    render={({ field }) => (
-                        <Input 
-                            id="bonus" 
-                            type="number" 
-                            {...field} 
-                            value={field.value ?? ''}
-                            onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
-                            placeholder="e.g. 2"
-                        />
-                    )}
-                    />
-                    {errors.bonus && <p className="text-xs text-destructive mt-1">{errors.bonus.message}</p>}
-                </div>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="penalty" className="text-right">
-                    Penalty Marks
-                </Label>
-                <div className="col-span-3">
-                    <Controller
-                    name="penalty"
-                    control={control}
-                    render={({ field }) => (
-                        <Input 
-                            id="penalty" 
-                            type="number" 
-                            {...field} 
-                            value={field.value ?? ''}
-                            onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
-                            placeholder="e.g. 1"
-                        />
-                    )}
-                    />
-                    {errors.penalty && <p className="text-xs text-destructive mt-1">{errors.penalty.message}</p>}
-                </div>
-                </div>
-                 <div className="grid grid-cols-4 items-start gap-4">
-                    <Label htmlFor="handover" className="text-right pt-2">
-                        Handover Notes
+                )}
+                />
+            </div>
+            </div>
+            
+            {isAdmin && (
+                <>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="bonus" className="text-right">
+                        Bonus Marks
                     </Label>
                     <div className="col-span-3">
                         <Controller
-                            name="handover"
-                            control={control}
-                            render={({ field }) => (
-                                <Textarea 
-                                    id="handover" 
-                                    {...field} 
-                                    rows={3} 
-                                    placeholder="Add any notes for handover..."
-                                />
-                            )}
+                        name="bonus"
+                        control={control}
+                        render={({ field }) => (
+                            <Input 
+                                id="bonus" 
+                                type="number" 
+                                {...field} 
+                                value={field.value ?? ''}
+                                onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
+                                placeholder="e.g. 2"
+                            />
+                        )}
                         />
-                        {errors.handover && <p className="text-xs text-destructive mt-1">{errors.handover.message}</p>}
                     </div>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="penalty" className="text-right">
+                        Penalty Marks
+                    </Label>
+                    <div className="col-span-3">
+                        <Controller
+                        name="penalty"
+                        control={control}
+                        render={({ field }) => (
+                            <Input 
+                                id="penalty" 
+                                type="number" 
+                                {...field} 
+                                value={field.value ?? ''}
+                                onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
+                                placeholder="e.g. 1"
+                            />
+                        )}
+                        />
+                    </div>
+                    </div>
+                </>
+            )}
+
+             <div className="grid grid-cols-4 items-start gap-4">
+                <Label htmlFor="handover" className="text-right pt-2">
+                    Work Handover
+                </Label>
+                <div className="col-span-3">
+                    <Controller
+                        name="handover"
+                        control={control}
+                        render={({ field }) => (
+                            <Textarea 
+                                id="handover" 
+                                {...field} 
+                                rows={3} 
+                                placeholder="Any notes regarding work handover or status..."
+                            />
+                        )}
+                    />
                 </div>
-            </fieldset>
+            </div>
           </div>
           <DialogFooter className="pt-4">
-            <Button type="submit">Save changes</Button>
+            <Button type="submit" className='w-full'>Save My Progress</Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
   );
 }
-
-
-
-
