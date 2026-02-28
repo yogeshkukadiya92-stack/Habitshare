@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -25,7 +26,7 @@ import Link from 'next/link';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Eye, ShieldCheck, Users, TrendingUp, PlusCircle, Download, Upload, FileSpreadsheet, Trash2 } from 'lucide-react';
+import { Eye, ShieldCheck, Users, TrendingUp, PlusCircle, Download, Upload, FileSpreadsheet, Trash2, Mail, Home, Calendar as CalendarIcon, Cake, Phone, Edit } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
@@ -50,6 +51,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { EditEmployeeDialog } from '@/components/edit-employee-dialog';
 
 
 interface EmployeeSummary {
@@ -81,10 +83,15 @@ function DashboardContent() {
   const [selectedMonth, setSelectedMonth] = React.useState<string>('all');
   const [view, setView] = React.useState<'list' | 'grid'>('list');
   const [selectedEmployeeIds, setSelectedEmployeeIds] = React.useState<string[]>([]);
-  const { currentUser, getPermission } = useAuth();
+  const { user, currentUser, getPermission } = useAuth();
   const pagePermission = getPermission('employees');
   const { toast } = useToast();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Use employees from store to get the latest data for the logged-in employee
+  const currentEmployeeData = React.useMemo(() => {
+    return employees.find(e => e.email === user?.email) || currentUser;
+  }, [employees, user?.email, currentUser]);
 
   React.useEffect(() => {
     try {
@@ -101,8 +108,8 @@ function DashboardContent() {
         let krasToProcess = kras;
         let employeeKras: KRA[] = [];
 
-        if (pagePermission === 'employee_only' && currentUser) {
-            krasToProcess = kras.filter(k => k.employee.id === currentUser.id);
+        if (pagePermission === 'employee_only' && user) {
+            krasToProcess = kras.filter(k => k.employee.email === user.email);
             employeeKras = krasToProcess;
         }
 
@@ -190,7 +197,7 @@ function DashboardContent() {
             employeeKras
         };
 
-    }, [kras, branches, pagePermission, currentUser, selectedYear, selectedMonth]);
+    }, [kras, branches, pagePermission, user, selectedYear, selectedMonth]);
 
  
   const filteredEmployeeSummary = selectedBranch === 'all'
@@ -310,31 +317,94 @@ function DashboardContent() {
         reader.readAsArrayBuffer(file);
     };
 
-    if (pagePermission === 'employee_only') {
+    if (pagePermission === 'employee_only' && currentEmployeeData) {
         return (
-            <div className="flex-1 flex flex-col gap-4">
-                 <h1 className="text-2xl font-semibold">My Dashboard</h1>
-                 <Card>
-                    <CardHeader>
-                        <CardTitle>My Key Result Areas (KRAs)</CardTitle>
-                        <CardDescription>View and track your assigned KRAs.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                          {loading ? (
-                            <div className="space-y-2">
-                                <Skeleton className="h-12 w-full" />
-                                <Skeleton className="h-12 w-full" />
+            <div className="flex-1 flex flex-col gap-6">
+                 <div className='flex items-center justify-between'>
+                    <h1 className="text-2xl font-semibold">My Dashboard</h1>
+                    <EditEmployeeDialog employee={currentEmployeeData} onSave={handleSaveEmployee}>
+                        <Button variant="outline" size="sm" className='gap-2'>
+                            <Edit className='h-4 w-4'/> Edit Profile
+                        </Button>
+                    </EditEmployeeDialog>
+                 </div>
+
+                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <Card className='lg:col-span-1 h-fit'>
+                        <CardHeader className='flex-row items-center justify-between pb-2'>
+                            <div className='flex items-center gap-4'>
+                                <Avatar className='h-14 w-12'>
+                                    <AvatarImage src={currentEmployeeData.avatarUrl} alt={currentEmployeeData.name} />
+                                    <AvatarFallback>{currentEmployeeData.name.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                    <CardTitle className='text-lg'>{currentEmployeeData.name}</CardTitle>
+                                    <CardDescription>{currentEmployeeData.branch || 'No Branch'} Branch</CardDescription>
+                                </div>
                             </div>
-                        ) : (
-                            <KraTable 
-                               kras={employeeKras}
-                               employees={employees}
-                               onSave={handleSaveKra}
-                               onDelete={() => {}}
-                            />
-                        )}
-                    </CardContent>
-                 </Card>
+                        </CardHeader>
+                        <CardContent className='text-sm space-y-4 pt-4 border-t mt-2'>
+                            <div className='flex items-center gap-3'>
+                                <Mail className="h-4 w-4 text-primary" />
+                                <div className='flex flex-col'>
+                                    <span className='text-xs text-muted-foreground'>Email</span>
+                                    <span>{currentEmployeeData.email || 'Not provided'}</span>
+                                </div>
+                            </div>
+                            <div className='flex items-start gap-3'>
+                                <Home className="h-4 w-4 text-primary mt-1" />
+                                <div className='flex flex-col'>
+                                    <span className='text-xs text-muted-foreground'>Address</span>
+                                    <span className='leading-tight'>{currentEmployeeData.address || 'Not provided'}</span>
+                                </div>
+                            </div>
+                            <div className='flex items-center gap-3'>
+                                <Phone className="h-4 w-4 text-primary" />
+                                <div className='flex flex-col'>
+                                    <span className='text-xs text-muted-foreground'>Family Contact</span>
+                                    <span>{currentEmployeeData.familyMobileNumber || 'Not provided'}</span>
+                                </div>
+                            </div>
+                            <div className='flex items-center gap-3'>
+                                <CalendarIcon className="h-4 w-4 text-primary" />
+                                <div className='flex flex-col'>
+                                    <span className='text-xs text-muted-foreground'>Joining Date</span>
+                                    <span>{currentEmployeeData.joiningDate ? format(new Date(currentEmployeeData.joiningDate), "MMM d, yyyy") : 'Not provided'}</span>
+                                </div>
+                            </div>
+                            <div className='flex items-center gap-3'>
+                                <Cake className="h-4 w-4 text-primary" />
+                                <div className='flex flex-col'>
+                                    <span className='text-xs text-muted-foreground'>Birth Date</span>
+                                    <span>{currentEmployeeData.birthDate ? format(new Date(currentEmployeeData.birthDate), "MMM d, yyyy") : 'Not provided'}</span>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className='lg:col-span-2'>
+                        <CardHeader>
+                            <CardTitle>My Key Result Areas (KRAs)</CardTitle>
+                            <CardDescription>View and track your assigned KRAs and performance indicators.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {loading ? (
+                                <div className="space-y-4">
+                                    <Skeleton className="h-12 w-full" />
+                                    <Skeleton className="h-12 w-full" />
+                                    <Skeleton className="h-12 w-full" />
+                                </div>
+                            ) : (
+                                <KraTable 
+                                    kras={employeeKras}
+                                    employees={employees}
+                                    onSave={handleSaveKra}
+                                    onDelete={() => {}}
+                                />
+                            )}
+                        </CardContent>
+                    </Card>
+                 </div>
             </div>
         )
     }
