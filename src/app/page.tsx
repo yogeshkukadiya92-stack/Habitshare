@@ -26,7 +26,7 @@ import Link from 'next/link';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Eye, ShieldCheck, Users, TrendingUp, PlusCircle, Download, Upload, FileSpreadsheet, Trash2, Mail, Home, Calendar as CalendarIcon, Cake, Phone, Edit } from 'lucide-react';
+import { Eye, ShieldCheck, Users, TrendingUp, PlusCircle, Download, Upload, FileSpreadsheet, Trash2, Mail, Home, Calendar as CalendarIcon, Cake, Phone, Edit, ChevronDown } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
@@ -52,6 +52,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { EditEmployeeDialog } from '@/components/edit-employee-dialog';
+import { cn } from '@/lib/utils';
 
 
 interface EmployeeSummary {
@@ -83,6 +84,7 @@ function DashboardContent() {
   const [selectedMonth, setSelectedMonth] = React.useState<string>('all');
   const [view, setView] = React.useState<'list' | 'grid'>('list');
   const [selectedEmployeeIds, setSelectedEmployeeIds] = React.useState<string[]>([]);
+  const [showProfileDetails, setShowProfileDetails] = React.useState(false);
   const { user, currentUser, getPermission } = useAuth();
   const pagePermission = getPermission('employees');
   const { toast } = useToast();
@@ -330,7 +332,10 @@ function DashboardContent() {
                  </div>
 
                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <Card className='lg:col-span-1 h-fit'>
+                    <Card 
+                        className='lg:col-span-1 h-fit cursor-pointer hover:shadow-md transition-shadow' 
+                        onClick={() => setShowProfileDetails(!showProfileDetails)}
+                    >
                         <CardHeader className='flex-row items-center justify-between pb-2'>
                             <div className='flex items-center gap-4'>
                                 <Avatar className='h-14 w-12'>
@@ -342,44 +347,47 @@ function DashboardContent() {
                                     <CardDescription>{currentEmployeeData.branch || 'No Branch'} Branch</CardDescription>
                                 </div>
                             </div>
+                            <ChevronDown className={cn("h-5 w-5 text-muted-foreground transition-transform", showProfileDetails && "rotate-180")} />
                         </CardHeader>
-                        <CardContent className='text-sm space-y-4 pt-4 border-t mt-2'>
-                            <div className='flex items-center gap-3'>
-                                <Mail className="h-4 w-4 text-primary" />
-                                <div className='flex flex-col'>
-                                    <span className='text-xs text-muted-foreground'>Email</span>
-                                    <span>{currentEmployeeData.email || 'Not provided'}</span>
+                        {showProfileDetails && (
+                            <CardContent className='text-sm space-y-4 pt-4 border-t mt-2 animate-in fade-in slide-in-from-top-2 duration-300'>
+                                <div className='flex items-center gap-3'>
+                                    <Mail className="h-4 w-4 text-primary" />
+                                    <div className='flex flex-col'>
+                                        <span className='text-xs text-muted-foreground'>Email</span>
+                                        <span>{currentEmployeeData.email || 'Not provided'}</span>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className='flex items-start gap-3'>
-                                <Home className="h-4 w-4 text-primary mt-1" />
-                                <div className='flex flex-col'>
-                                    <span className='text-xs text-muted-foreground'>Address</span>
-                                    <span className='leading-tight'>{currentEmployeeData.address || 'Not provided'}</span>
+                                <div className='flex items-start gap-3'>
+                                    <Home className="h-4 w-4 text-primary mt-1" />
+                                    <div className='flex flex-col'>
+                                        <span className='text-xs text-muted-foreground'>Address</span>
+                                        <span className='leading-tight'>{currentEmployeeData.address || 'Not provided'}</span>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className='flex items-center gap-3'>
-                                <Phone className="h-4 w-4 text-primary" />
-                                <div className='flex flex-col'>
-                                    <span className='text-xs text-muted-foreground'>Family Contact</span>
-                                    <span>{currentEmployeeData.familyMobileNumber || 'Not provided'}</span>
+                                <div className='flex items-center gap-3'>
+                                    <Phone className="h-4 w-4 text-primary" />
+                                    <div className='flex flex-col'>
+                                        <span className='text-xs text-muted-foreground'>Family Contact</span>
+                                        <span>{currentEmployeeData.familyMobileNumber || 'Not provided'}</span>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className='flex items-center gap-3'>
-                                <CalendarIcon className="h-4 w-4 text-primary" />
-                                <div className='flex flex-col'>
-                                    <span className='text-xs text-muted-foreground'>Joining Date</span>
-                                    <span>{currentEmployeeData.joiningDate ? format(new Date(currentEmployeeData.joiningDate), "MMM d, yyyy") : 'Not provided'}</span>
+                                <div className='flex items-center gap-3'>
+                                    <CalendarIcon className="h-4 w-4 text-primary" />
+                                    <div className='flex flex-col'>
+                                        <span className='text-xs text-muted-foreground'>Joining Date</span>
+                                        <span>{currentEmployeeData.joiningDate ? format(new Date(currentEmployeeData.joiningDate), "MMM d, yyyy") : 'Not provided'}</span>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className='flex items-center gap-3'>
-                                <Cake className="h-4 w-4 text-primary" />
-                                <div className='flex flex-col'>
-                                    <span className='text-xs text-muted-foreground'>Birth Date</span>
-                                    <span>{currentEmployeeData.birthDate ? format(new Date(currentEmployeeData.birthDate), "MMM d, yyyy") : 'Not provided'}</span>
+                                <div className='flex items-center gap-3'>
+                                    <Cake className="h-4 w-4 text-primary" />
+                                    <div className='flex flex-col'>
+                                        <span className='text-xs text-muted-foreground'>Birth Date</span>
+                                        <span>{currentEmployeeData.birthDate ? format(new Date(currentEmployeeData.birthDate), "MMM d, yyyy") : 'Not provided'}</span>
+                                    </div>
                                 </div>
-                            </div>
-                        </CardContent>
+                            </CardContent>
+                        )}
                     </Card>
 
                     <Card className='lg:col-span-2'>
