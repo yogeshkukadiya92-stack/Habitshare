@@ -127,27 +127,29 @@ const KpiRow = ({ kra, action, onSave }: { kra: KRA, action: ActionItem, onSave:
   const target = action.target || 0;
   const pending = Math.max(0, target - achieved);
   
-  let marks = 0;
-  if(action.target && action.target > 0 && action.weightage && action.weightage > 0) {
-    marks = (achieved / action.target) * action.weightage;
-  } else if (action.isCompleted && action.weightage) {
-    marks = action.weightage;
-  }
-  marks = Math.round(marks * 100) / 100;
-
   const updateKra = (updatedAction: ActionItem) => {
     const newActions = kra.actions!.map(a => a.id === updatedAction.id ? updatedAction : a);
+    
+    // Recalculate everything for the entire KRA
+    const totalKpiTarget = newActions.reduce((sum, a) => sum + (a.target || 0), 0);
+    const totalKpiAchieved = newActions.reduce((sum, a) => sum + (a.achieved || a.updates?.reduce((s, u) => s + (u.value || 0), 0) || 0), 0);
+    
     let totalMarks = 0;
+    if (kra.weightage && totalKpiTarget > 0) {
+        // Marks are calculated based on overall weighted progress
+        totalMarks = (totalKpiAchieved / totalKpiTarget) * kra.weightage;
+    }
 
-    newActions.forEach(act => {
-        const actAchieved = act.achieved || act.updates?.reduce((sum, u) => sum + (u.value || 0), 0) || 0;
-         if(act.target && act.target > 0 && act.weightage && act.weightage > 0) {
-            totalMarks += (actAchieved / act.target) * act.weightage;
-        } else if (act.isCompleted && act.weightage) {
-            totalMarks += act.weightage;
-        }
+    const progress = totalKpiTarget > 0 ? Math.round((totalKpiAchieved / totalKpiTarget) * 100) : 0;
+
+    onSave({ 
+        ...kra, 
+        actions: newActions, 
+        marksAchieved: Math.min(kra.weightage || 0, parseFloat(totalMarks.toFixed(2))),
+        progress: Math.min(100, progress),
+        status: progress >= 100 ? 'Completed' : (progress > 0 ? 'On Track' : 'Pending'),
+        achieved: totalKpiAchieved
     });
-    onSave({ ...kra, actions: newActions, marksAchieved: totalMarks });
   };
 
   const handleCheckedChange = (checked: boolean) => {
@@ -157,6 +159,14 @@ const KpiRow = ({ kra, action, onSave }: { kra: KRA, action: ActionItem, onSave:
   const handleQuickUpdate = (newValue: number) => {
      updateKra({ ...action, achieved: newValue });
   }
+
+  // Visual calculation for this specific row only
+  const totalKpiTarget = kra.actions?.reduce((sum, a) => sum + (a.target || 0), 0) || 0;
+  const kpiWeightage = (kra.weightage && totalKpiTarget > 0 && action.target) 
+    ? (action.target / totalKpiTarget) * kra.weightage 
+    : 0;
+  let marks = (action.target && action.target > 0) ? (achieved / action.target) * kpiWeightage : 0;
+  if (action.isCompleted && marks < kpiWeightage) marks = kpiWeightage;
 
   return (
     <Collapsible key={action.id} open={open} onOpenChange={setOpen}>
@@ -190,11 +200,11 @@ const KpiRow = ({ kra, action, onSave }: { kra: KRA, action: ActionItem, onSave:
 
         <div className="flex flex-col items-center">
             <span className="text-[10px] text-muted-foreground uppercase font-bold">Weight</span>
-            <Badge variant="outline" className='font-mono h-5 px-1 min-w-[30px] justify-center'>{action.weightage}</Badge>
+            <Badge variant="outline" className='font-mono h-5 px-1 min-w-[30px] justify-center'>{parseFloat(kpiWeightage.toFixed(2))}</Badge>
         </div>
         <div className="flex flex-col items-center">
             <span className="text-[10px] text-muted-foreground uppercase font-bold">Marks</span>
-            <Badge variant="secondary" className='font-mono h-5 px-1 min-w-[30px] justify-center'>{marks}</Badge>
+            <Badge variant="secondary" className='font-mono h-5 px-1 min-w-[30px] justify-center'>{parseFloat(marks.toFixed(2))}</Badge>
         </div>
         {(action.updates && action.updates.length > 0) && (
               <CollapsibleTrigger asChild>
@@ -328,7 +338,7 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
                 : (kra.target || 0);
             
             const totalAchieved = kra.actions && kra.actions.length > 0 
-                ? kra.actions.reduce((sum, a) => sum + (a.achieved || 0), 0)
+                ? kra.actions.reduce((sum, a) => sum + (a.achieved || a.updates?.reduce((s, u) => s + (u.value || 0), 0) || 0), 0)
                 : (kra.achieved || 0);
             
             const totalPending = Math.max(0, totalTarget - totalAchieved);

@@ -218,43 +218,40 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
 
    React.useEffect(() => {
     const { actions, weightage, target, achieved } = allWatchedFields;
-    let totalMarksAchieved = 0;
+    let totalMarksCalculated = 0;
     
-    // Case 1: KRA has actions (KPIs)
     if (actions && actions.length > 0) {
-        
         const totalKpiTarget = actions.reduce((sum, action) => sum + (action.target || 0), 0);
         
         actions.forEach((action, index) => {
             const kpiAchieved = action.achieved || action.updates?.reduce((sum, u) => sum + (u.value || 0), 0) || 0;
             
+            // Marks for this specific KPI
+            let kpiMarks = 0;
             const kpiWeightage = (weightage && totalKpiTarget > 0 && action.target) 
                 ? (action.target / totalKpiTarget) * weightage 
                 : 0;
 
+            // Sync visual weightage for each action if needed
             if (watch(`actions.${index}.weightage`) !== parseFloat(kpiWeightage.toFixed(2))) {
                 setValue(`actions.${index}.weightage`, parseFloat(kpiWeightage.toFixed(2)));
             }
-             if (watch(`actions.${index}.achieved`) !== kpiAchieved) {
-                setValue(`actions.${index}.achieved`, kpiAchieved);
-            }
 
-            let marks = 0;
-            if(action.target && action.target > 0 && kpiWeightage > 0) {
-                marks = (kpiAchieved / action.target) * kpiWeightage;
-            } else if (action.isCompleted && kpiWeightage) {
-                marks = kpiWeightage;
+            if (action.target && action.target > 0) {
+                kpiMarks = (kpiAchieved / action.target) * kpiWeightage;
+            } else if (action.isCompleted) {
+                kpiMarks = kpiWeightage;
             }
-            totalMarksAchieved += marks;
+            totalMarksCalculated += kpiMarks;
         });
-    } 
-    // Case 2: KRA has no actions, but has a target
-    else if (target && target > 0 && weightage) {
-         totalMarksAchieved = ((achieved || 0) / target) * weightage;
+    } else if (target && target > 0 && weightage) {
+         totalMarksCalculated = ((achieved || 0) / target) * weightage;
     }
 
-    if (watch('marksAchieved') !== parseFloat(totalMarksAchieved.toFixed(2))) {
-        setValue('marksAchieved', parseFloat(totalMarksAchieved.toFixed(2)), { shouldValidate: true });
+    const finalMarks = Math.min(weightage || 0, parseFloat(totalMarksCalculated.toFixed(2)));
+
+    if (watch('marksAchieved') !== finalMarks) {
+        setValue('marksAchieved', finalMarks, { shouldValidate: true });
     }
 
   }, [allWatchedFields, setValue, watch]);
@@ -279,7 +276,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
         achieved: kra?.achieved || null,
       });
     }
-  }, [open, kra, reset, employees]);
+  }, [open, kra, reset]);
 
   const taskDescription = watch('taskDescription');
   const hasActions = allWatchedFields.actions && allWatchedFields.actions.length > 0;
@@ -326,23 +323,23 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
       return;
     }
     
-    let kraAchieved = 0;
+    let totalAchieved = 0;
     const updatedActions = data.actions?.map(action => {
         const achieved = action.achieved || action.updates?.reduce((sum, u) => sum + (u.value || 0), 0) || 0;
-        kraAchieved += achieved;
+        totalAchieved += achieved;
         return {...action, achieved };
     });
 
-    const totalTarget = updatedActions?.reduce((sum, action) => sum + (action.target || 0), 0) || (data.target || 0);
-    const finalAchieved = data.actions && data.actions.length > 0 ? kraAchieved : (data.achieved || 0);
-    const progress = totalTarget > 0 ? Math.round((finalAchieved / totalTarget) * 100) : (kra?.progress || 0);
+    const finalAchieved = hasActions ? totalAchieved : (data.achieved || 0);
+    const totalTarget = hasActions ? updatedActions?.reduce((sum, action) => sum + (action.target || 0), 0) || 0 : (data.target || 0);
+    const progress = totalTarget > 0 ? Math.round((finalAchieved / totalTarget) * 100) : 0;
 
     const newKra: KRA = {
       id: kra?.id || uuidv4(),
       taskDescription: data.taskDescription,
       employee: selectedEmployee,
       progress: Math.min(100, progress),
-      status: kra?.status || 'Pending',
+      status: progress >= 100 ? 'Completed' : (progress > 0 ? 'On Track' : 'Pending'),
       weightage: data.weightage || null,
       marksAchieved: data.marksAchieved,
       bonus: data.bonus,
@@ -371,7 +368,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
           <DialogHeader>
             <DialogTitle>{kra ? 'Update KRA & Weekly KPI Logs' : 'Add New KRA'}</DialogTitle>
             <DialogDescription>
-              {kra ? 'Log your weekly progress. The system will automatically calculate pending units.' : 'Fill in the details for the new KRA task.'}
+              {kra ? 'Log your weekly progress. The system will automatically calculate pending units and update marks.' : 'Fill in the details for the new KRA task.'}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
