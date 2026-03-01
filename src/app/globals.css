@@ -2,37 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: Arial, Helvetica, sans-serif;
-}
-
 @layer base {
   :root {
-    --background: 240 10% 98.5%;
+    --background: 240 20% 99%;
     --foreground: 224 71.4% 4.1%;
     --card: 0 0% 100%;
     --card-foreground: 224 71.4% 4.1%;
     --popover: 0 0% 100%;
     --popover-foreground: 224 71.4% 4.1%;
-    --primary: 262.1 83.3% 57.8%;
+    --primary: 263.4 70% 50.4%;
     --primary-foreground: 210 20% 98%;
-    --secondary: 262.1 10% 96.1%;
-    --secondary-foreground: 262.1 83.3% 20%;
+    --secondary: 263.4 20% 96%;
+    --secondary-foreground: 263.4 70% 20%;
     --muted: 220 14.3% 95.9%;
     --muted-foreground: 220 8.9% 46.1%;
-    --accent: 262.1 83.3% 96%;
-    --accent-foreground: 262.1 83.3% 40%;
+    --accent: 180 100% 96%;
+    --accent-foreground: 180 100% 25%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 20% 98%;
     --border: 220 13% 91%;
     --input: 220 13% 91%;
-    --ring: 262.1 83.3% 57.8%;
-    --radius: 0.75rem;
-    --chart-1: 262.1 83.3% 57.8%;
-    --chart-2: 142.1 70.6% 45.3%;
-    --chart-3: 47.9 95.8% 51.8%;
-    --chart-4: 24.6 95% 53.1%;
-    --chart-5: 0 84.2% 60.2%;
+    --ring: 263.4 70% 50.4%;
+    --radius: 1rem;
+    --chart-1: 263.4 70% 50.4%;
+    --chart-2: 160 84% 39%;
+    --chart-3: 35 92% 50%;
+    --chart-4: 320 70% 50%;
+    --chart-5: 200 95% 45%;
   }
   .dark {
     --background: 224 71.4% 4.1%;
@@ -54,11 +50,6 @@ body {
     --border: 215 27.9% 16.9%;
     --input: 215 27.9% 16.9%;
     --ring: 263.4 70% 50.4%;
-    --chart-1: 262.1 83.3% 57.8%;
-    --chart-2: 142.1 70.6% 45.3%;
-    --chart-3: 47.9 95.8% 51.8%;
-    --chart-4: 24.6 95% 53.1%;
-    --chart-5: 0 84.2% 60.2%;
   }
 }
 
@@ -68,16 +59,32 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
 .bg-mesh-gradient {
-  background-color: hsla(240,10%,98%,1);
+  background-color: #f8f9ff;
   background-image: 
-    radial-gradient(at 0% 0%, hsla(262,83%,95%,1) 0px, transparent 50%),
-    radial-gradient(at 100% 0%, hsla(142,70%,95%,1) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, hsla(47,95%,95%,1) 0px, transparent 50%),
-    radial-gradient(at 0% 100%, hsla(24,95%,95%,1) 0px, transparent 50%);
+    radial-gradient(at 0% 0%, hsla(263,70%,92%,1) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, hsla(160,84%,92%,1) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, hsla(35,92%,92%,1) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, hsla(320,70%,92%,1) 0px, transparent 50%);
+  background-attachment: fixed;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+}
+
+.sidebar-glass {
+  background: rgba(255, 255, 255, 0.4) !important;
+  backdrop-filter: blur(20px);
+  border-right: 1px solid rgba(255, 255, 255, 0.2) !important;
 }
 
 .event-birthday {

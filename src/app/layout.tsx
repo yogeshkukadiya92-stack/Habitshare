@@ -8,8 +8,8 @@ import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar'
 import { DataStoreProvider } from '@/hooks/use-data-store';
 
 export const metadata: Metadata = {
-  title: 'HR Dashboard',
-  description: 'Manage and track Key Result Areas for your team.',
+  title: 'HR Studio | Enterprise Management',
+  description: 'Advanced Key Result Areas and performance tracking for elite teams.',
   manifest: '/manifest.json',
 };
 
@@ -23,19 +23,21 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
       </head>
-      <body className="font-body antialiased bg-mesh-gradient min-h-screen">
+      <body className="font-sans antialiased bg-mesh-gradient min-h-screen selection:bg-primary/20 selection:text-primary">
         <AuthProvider>
           <DataStoreProvider>
             <SidebarProvider>
-              <Sidebar>
+              <Sidebar className="border-none">
                   <AppSidebar/>
               </Sidebar>
-              <SidebarInset className="bg-transparent">
+              <SidebarInset className="bg-transparent overflow-x-hidden">
                   <Navbar />
-                  <main className="p-4 sm:px-6 sm:py-4">
-                      {children}
+                  <main className="p-4 sm:px-8 sm:py-8">
+                      <div className="max-w-7xl mx-auto">
+                        {children}
+                      </div>
                   </main>
                   <Toaster />
               </SidebarInset>
