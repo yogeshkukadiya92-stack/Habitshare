@@ -1,7 +1,8 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { mockKras, mockLeaves, mockExpenses, mockRoutineTasks, mockHabits, mockHolidays, mockRecruits, mockAttendances } from '@/lib/data';
+import React, { createContext, useContext, useMemo } from 'react';
+import { collection, query, where, doc, deleteDoc, setDoc } from 'firebase/firestore';
+import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
 import type { Employee, KRA, Branch, Leave, Expense, RoutineTask, Habit, Holiday, Recruit, Attendance } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -40,223 +41,151 @@ interface DataStoreContextType {
   handleDeleteRecruit: (id: string) => void;
   handleDeleteMultipleRecruits: (ids: string[]) => void;
   handleSaveAttendance: (attendance: Attendance) => void;
-  setKras: React.Dispatch<React.SetStateAction<KRA[]>>;
-  setBranches: React.Dispatch<React.SetStateAction<Branch[]>>;
+  setKras?: React.Dispatch<React.SetStateAction<KRA[]>>;
+  setBranches?: React.Dispatch<React.SetStateAction<Branch[]>>;
 }
 
 const DataStoreContext = createContext<DataStoreContextType | undefined>(undefined);
 
 export const DataStoreProvider = ({ children }: { children: React.ReactNode }) => {
-  const [loading, setLoading] = useState(true);
-  const [kras, setKras] = useState<KRA[]>(mockKras);
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [leaves, setLeaves] = useState<Leave[]>(mockLeaves);
-  const [expenses, setExpenses] = useState<Expense[]>(mockExpenses);
-  const [routineTasks, setRoutineTasks] = useState<RoutineTask[]>(mockRoutineTasks);
-  const [habits, setHabits] = useState<Habit[]>(mockHabits);
-  const [holidays, setHolidays] = useState<Holiday[]>(mockHolidays);
-  const [recruits, setRecruits] = useState<Recruit[]>(mockRecruits);
-  const [attendances, setAttendances] = useState<Attendance[]>(mockAttendances);
+  const { user } = useUser();
+  const db = useFirestore();
 
-  useEffect(() => {
-    const loadData = (key: string, initialValue: any, setter: Function) => {
-      try {
-        if (typeof window === 'undefined') return;
-        const item = window.localStorage.getItem(key);
-        if (item) {
-          const parsed = JSON.parse(item, (key, value) => {
-            if (key.includes('Date') || key.includes('date') || key === 'checkIns') {
-              if (Array.isArray(value)) return value.map(v => new Date(v));
-              if (typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)) return new Date(value);
-            }
-            return value;
-          });
-          setter(parsed);
-        }
-      } catch (error) {
-        console.error(`Error loading ${key} from localStorage:`, error);
-      }
-    };
+  // Queries
+  const usersQuery = useMemoFirebase(() => collection(db, 'users'), [db]);
+  const krasQuery = useMemoFirebase(() => collection(db, 'kras'), [db]);
+  const branchesQuery = useMemoFirebase(() => collection(db, 'branches'), [db]);
+  const leavesQuery = useMemoFirebase(() => collection(db, 'leaves'), [db]);
+  const expensesQuery = useMemoFirebase(() => collection(db, 'expenses'), [db]);
+  const routineTasksQuery = useMemoFirebase(() => collection(db, 'routineTasks'), [db]);
+  const habitsQuery = useMemoFirebase(() => collection(db, 'habits'), [db]);
+  const holidaysQuery = useMemoFirebase(() => collection(db, 'holidays'), [db]);
+  const recruitsQuery = useMemoFirebase(() => collection(db, 'recruits'), [db]);
+  const attendancesQuery = useMemoFirebase(() => collection(db, 'attendances'), [db]);
 
-    loadData('kras', mockKras, setKras);
-    loadData('branches', [], setBranches);
-    loadData('leaves', mockLeaves, setLeaves);
-    loadData('expenses', mockExpenses, setExpenses);
-    loadData('routineTasks', mockRoutineTasks, setRoutineTasks);
-    loadData('habits', mockHabits, setHabits);
-    loadData('holidays', mockHolidays, setHolidays);
-    loadData('recruits', mockRecruits, setRecruits);
-    loadData('attendances', mockAttendances, setAttendances);
-    
-    setLoading(false);
-  }, []);
+  // Data fetching
+  const { data: users, isLoading: usersLoading } = useCollection<Employee>(usersQuery);
+  const { data: krasData, isLoading: krasLoading } = useCollection<KRA>(krasQuery);
+  const { data: branches, isLoading: branchesLoading } = useCollection<Branch>(branchesQuery);
+  const { data: leaves, isLoading: leavesLoading } = useCollection<Leave>(leavesQuery);
+  const { data: expenses, isLoading: expensesLoading } = useCollection<Expense>(expensesQuery);
+  const { data: routineTasks, isLoading: routineTasksLoading } = useCollection<RoutineTask>(routineTasksQuery);
+  const { data: habits, isLoading: habitsLoading } = useCollection<Habit>(habitsQuery);
+  const { data: holidays, isLoading: holidaysLoading } = useCollection<Holiday>(holidaysQuery);
+  const { data: recruits, isLoading: recruitsLoading } = useCollection<Recruit>(recruitsQuery);
+  const { data: attendances, isLoading: attendancesLoading } = useCollection<Attendance>(attendancesQuery);
 
-  useEffect(() => { if (!loading && typeof window !== 'undefined') window.localStorage.setItem('kras', JSON.stringify(kras)); }, [kras, loading]);
-  useEffect(() => { if (!loading && typeof window !== 'undefined') window.localStorage.setItem('branches', JSON.stringify(branches)); }, [branches, loading]);
-  useEffect(() => { if (!loading && typeof window !== 'undefined') window.localStorage.setItem('leaves', JSON.stringify(leaves)); }, [leaves, loading]);
-  useEffect(() => { if (!loading && typeof window !== 'undefined') window.localStorage.setItem('expenses', JSON.stringify(expenses)); }, [expenses, loading]);
-  useEffect(() => { if (!loading && typeof window !== 'undefined') window.localStorage.setItem('routineTasks', JSON.stringify(routineTasks)); }, [routineTasks, loading]);
-  useEffect(() => { if (!loading && typeof window !== 'undefined') window.localStorage.setItem('habits', JSON.stringify(habits)); }, [habits, loading]);
-  useEffect(() => { if (!loading && typeof window !== 'undefined') window.localStorage.setItem('holidays', JSON.stringify(holidays)); }, [holidays, loading]);
-  useEffect(() => { if (!loading && typeof window !== 'undefined') window.localStorage.setItem('recruits', JSON.stringify(recruits)); }, [recruits, loading]);
-  useEffect(() => { if (!loading && typeof window !== 'undefined') window.localStorage.setItem('attendances', JSON.stringify(attendances)); }, [attendances, loading]);
+  const employees = useMemo(() => users || [], [users]);
+  const kras = useMemo(() => krasData || [], [krasData]);
 
-  const employees: Employee[] = React.useMemo(() => {
-    const employeeMap = new Map<string, Employee>();
-    kras.forEach(kra => {
-      if (!employeeMap.has(kra.employee.id)) {
-        employeeMap.set(kra.employee.id, kra.employee);
-      }
-    });
-    return Array.from(employeeMap.values());
-  }, [kras]);
+  const loading = usersLoading || krasLoading || branchesLoading || leavesLoading || expensesLoading || routineTasksLoading || habitsLoading || holidaysLoading || recruitsLoading || attendancesLoading;
 
-  const handleSaveKra = (kraToSave: KRA) => {
-    setKras(prev => {
-      const exists = prev.some(k => k.id === kraToSave.id);
-      return exists ? prev.map(k => (k.id === kraToSave.id ? kraToSave : k)) : [...prev, kraToSave];
-    });
+  // Mutation Handlers
+  const handleSaveKra = (kra: KRA) => {
+    const docRef = doc(db, 'kras', kra.id);
+    setDoc(docRef, JSON.parse(JSON.stringify(kra)), { merge: true });
   };
 
-  const handleDeleteKra = (kraId: string) => {
-    setKras(prev => prev.filter(k => k.id !== kraId));
+  const handleDeleteKra = (id: string) => {
+    deleteDoc(doc(db, 'kras', id));
   };
 
   const handleDeleteMultipleKras = (ids: string[]) => {
-    setKras(prev => prev.filter(k => !ids.includes(k.id)));
+    ids.forEach(id => handleDeleteKra(id));
   };
 
-  const handleSaveEmployee = (employeeToSave: Employee) => {
-    setKras(prev => {
-      const employeeExists = prev.some(k => k.employee.id === employeeToSave.id);
-      if (employeeExists) {
-        return prev.map(kra => kra.employee.id === employeeToSave.id ? { ...kra, employee: employeeToSave } : kra);
-      } else {
-        const newPlaceholderKra: KRA = {
-          id: `KRA-placeholder-${employeeToSave.id}`,
-          taskDescription: 'Placeholder KRA',
-          employee: employeeToSave,
-          progress: 0,
-          status: 'Pending',
-          weightage: null,
-          marksAchieved: null,
-          bonus: null,
-          penalty: null,
-          startDate: new Date(),
-          endDate: new Date(),
-          actions: [],
-        };
-        return [...prev, newPlaceholderKra];
-      }
-    });
+  const handleSaveEmployee = (employee: Employee) => {
+    const docRef = doc(db, 'users', employee.id);
+    setDoc(docRef, JSON.parse(JSON.stringify(employee)), { merge: true });
   };
 
-  const handleDeleteEmployee = (employeeId: string) => {
-    setKras(prev => prev.filter(kra => kra.employee.id !== employeeId));
+  const handleDeleteEmployee = (id: string) => {
+    deleteDoc(doc(db, 'users', id));
   };
 
   const handleDeleteMultipleEmployees = (ids: string[]) => {
-    setKras(prev => prev.filter(kra => !ids.includes(kra.employee.id)));
-  };
-  
-  const handleSaveLeave = (leaveToSave: Leave) => {
-    setLeaves(prev => {
-      const exists = prev.some(l => l.id === leaveToSave.id);
-      const updated = exists ? prev.map(l => (l.id === leaveToSave.id ? leaveToSave : l)) : [leaveToSave, ...prev];
-      return updated.sort((a,b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
-    });
+    ids.forEach(id => handleDeleteEmployee(id));
   };
 
-  const handleDeleteLeave = (leaveId: string) => {
-    setLeaves(prev => prev.filter(l => l.id !== leaveId));
+  const handleSaveLeave = (leave: Leave) => {
+    const docRef = doc(db, 'leaves', leave.id);
+    setDoc(docRef, JSON.parse(JSON.stringify(leave)), { merge: true });
+  };
+
+  const handleDeleteLeave = (id: string) => {
+    deleteDoc(doc(db, 'leaves', id));
   };
 
   const handleDeleteMultipleLeaves = (ids: string[]) => {
-    setLeaves(prev => prev.filter(l => !ids.includes(l.id)));
+    ids.forEach(id => handleDeleteLeave(id));
   };
 
-  const handleSaveExpense = (expenseToSave: Expense) => {
-    setExpenses(prev => {
-      const exists = prev.some(e => e.id === expenseToSave.id);
-      const updated = exists ? prev.map(e => (e.id === expenseToSave.id ? expenseToSave : e)) : [expenseToSave, ...prev];
-      return updated.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    });
+  const handleSaveExpense = (expense: Expense) => {
+    const docRef = doc(db, 'expenses', expense.id);
+    setDoc(docRef, JSON.parse(JSON.stringify(expense)), { merge: true });
   };
 
-  const handleDeleteExpense = (expenseId: string) => {
-    setExpenses(prev => prev.filter(e => e.id !== expenseId));
+  const handleDeleteExpense = (id: string) => {
+    deleteDoc(doc(db, 'expenses', id));
   };
 
   const handleDeleteMultipleExpenses = (ids: string[]) => {
-    setExpenses(prev => prev.filter(e => !ids.includes(e.id)));
+    ids.forEach(id => handleDeleteExpense(id));
   };
 
-  const handleSaveRoutineTask = (taskToSave: RoutineTask) => {
-    setRoutineTasks(prev => {
-      const exists = prev.some(t => t.id === taskToSave.id);
-      return exists ? prev.map(t => (t.id === taskToSave.id ? taskToSave : t)) : [taskToSave, ...prev];
-    });
+  const handleSaveRoutineTask = (task: RoutineTask) => {
+    const docRef = doc(db, 'routineTasks', task.id);
+    setDoc(docRef, JSON.parse(JSON.stringify(task)), { merge: true });
   };
 
-  const handleDeleteRoutineTask = (taskId: string) => {
-    setRoutineTasks(prev => prev.filter(t => t.id !== taskId));
+  const handleDeleteRoutineTask = (id: string) => {
+    deleteDoc(doc(db, 'routineTasks', id));
   };
 
   const handleDeleteMultipleRoutineTasks = (ids: string[]) => {
-    setRoutineTasks(prev => prev.filter(t => !ids.includes(t.id)));
+    ids.forEach(id => handleDeleteRoutineTask(id));
   };
 
-  const handleSaveHabit = (habitToSave: Habit) => {
-    setHabits(prev => {
-      const exists = prev.some(h => h.id === habitToSave.id);
-      return exists ? prev.map(h => (h.id === habitToSave.id ? habitToSave : h)) : [...prev, habitToSave];
-    });
+  const handleSaveHabit = (habit: Habit) => {
+    const docRef = doc(db, 'habits', habit.id);
+    setDoc(docRef, JSON.parse(JSON.stringify(habit)), { merge: true });
   };
 
-  const handleSaveHoliday = (holidayToSave: Holiday) => {
-    setHolidays(prev => {
-      const exists = prev.some(h => h.id === holidayToSave.id);
-      const updated = exists ? prev.map(h => (h.id === holidayToSave.id ? holidayToSave : h)) : [...prev, holidayToSave];
-      return updated.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    });
+  const handleSaveHoliday = (holiday: Holiday) => {
+    const docRef = doc(db, 'holidays', holiday.id);
+    setDoc(docRef, JSON.parse(JSON.stringify(holiday)), { merge: true });
   };
 
   const handleDeleteHoliday = (id: string) => {
-    setHolidays(prev => prev.filter(h => h.id !== id));
+    deleteDoc(doc(db, 'holidays', id));
   };
 
   const handleDeleteMultipleHolidays = (ids: string[]) => {
-    setHolidays(prev => prev.filter(h => !ids.includes(h.id)));
+    ids.forEach(id => handleDeleteHoliday(id));
   };
 
-  const handleSaveRecruit = (recruitToSave: Recruit) => {
-    setRecruits(prev => {
-      const exists = prev.some(r => r.id === recruitToSave.id);
-      const updated = exists ? prev.map(r => (r.id === recruitToSave.id ? recruitToSave : r)) : [...prev, recruitToSave];
-      return updated.sort((a,b) => new Date(b.appliedDate).getTime() - new Date(a.appliedDate).getTime());
-    });
+  const handleSaveRecruit = (recruit: Recruit) => {
+    const docRef = doc(db, 'recruits', recruit.id);
+    setDoc(docRef, JSON.parse(JSON.stringify(recruit)), { merge: true });
   };
 
   const handleDeleteRecruit = (id: string) => {
-    setRecruits(prev => prev.filter(r => r.id !== id));
+    deleteDoc(doc(db, 'recruits', id));
   };
 
   const handleDeleteMultipleRecruits = (ids: string[]) => {
-    setRecruits(prev => prev.filter(r => !ids.includes(r.id)));
+    ids.forEach(id => handleDeleteRecruit(id));
   };
 
-  const handleSaveAttendance = (attendanceToSave: Attendance) => {
-    setAttendances(prev => {
-      const exists = prev.some(a => a.employee.id === attendanceToSave.employee.id && new Date(a.date).toDateString() === new Date(attendanceToSave.date).toDateString());
-      return exists ? prev.map(a => (a.employee.id === attendanceToSave.employee.id && new Date(a.date).toDateString() === new Date(attendanceToSave.date).toDateString()) ? attendanceToSave : a) : [...prev, attendanceToSave];
-    });
+  const handleSaveAttendance = (attendance: Attendance) => {
+    const docRef = doc(db, 'attendances', attendance.id);
+    setDoc(docRef, JSON.parse(JSON.stringify(attendance)), { merge: true });
   };
 
   const value = {
-    loading, kras, employees, branches, leaves, expenses, routineTasks, habits, holidays, recruits, attendances,
+    loading, kras, employees, branches: branches || [], leaves: leaves || [], expenses: expenses || [], routineTasks: routineTasks || [], habits: habits || [], holidays: holidays || [], recruits: recruits || [], attendances: attendances || [],
     handleSaveKra, handleDeleteKra, handleDeleteMultipleKras, handleSaveEmployee, handleDeleteEmployee, handleDeleteMultipleEmployees, handleSaveLeave, handleDeleteLeave, handleDeleteMultipleLeaves, handleSaveExpense, handleDeleteExpense, handleDeleteMultipleExpenses,
-    handleSaveRoutineTask, handleDeleteRoutineTask, handleDeleteMultipleRoutineTasks, handleSaveHabit, handleSaveHoliday, handleDeleteHoliday, handleDeleteMultipleHolidays, handleSaveRecruit, handleDeleteRecruit, handleDeleteMultipleRecruits, handleSaveAttendance,
-    setKras, setBranches
+    handleSaveRoutineTask, handleDeleteRoutineTask, handleDeleteMultipleRoutineTasks, handleSaveHabit, handleSaveHoliday, handleDeleteHoliday, handleDeleteMultipleHolidays, handleSaveRecruit, handleDeleteRecruit, handleDeleteMultipleRecruits, handleSaveAttendance
   };
 
   return <DataStoreContext.Provider value={value}>{children}</DataStoreContext.Provider>;

@@ -1,12 +1,11 @@
-
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { onAuthStateChanged, type User } from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { useAuth as useFirebaseInstance, useFirestore } from '@/firebase';
 import { Skeleton } from './ui/skeleton';
-import type { Employee, KRA, EmployeePermissions, PermissionLevel } from '@/lib/types';
-import { mockKras } from '@/lib/data';
+import type { Employee, EmployeePermissions, PermissionLevel } from '@/lib/types';
 
 interface AuthContextType {
   user: User | null;
@@ -54,39 +53,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<Employee | null>(null);
+  const auth = useFirebaseInstance();
+  const db = useFirestore();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      if (user) {
-        let employeeData = mockKras.find((k:any) => k.employee.email === user.email)?.employee;
-        
-        if (employeeData) {
-             if (employeeData.role === 'Admin') {
-                employeeData.permissions = adminPermissions;
-            } else if (!employeeData.permissions) {
-                employeeData.permissions = defaultPermissions;
-            }
-            setCurrentUser(employeeData);
-        } else {
-             const isMockAdmin = user.email === 'connect@luvfitnessworld.com';
-             const mockAdminData = mockKras.find(k => k.employee.email === 'connect@luvfitnessworld.com')?.employee;
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setUser(firebaseUser);
+      if (firebaseUser) {
+        const userRef = doc(db, 'users', firebaseUser.uid);
+        const userDoc = await getDoc(userRef);
 
-             if(isMockAdmin && mockAdminData) {
-                 setCurrentUser({
-                     ...mockAdminData,
-                     permissions: adminPermissions,
-                 });
-             } else {
-                 setCurrentUser({
-                    id: user.uid,
-                    name: user.displayName || 'New User',
-                    email: user.email!,
-                    avatarUrl: user.photoURL || `https://placehold.co/32x32.png?text=${user.email![0].toUpperCase()}`,
-                    role: 'Employee',
-                    permissions: defaultPermissions,
-                });
-             }
+        if (userDoc.exists()) {
+          const userData = userDoc.data() as Employee;
+          if (userData.role === 'Admin') {
+            userData.permissions = adminPermissions;
+          }
+          setCurrentUser(userData);
+        } else {
+          // Create new user profile in Firestore
+          const isInitialAdmin = firebaseUser.email === 'connect@luvfitnessworld.com';
+          const newUser: Employee = {
+            id: firebaseUser.uid,
+            name: firebaseUser.displayName || 'New User',
+            email: firebaseUser.email!,
+            avatarUrl: firebaseUser.photoURL || `https://placehold.co/32x32.png?text=${firebaseUser.email![0].toUpperCase()}`,
+            role: isInitialAdmin ? 'Admin' : 'Employee',
+            permissions: isInitialAdmin ? adminPermissions : defaultPermissions,
+          };
+          await setDoc(userRef, newUser);
+          setCurrentUser(newUser);
         }
       } else {
         setCurrentUser(null);
@@ -95,14 +90,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [auth, db]);
 
   const getPermission = (page: keyof EmployeePermissions): PermissionLevel => {
     if (loading || !currentUser) return 'none';
     if (currentUser.role === 'Admin') return 'download';
     return currentUser.permissions?.[page] || 'none';
   };
-
 
   if (loading) {
     return (
