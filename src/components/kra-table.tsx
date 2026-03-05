@@ -6,6 +6,7 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -269,6 +270,14 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const { handleDeleteMultipleKras } = useDataStore();
 
+  const totalWeightage = React.useMemo(() => 
+    kras.reduce((sum, kra) => sum + (kra.weightage || 0), 0)
+  , [kras]);
+
+  const totalPerformance = React.useMemo(() => 
+    kras.reduce((sum, kra) => sum + ((kra.marksAchieved || 0) + (kra.bonus || 0) - (kra.penalty || 0)), 0)
+  , [kras]);
+
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
       setSelectedIds(kras.map(k => k.id));
@@ -320,7 +329,7 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
           </AlertDialog>
         </div>
       )}
-      <div className='border rounded-lg overflow-hidden'>
+      <div className='border rounded-lg overflow-hidden bg-white shadow-sm'>
       <Table>
         <TableHeader className="bg-muted/50">
           <TableRow>
@@ -461,6 +470,22 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
             );
           })}
         </TableBody>
+        {kras.length > 0 && (
+          <TableFooter className="bg-slate-50/80 font-bold border-t-2">
+            <TableRow>
+              <TableCell colSpan={3} className="text-right py-4 pr-6 text-slate-500 uppercase text-[10px] tracking-widest">
+                Aggregated Performance Score
+              </TableCell>
+              <TableCell className="text-center text-lg font-black text-slate-700">
+                {totalWeightage}
+              </TableCell>
+              <TableCell className="text-center text-xl font-black text-primary">
+                {totalPerformance.toFixed(2)}
+              </TableCell>
+              <TableCell />
+            </TableRow>
+          </TableFooter>
+        )}
       </Table>
       </div>
     </div>
