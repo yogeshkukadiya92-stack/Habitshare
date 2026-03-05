@@ -61,6 +61,7 @@ const kraSchema = z.object({
   penalty: z.number().min(0).nullable(),
   actions: z.array(actionItemSchema).optional(),
   handover: z.string().optional(),
+  extraWork: z.string().optional(),
   target: z.number().min(0).nullable(),
   achieved: z.number().min(0).nullable(),
 });
@@ -203,6 +204,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
       penalty: kra?.penalty || null,
       actions: [],
       handover: kra?.handover || '',
+      extraWork: kra?.extraWork || '',
       target: kra?.target || null,
       achieved: kra?.achieved || null,
     },
@@ -269,6 +271,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
             updates: a.updates?.map(u => ({...u, date: new Date(u.date)})) || []
         })) || [],
         handover: kra?.handover || '',
+        extraWork: kra?.extraWork || '',
         target: kra?.target || null,
         achieved: kra?.achieved || null,
       });
@@ -345,6 +348,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
       endDate: kra?.endDate || new Date(new Date().setMonth(new Date().getMonth() + 3)),
       actions: updatedActions,
       handover: data.handover,
+      extraWork: data.extraWork,
       target: data.target,
       achieved: finalAchieved,
     };
@@ -658,11 +662,11 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                     Performance Score
                 </Label>
                 <div className="col-span-3">
-                    <Controller
-                    name="marksAchieved"
-                    control={control}
-                    render={({ field }) => (
-                        <div className='relative'>
+                    <div className='relative'>
+                        <Controller
+                        name="marksAchieved"
+                        control={control}
+                        render={({ field }) => (
                             <Input 
                                 id="marksAchieved" 
                                 type="number" 
@@ -673,12 +677,12 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                 readOnly
                                 className='bg-primary/5 border-primary/30 rounded-xl h-12 text-lg font-black text-primary text-center shadow-inner'
                             />
-                            <div className='absolute right-4 top-1/2 -translate-y-1/2'>
-                                <Badge variant="secondary" className='bg-white/80 shadow-sm'>Auto-Metric</Badge>
-                            </div>
+                        )}
+                        />
+                        <div className='absolute right-4 top-1/2 -translate-y-1/2'>
+                            <Badge variant="secondary" className='bg-white/80 shadow-sm'>Auto-Metric</Badge>
                         </div>
-                    )}
-                    />
+                    </div>
                 </div>
                 </div>
                 
@@ -725,6 +729,27 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                         </div>
                     </div>
                 )}
+
+                <div className="grid grid-cols-4 items-start gap-4">
+                    <Label htmlFor="extraWork" className="text-right pt-2 font-bold text-orange-600">
+                        Extra Work Done
+                    </Label>
+                    <div className="col-span-3">
+                        <Controller
+                            name="extraWork"
+                            control={control}
+                            render={({ field }) => (
+                                <Textarea 
+                                    id="extraWork" 
+                                    {...field} 
+                                    rows={2} 
+                                    placeholder="Write about any additional work or achievements outside KPIs..."
+                                    className='rounded-xl border-orange-200 bg-orange-50/30 font-medium placeholder:text-orange-300'
+                                />
+                            )}
+                        />
+                    </div>
+                </div>
 
                 <div className="grid grid-cols-4 items-start gap-4">
                     <Label htmlFor="handover" className="text-right pt-2 font-semibold text-muted-foreground">

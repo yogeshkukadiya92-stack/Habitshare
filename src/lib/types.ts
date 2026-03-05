@@ -1,5 +1,4 @@
 
-
 export type KRAStatus = 'On Track' | 'At Risk' | 'Completed' | 'Pending';
 export type UserRole = 'Admin' | 'Manager' | 'Employee';
 export type PermissionLevel = 'none' | 'view' | 'edit' | 'download' | 'employee_only';
@@ -68,6 +67,7 @@ export interface KRA {
   endDate: Date;
   actions?: ActionItem[];
   handover?: string;
+  extraWork?: string;
   target?: number;
   achieved?: number;
 }
