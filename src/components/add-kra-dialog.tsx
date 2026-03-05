@@ -229,29 +229,43 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
     name: "actions",
   });
 
-  const allWatchedFields = watch();
+  const watchedWeeklyProgress = watch('weeklyProgress');
+  const watchedActions = watch('actions');
+  const watchedWeightage = watch('weightage');
+  const watchedTarget = watch('target');
+  const watchedAchieved = watch('achieved');
 
   React.useEffect(() => {
-    const { actions, weightage, target, achieved, weeklyProgress } = allWatchedFields;
-    let totalMarksCalculated = 0;
+    let totalWeeklyTarget = 0;
+    let totalWeeklyAchieved = 0;
     
-    // Calculate achievement from weekly progress if it exists
-    let weeklyAchieved = 0;
-    if (weeklyProgress) {
-        Object.values(weeklyProgress).forEach(w => {
-            if (w.achieved) weeklyAchieved += w.achieved;
+    if (watchedWeeklyProgress) {
+        Object.values(watchedWeeklyProgress).forEach(w => {
+            totalWeeklyTarget += (w?.target || 0);
+            totalWeeklyAchieved += (w?.achieved || 0);
         });
     }
 
-    const currentAchieved = weeklyAchieved > 0 ? weeklyAchieved : (achieved || 0);
+    // Auto-update total target and achieved from weeks if they are set
+    if (totalWeeklyTarget > 0 && watchedTarget !== totalWeeklyTarget) {
+        setValue('target', totalWeeklyTarget);
+    }
+    if (totalWeeklyAchieved > 0 && watchedAchieved !== totalWeeklyAchieved) {
+        setValue('achieved', totalWeeklyAchieved);
+    }
 
-    if (actions && actions.length > 0) {
-        const totalKpiTarget = actions.reduce((sum, action) => sum + (action.target || 0), 0);
+    const currentTarget = totalWeeklyTarget > 0 ? totalWeeklyTarget : (watchedTarget || 0);
+    const currentAchieved = totalWeeklyAchieved > 0 ? totalWeeklyAchieved : (watchedAchieved || 0);
+
+    let totalMarksCalculated = 0;
+    
+    if (watchedActions && watchedActions.length > 0) {
+        const totalKpiTarget = watchedActions.reduce((sum, action) => sum + (action.target || 0), 0);
         
-        actions.forEach((action, index) => {
+        watchedActions.forEach((action) => {
             const kpiAchieved = action.achieved || action.updates?.reduce((sum, u) => sum + (u.value || 0), 0) || 0;
-            const kpiWeightage = (weightage && totalKpiTarget > 0 && action.target) 
-                ? (action.target / totalKpiTarget) * weightage 
+            const kpiWeightage = (watchedWeightage && totalKpiTarget > 0 && action.target) 
+                ? (action.target / totalKpiTarget) * watchedWeightage 
                 : 0;
 
             let kpiMarks = 0;
@@ -262,19 +276,15 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
             }
             totalMarksCalculated += kpiMarks;
         });
-    } else if (target && target > 0 && weightage) {
-         totalMarksCalculated = (currentAchieved / target) * weightage;
+    } else if (currentTarget > 0 && watchedWeightage) {
+         totalMarksCalculated = (currentAchieved / currentTarget) * watchedWeightage;
     }
 
-    const finalMarks = Math.min(weightage || 0, parseFloat(totalMarksCalculated.toFixed(2)));
+    const finalMarks = Math.min(watchedWeightage || 0, parseFloat(totalMarksCalculated.toFixed(2)));
     if (watch('marksAchieved') !== finalMarks) {
         setValue('marksAchieved', finalMarks, { shouldValidate: true });
     }
-    
-    if (weeklyAchieved > 0 && achieved !== weeklyAchieved) {
-        setValue('achieved', weeklyAchieved);
-    }
-  }, [allWatchedFields, setValue, watch]);
+  }, [watchedWeeklyProgress, watchedActions, watchedWeightage, watchedTarget, watchedAchieved, setValue, watch]);
 
   React.useEffect(() => {
     if (open) {
@@ -306,7 +316,6 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
   }, [open, kra, reset]);
 
   const taskDescription = watch('taskDescription');
-  const hasActions = allWatchedFields.actions && allWatchedFields.actions.length > 0;
 
   const handleRefine = async () => {
     if (!taskDescription) return;
@@ -326,15 +335,30 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
     const selectedEmployee = employees.find(e => e.id === data.employeeId);
     if (!selectedEmployee) return;
     
-    let totalAchieved = 0;
+    let totalWeeklyAchieved = 0;
+    if (data.weeklyProgress) {
+        Object.values(data.weeklyProgress).forEach(w => {
+            totalWeeklyAchieved += (w.achieved || 0);
+        });
+    }
+
+    let totalKpiAchieved = 0;
     const updatedActions = data.actions?.map(action => {
         const achieved = action.achieved || action.updates?.reduce((sum, u) => sum + (u.value || 0), 0) || 0;
-        totalAchieved += achieved;
+        totalKpiAchieved += achieved;
         return {...action, achieved };
     });
 
-    const finalAchieved = hasActions ? totalAchieved : (data.achieved || 0);
-    const totalTarget = hasActions ? updatedActions?.reduce((sum, action) => sum + (action.target || 0), 0) || 0 : (data.target || 0);
+    const hasActions = updatedActions && updatedActions.length > 0;
+    const finalAchieved = totalWeeklyAchieved > 0 ? totalWeeklyAchieved : (hasActions ? totalKpiAchieved : (data.achieved || 0));
+    
+    let totalTarget = data.target || 0;
+    if (totalWeeklyAchieved > 0) {
+        // Already handled by useEffect setting target
+    } else if (hasActions) {
+        totalTarget = updatedActions.reduce((sum, action) => sum + (action.target || 0), 0);
+    }
+
     const progress = totalTarget > 0 ? Math.round((finalAchieved / totalTarget) * 100) : 0;
 
     const newKra: KRA = {
@@ -352,7 +376,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
       actions: updatedActions,
       handover: data.handover,
       extraWork: data.extraWork,
-      target: data.target,
+      target: totalTarget,
       achieved: finalAchieved,
       weeklyProgress: data.weeklyProgress,
     };
@@ -495,7 +519,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                             <Controller
                                 name="target"
                                 control={control}
-                                render={({ field }) => <Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} disabled={!isAdmin} />}
+                                render={({ field }) => <Input type="number" {...field} value={field.value ?? ''} readOnly className="bg-slate-100 font-bold" />}
                             />
                         </div>
                         <div className='space-y-1'>
@@ -503,7 +527,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                             <Controller
                                 name="achieved"
                                 control={control}
-                                render={({ field }) => <Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} className="bg-primary/5 border-primary/20" />}
+                                render={({ field }) => <Input type="number" {...field} value={field.value ?? ''} readOnly className="bg-primary/5 border-primary/20 font-bold" />}
                             />
                         </div>
                         <div className='space-y-1'>
