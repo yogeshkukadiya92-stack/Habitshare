@@ -1,10 +1,9 @@
 'use client';
 
 import React, { createContext, useContext, useMemo } from 'react';
-import { collection, query, where, doc, deleteDoc, setDoc } from 'firebase/firestore';
-import { useFirestore, useUser, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, doc, deleteDoc, setDoc } from 'firebase/firestore';
+import { useFirestore, useUser, useCollection, useMemoFirebase, FirestorePermissionError, errorEmitter } from '@/firebase';
 import type { Employee, KRA, Branch, Leave, Expense, RoutineTask, Habit, Holiday, Recruit, Attendance } from '@/lib/types';
-import { v4 as uuidv4 } from 'uuid';
 
 interface DataStoreContextType {
   loading: boolean;
@@ -41,8 +40,6 @@ interface DataStoreContextType {
   handleDeleteRecruit: (id: string) => void;
   handleDeleteMultipleRecruits: (ids: string[]) => void;
   handleSaveAttendance: (attendance: Attendance) => void;
-  setKras?: React.Dispatch<React.SetStateAction<KRA[]>>;
-  setBranches?: React.Dispatch<React.SetStateAction<Branch[]>>;
 }
 
 const DataStoreContext = createContext<DataStoreContextType | undefined>(undefined);
@@ -51,7 +48,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   const { user } = useUser();
   const db = useFirestore();
 
-  // Queries - Only fetch when user is authenticated to avoid permission errors
+  // Queries - Only fetch when user is authenticated
   const usersQuery = useMemoFirebase(() => user ? collection(db, 'users') : null, [db, user]);
   const krasQuery = useMemoFirebase(() => user ? collection(db, 'kras') : null, [db, user]);
   const branchesQuery = useMemoFirebase(() => user ? collection(db, 'branches') : null, [db, user]);
@@ -80,14 +77,29 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
 
   const loading = usersLoading || krasLoading || branchesLoading || leavesLoading || expensesLoading || routineTasksLoading || habitsLoading || holidaysLoading || recruitsLoading || attendancesLoading;
 
-  // Mutation Handlers
+  // Helper to safely serialize objects for Firestore (handles dates)
+  const serialize = (data: any) => JSON.parse(JSON.stringify(data));
+
+  // Mutation Handlers with proper error handling architecture
   const handleSaveKra = (kra: KRA) => {
     const docRef = doc(db, 'kras', kra.id);
-    setDoc(docRef, JSON.parse(JSON.stringify(kra)), { merge: true });
+    setDoc(docRef, serialize(kra), { merge: true }).catch(async (error) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'write',
+        requestResourceData: kra
+      }));
+    });
   };
 
   const handleDeleteKra = (id: string) => {
-    deleteDoc(doc(db, 'kras', id));
+    const docRef = doc(db, 'kras', id);
+    deleteDoc(docRef).catch(async (error) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'delete'
+      }));
+    });
   };
 
   const handleDeleteMultipleKras = (ids: string[]) => {
@@ -96,11 +108,23 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
 
   const handleSaveEmployee = (employee: Employee) => {
     const docRef = doc(db, 'users', employee.id);
-    setDoc(docRef, JSON.parse(JSON.stringify(employee)), { merge: true });
+    setDoc(docRef, serialize(employee), { merge: true }).catch(async (error) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'write',
+        requestResourceData: employee
+      }));
+    });
   };
 
   const handleDeleteEmployee = (id: string) => {
-    deleteDoc(doc(db, 'users', id));
+    const docRef = doc(db, 'users', id);
+    deleteDoc(docRef).catch(async (error) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'delete'
+      }));
+    });
   };
 
   const handleDeleteMultipleEmployees = (ids: string[]) => {
@@ -109,11 +133,23 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
 
   const handleSaveLeave = (leave: Leave) => {
     const docRef = doc(db, 'leaves', leave.id);
-    setDoc(docRef, JSON.parse(JSON.stringify(leave)), { merge: true });
+    setDoc(docRef, serialize(leave), { merge: true }).catch(async (error) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'write',
+        requestResourceData: leave
+      }));
+    });
   };
 
   const handleDeleteLeave = (id: string) => {
-    deleteDoc(doc(db, 'leaves', id));
+    const docRef = doc(db, 'leaves', id);
+    deleteDoc(docRef).catch(async (error) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'delete'
+      }));
+    });
   };
 
   const handleDeleteMultipleLeaves = (ids: string[]) => {
@@ -122,11 +158,23 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
 
   const handleSaveExpense = (expense: Expense) => {
     const docRef = doc(db, 'expenses', expense.id);
-    setDoc(docRef, JSON.parse(JSON.stringify(expense)), { merge: true });
+    setDoc(docRef, serialize(expense), { merge: true }).catch(async (error) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'write',
+        requestResourceData: expense
+      }));
+    });
   };
 
   const handleDeleteExpense = (id: string) => {
-    deleteDoc(doc(db, 'expenses', id));
+    const docRef = doc(db, 'expenses', id);
+    deleteDoc(docRef).catch(async (error) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'delete'
+      }));
+    });
   };
 
   const handleDeleteMultipleExpenses = (ids: string[]) => {
@@ -135,11 +183,23 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
 
   const handleSaveRoutineTask = (task: RoutineTask) => {
     const docRef = doc(db, 'routineTasks', task.id);
-    setDoc(docRef, JSON.parse(JSON.stringify(task)), { merge: true });
+    setDoc(docRef, serialize(task), { merge: true }).catch(async (error) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'write',
+        requestResourceData: task
+      }));
+    });
   };
 
   const handleDeleteRoutineTask = (id: string) => {
-    deleteDoc(doc(db, 'routineTasks', id));
+    const docRef = doc(db, 'routineTasks', id);
+    deleteDoc(docRef).catch(async (error) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'delete'
+      }));
+    });
   };
 
   const handleDeleteMultipleRoutineTasks = (ids: string[]) => {
@@ -148,16 +208,34 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
 
   const handleSaveHabit = (habit: Habit) => {
     const docRef = doc(db, 'habits', habit.id);
-    setDoc(docRef, JSON.parse(JSON.stringify(habit)), { merge: true });
+    setDoc(docRef, serialize(habit), { merge: true }).catch(async (error) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'write',
+        requestResourceData: habit
+      }));
+    });
   };
 
   const handleSaveHoliday = (holiday: Holiday) => {
     const docRef = doc(db, 'holidays', holiday.id);
-    setDoc(docRef, JSON.parse(JSON.stringify(holiday)), { merge: true });
+    setDoc(docRef, serialize(holiday), { merge: true }).catch(async (error) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'write',
+        requestResourceData: holiday
+      }));
+    });
   };
 
   const handleDeleteHoliday = (id: string) => {
-    deleteDoc(doc(db, 'holidays', id));
+    const docRef = doc(db, 'holidays', id);
+    deleteDoc(docRef).catch(async (error) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'delete'
+      }));
+    });
   };
 
   const handleDeleteMultipleHolidays = (ids: string[]) => {
@@ -166,11 +244,23 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
 
   const handleSaveRecruit = (recruit: Recruit) => {
     const docRef = doc(db, 'recruits', recruit.id);
-    setDoc(docRef, JSON.parse(JSON.stringify(recruit)), { merge: true });
+    setDoc(docRef, serialize(recruit), { merge: true }).catch(async (error) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'write',
+        requestResourceData: recruit
+      }));
+    });
   };
 
   const handleDeleteRecruit = (id: string) => {
-    deleteDoc(doc(db, 'recruits', id));
+    const docRef = doc(db, 'recruits', id);
+    deleteDoc(docRef).catch(async (error) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'delete'
+      }));
+    });
   };
 
   const handleDeleteMultipleRecruits = (ids: string[]) => {
@@ -179,7 +269,13 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
 
   const handleSaveAttendance = (attendance: Attendance) => {
     const docRef = doc(db, 'attendances', attendance.id);
-    setDoc(docRef, JSON.parse(JSON.stringify(attendance)), { merge: true });
+    setDoc(docRef, serialize(attendance), { merge: true }).catch(async (error) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'write',
+        requestResourceData: attendance
+      }));
+    });
   };
 
   const value = {

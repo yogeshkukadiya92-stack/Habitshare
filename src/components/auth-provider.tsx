@@ -63,15 +63,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const userRef = doc(db, 'users', firebaseUser.uid);
         const userDoc = await getDoc(userRef);
 
+        const isInitialAdmin = firebaseUser.email === 'connect@luvfitnessworld.com';
+
+        // Ensure roles_admin document exists for the admin
+        if (isInitialAdmin) {
+          const adminRoleRef = doc(db, 'roles_admin', firebaseUser.uid);
+          const adminRoleDoc = await getDoc(adminRoleRef);
+          if (!adminRoleDoc.exists()) {
+            await setDoc(adminRoleRef, { active: true });
+          }
+        }
+
         if (userDoc.exists()) {
           const userData = userDoc.data() as Employee;
-          if (userData.role === 'Admin') {
+          if (userData.role === 'Admin' || isInitialAdmin) {
             userData.permissions = adminPermissions;
+            userData.role = 'Admin';
           }
           setCurrentUser(userData);
         } else {
           // Create new user profile in Firestore
-          const isInitialAdmin = firebaseUser.email === 'connect@luvfitnessworld.com';
           const newUser: Employee = {
             id: firebaseUser.uid,
             name: firebaseUser.displayName || 'New User',

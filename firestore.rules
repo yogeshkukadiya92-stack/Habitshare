@@ -18,10 +18,10 @@ service cloud.firestore {
       allow write: if isOwner(userId) || isAdmin();
     }
 
-    // KRAs (Tasks)
+    // KRAs
     match /kras/{id} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow write: if isAdmin() || (isSignedIn() && resource == null) || (isSignedIn() && resource.data.employee.id == request.auth.uid);
     }
 
     // Leaves
@@ -69,9 +69,12 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
+    
+    // Roles management
     match /roles_admin/{userId} {
       allow read: if isSignedIn();
-      allow write: if false;
+      // Allow the initial master admin to set their own role
+      allow write: if isOwner(userId) && request.auth.token.email == 'connect@luvfitnessworld.com';
     }
   }
 }
