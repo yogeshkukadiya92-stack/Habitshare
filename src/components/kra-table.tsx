@@ -323,6 +323,28 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
     setSelectedIds([]);
   };
 
+  const renderWeekCell = (weekData?: WeeklyProgress) => {
+    if (!weekData || (weekData.target === null && weekData.achieved === null && !weekData.description)) return "-";
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <div className="flex flex-col items-center text-[10px] cursor-help">
+                    <span className="font-bold text-primary">{weekData.achieved ?? 0}</span>
+                    <span className="text-muted-foreground border-t border-muted-foreground/20 w-8 text-center">{weekData.target ?? 0}</span>
+                </div>
+            </TooltipTrigger>
+            {weekData.description && (
+                <TooltipContent className="max-w-[250px]">
+                    <div className="space-y-1">
+                        <p className="font-bold border-b pb-1 text-xs">Weekly KRA Details:</p>
+                        <p className="text-xs leading-relaxed">{weekData.description}</p>
+                    </div>
+                </TooltipContent>
+            )}
+        </Tooltip>
+    );
+  };
+
   return (
      <TooltipProvider>
     <div className='space-y-4'>
@@ -399,16 +421,6 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
                 : (kra.achieved || 0);
             
             const totalPending = Math.max(0, totalTarget - totalAchieved);
-
-            const renderWeekCell = (weekData?: WeeklyProgress) => {
-                if (!weekData || (weekData.target === null && weekData.achieved === null)) return "-";
-                return (
-                    <div className="flex flex-col items-center text-[10px]">
-                        <span className="font-bold text-primary">{weekData.achieved ?? 0}</span>
-                        <span className="text-muted-foreground border-t border-muted-foreground/20 w-8 text-center">{weekData.target ?? 0}</span>
-                    </div>
-                );
-            };
 
             return (
             <TableRow key={kra.id} className="align-top">

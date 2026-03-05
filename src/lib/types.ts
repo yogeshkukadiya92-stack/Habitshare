@@ -45,6 +45,7 @@ export interface WeeklyUpdate {
 export interface WeeklyProgress {
     target: number | null;
     achieved: number | null;
+    description?: string;
 }
 
 export interface ActionItem {

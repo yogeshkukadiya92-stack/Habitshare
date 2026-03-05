@@ -44,6 +44,7 @@ const weeklyUpdateSchema = z.object({
 const weeklyProgressItemSchema = z.object({
     target: z.number().nullable(),
     achieved: z.number().nullable(),
+    description: z.string().optional(),
 });
 
 const actionItemSchema = z.object({
@@ -215,11 +216,11 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
       target: kra?.target || null,
       achieved: kra?.achieved || null,
       weeklyProgress: {
-        week1: { target: null, achieved: null },
-        week2: { target: null, achieved: null },
-        week3: { target: null, achieved: null },
-        week4: { target: null, achieved: null },
-        week5: { target: null, achieved: null },
+        week1: { target: null, achieved: null, description: '' },
+        week2: { target: null, achieved: null, description: '' },
+        week3: { target: null, achieved: null, description: '' },
+        week4: { target: null, achieved: null, description: '' },
+        week5: { target: null, achieved: null, description: '' },
       }
     },
   });
@@ -246,7 +247,6 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
         });
     }
 
-    // Auto-update total target and achieved from weeks if they are set
     if (totalWeeklyTarget > 0 && watchedTarget !== totalWeeklyTarget) {
         setValue('target', totalWeeklyTarget);
     }
@@ -305,11 +305,11 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
         target: kra?.target || null,
         achieved: kra?.achieved || null,
         weeklyProgress: kra?.weeklyProgress || {
-            week1: { target: null, achieved: null },
-            week2: { target: null, achieved: null },
-            week3: { target: null, achieved: null },
-            week4: { target: null, achieved: null },
-            week5: { target: null, achieved: null },
+            week1: { target: null, achieved: null, description: '' },
+            week2: { target: null, achieved: null, description: '' },
+            week3: { target: null, achieved: null, description: '' },
+            week4: { target: null, achieved: null, description: '' },
+            week5: { target: null, achieved: null, description: '' },
         }
       });
     }
@@ -354,7 +354,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
     
     let totalTarget = data.target || 0;
     if (totalWeeklyAchieved > 0) {
-        // Already handled by useEffect setting target
+        // Handled by effect
     } else if (hasActions) {
         totalTarget = updatedActions.reduce((sum, action) => sum + (action.target || 0), 0);
     }
@@ -387,7 +387,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-4xl max-h-[95vh] flex flex-col p-0">
+      <DialogContent className="sm:max-w-5xl max-h-[95vh] flex flex-col p-0">
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col h-full overflow-hidden">
           <DialogHeader className="p-6 pb-2">
             <DialogTitle>{kra ? 'Update KRA & Progress' : 'Add New KRA'}</DialogTitle>
@@ -462,6 +462,20 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                     <div className='flex items-center gap-1.5 mb-1'>
                                         <CalendarDays className='h-3.5 w-3.5 text-primary' />
                                         <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Week {weekNum}</span>
+                                    </div>
+                                    <div className='space-y-1.5'>
+                                        <Label className="text-[9px] font-bold text-slate-400">Weekly KRA</Label>
+                                        <Controller
+                                            name={`weeklyProgress.week${weekNum}.description` as any}
+                                            control={control}
+                                            render={({ field }) => (
+                                                <Textarea 
+                                                    {...field} 
+                                                    className="h-16 text-[10px] bg-white resize-none" 
+                                                    placeholder="Task description..."
+                                                />
+                                            )}
+                                        />
                                     </div>
                                     <div className='space-y-1.5'>
                                         <Label className="text-[9px] font-bold text-slate-400">Target</Label>
