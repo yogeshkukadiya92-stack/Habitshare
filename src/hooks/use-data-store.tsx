@@ -51,17 +51,17 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   const { user } = useUser();
   const db = useFirestore();
 
-  // Queries
-  const usersQuery = useMemoFirebase(() => collection(db, 'users'), [db]);
-  const krasQuery = useMemoFirebase(() => collection(db, 'kras'), [db]);
-  const branchesQuery = useMemoFirebase(() => collection(db, 'branches'), [db]);
-  const leavesQuery = useMemoFirebase(() => collection(db, 'leaves'), [db]);
-  const expensesQuery = useMemoFirebase(() => collection(db, 'expenses'), [db]);
-  const routineTasksQuery = useMemoFirebase(() => collection(db, 'routineTasks'), [db]);
-  const habitsQuery = useMemoFirebase(() => collection(db, 'habits'), [db]);
-  const holidaysQuery = useMemoFirebase(() => collection(db, 'holidays'), [db]);
-  const recruitsQuery = useMemoFirebase(() => collection(db, 'recruits'), [db]);
-  const attendancesQuery = useMemoFirebase(() => collection(db, 'attendances'), [db]);
+  // Queries - Only fetch when user is authenticated to avoid permission errors
+  const usersQuery = useMemoFirebase(() => user ? collection(db, 'users') : null, [db, user]);
+  const krasQuery = useMemoFirebase(() => user ? collection(db, 'kras') : null, [db, user]);
+  const branchesQuery = useMemoFirebase(() => user ? collection(db, 'branches') : null, [db, user]);
+  const leavesQuery = useMemoFirebase(() => user ? collection(db, 'leaves') : null, [db, user]);
+  const expensesQuery = useMemoFirebase(() => user ? collection(db, 'expenses') : null, [db, user]);
+  const routineTasksQuery = useMemoFirebase(() => user ? collection(db, 'routineTasks') : null, [db, user]);
+  const habitsQuery = useMemoFirebase(() => user ? collection(db, 'habits') : null, [db, user]);
+  const holidaysQuery = useMemoFirebase(() => user ? collection(db, 'holidays') : null, [db, user]);
+  const recruitsQuery = useMemoFirebase(() => user ? collection(db, 'recruits') : null, [db, user]);
+  const attendancesQuery = useMemoFirebase(() => user ? collection(db, 'attendances') : null, [db, user]);
 
   // Data fetching
   const { data: users, isLoading: usersLoading } = useCollection<Employee>(usersQuery);

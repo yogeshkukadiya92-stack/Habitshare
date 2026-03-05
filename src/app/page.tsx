@@ -22,7 +22,6 @@ import {
 import { Protected } from '@/components/protected';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Link from 'next/link';
-import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Eye, ShieldCheck, Users, TrendingUp, PlusCircle, Download, Upload, FileSpreadsheet, Trash2, Mail, Home, Calendar as CalendarIcon, Cake, Phone, Edit, ChevronDown, Fingerprint, Filter, Database, UserPlus, Sparkles } from 'lucide-react';
@@ -33,7 +32,7 @@ import { ViewSwitcher } from '@/components/view-switcher';
 import { EmployeeCard } from '@/components/employee-card';
 import { useAuth } from '@/components/auth-provider';
 import { AddEmployeeDialog } from '@/components/add-employee-dialog';
-import { getYear, getMonth, startOfMonth, endOfMonth, format } from 'date-fns';
+import { getYear, startOfMonth, endOfMonth, format } from 'date-fns';
 import { useDataStore } from '@/hooks/use-data-store';
 import { KraTable } from '@/components/kra-table';
 import { AddKraDialog } from '@/components/add-kra-dialog';
@@ -49,7 +48,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { EditEmployeeDialog } from '@/components/edit-employee-dialog';
 import { cn } from '@/lib/utils';
@@ -139,20 +137,24 @@ function DashboardContent() {
         const employeeMap = new Map<string, { employee: Employee; kras: KRA[] }>();
         const managerIds = new Set(branches.map(b => b.managerId));
 
+        // Ensure ALL employees are in the map, even if they have no KRAs
+        employees.forEach(emp => {
+            const isManager = managerIds.has(emp.id);
+            employeeMap.set(emp.id, { employee: { ...emp, isManager }, kras: [] });
+        });
+
+        // Add KRAs to the respective employees
         filteredKrasByDate.forEach(kra => {
-            const isManager = managerIds.has(kra.employee.id);
-            const employeeWithRole = {...kra.employee, isManager };
-            if (!employeeMap.has(kra.employee.id)) {
-                employeeMap.set(kra.employee.id, { employee: employeeWithRole, kras: [] });
+            if (employeeMap.has(kra.employee.id)) {
+                employeeMap.get(kra.employee.id)!.kras.push(kra);
             }
-            employeeMap.get(kra.employee.id)!.kras.push(kra);
         });
         
         const summaryData: EmployeeSummary[] = [];
         const perfData: EmployeePerformance[] = [];
 
         employeeMap.forEach(({ employee, kras }) => {
-             const displayKras = kras.filter(k => !k.id.startsWith('KRA-placeholder-'));
+            const displayKras = kras.filter(k => !k.id.startsWith('KRA-placeholder-'));
             const relevantKras = displayKras.filter(k => k.marksAchieved !== null && k.weightage !== null && k.weightage > 0);
             const totalWeightage = relevantKras.reduce((sum, kra) => sum + (kra.weightage || 0), 0);
             const totalMarksAchieved = relevantKras.reduce((sum, kra) => sum + (kra.marksAchieved || 0) + (kra.bonus || 0) - (kra.penalty || 0), 0);
@@ -175,8 +177,7 @@ function DashboardContent() {
         const sortedSummary = summaryData.sort((a, b) => a.employee.name.localeCompare(b.name));
         const sortedPerfData = perfData.sort((a, b) => b.performanceScore - a.performanceScore);
 
-        const allEmployees: Employee[] = Array.from(new Map(kras.map(kra => [kra.employee.id, kra.employee])).values());
-        const uniqueBranches = ['all', ...Array.from(new Set(allEmployees.map(e => e.branch).filter(Boolean)))];
+        const uniqueBranches = ['all', ...Array.from(new Set(employees.map(e => e.branch).filter(Boolean) as string[]))];
 
         const yearsSet = new Set<number>();
         kras.forEach(kra => {
@@ -201,17 +202,13 @@ function DashboardContent() {
             employeeKras
         };
 
-    }, [kras, branches, pagePermission, user, selectedYear, selectedMonth]);
+    }, [kras, branches, employees, pagePermission, user, selectedYear, selectedMonth]);
 
  
   const filteredEmployeeSummary = selectedBranch === 'all'
         ? employeeSummary
         : employeeSummary.filter(summary => summary.employee.branch === selectedBranch);
 
-  const filteredPerformanceData = selectedBranch === 'all'
-        ? performanceData
-        : performanceData.filter(data => data.employee.branch === data.employee.branch);
-    
     const handleViewChange = (newView: 'list' | 'grid') => {
         setView(newView);
         localStorage.setItem('employeeView', newView);
@@ -326,7 +323,7 @@ function DashboardContent() {
             <div className="flex-1 flex flex-col gap-8">
                  <div className='flex items-center justify-between'>
                     <div>
-                        <h1 className="text-3xl font-black text-primary">Welcome, {currentEmployeeData.name.split(' ')[0]}!</h1>
+                        <h1 className="text-3xl font-black text-primary">Welcome, {currentEmployeeData.name?.split(' ')[0]}!</h1>
                         <p className='text-muted-foreground font-medium'>Here's an overview of your current performance.</p>
                     </div>
                     <EditEmployeeDialog employee={currentEmployeeData} onSave={handleSaveEmployee}>
@@ -345,7 +342,7 @@ function DashboardContent() {
                             <div className='flex items-center gap-4'>
                                 <Avatar className='h-16 w-16 border-2 border-white shadow-lg'>
                                     <AvatarImage src={currentEmployeeData.avatarUrl} alt={currentEmployeeData.name} />
-                                    <AvatarFallback className='text-xl'>{currentEmployeeData.name.charAt(0)}</AvatarFallback>
+                                    <AvatarFallback className='text-xl'>{currentEmployeeData.name?.charAt(0)}</AvatarFallback>
                                 </Avatar>
                                 <div>
                                     <CardTitle className='text-xl'>{currentEmployeeData.name}</CardTitle>
@@ -676,7 +673,7 @@ function DashboardContent() {
                                                             <div className="flex items-center gap-4">
                                                                 <Avatar className="h-11 w-11 ring-2 ring-white shadow-md group-hover:ring-primary/20 transition-all">
                                                                 <AvatarImage src={employee.avatarUrl} alt={employee.name} data-ai-hint="people" />
-                                                                <AvatarFallback className='font-bold bg-slate-100'>{employee.name.charAt(0)}</AvatarFallback>
+                                                                <AvatarFallback className='font-bold bg-slate-100'>{employee.name?.charAt(0)}</AvatarFallback>
                                                                 </Avatar>
                                                                 <div>
                                                                     <div className="font-black text-slate-900 group-hover:text-primary transition-colors">{employee.name}</div>
@@ -734,7 +731,7 @@ function DashboardContent() {
                                         <div key={summary.employee.id} className="relative group perspective-1000">
                                           <div className="absolute top-4 left-4 z-10 opacity-0 group-hover:opacity-100 transition-all duration-300 scale-75 group-hover:scale-100">
                                             <Checkbox 
-                                              checked={selectedEmployeeIds.includes(summary.employee.id)}
+                                              checked={setSelectedEmployeeIds.includes(summary.employee.id)}
                                               onCheckedChange={(checked) => handleSelectOne(summary.employee.id, !!checked)}
                                               className="bg-white shadow-xl rounded-lg border-2 border-primary/20 data-[state=checked]:bg-primary h-6 w-6"
                                             />
