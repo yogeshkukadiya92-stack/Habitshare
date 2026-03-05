@@ -52,6 +52,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { EditEmployeeDialog } from '@/components/edit-employee-dialog';
 import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
 
 interface EmployeeSummary {
     employee: Employee;
