@@ -26,7 +26,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
       </head>
-      <body className="font-sans antialiased bg-mesh-gradient min-h-screen selection:bg-primary/20 selection:text-primary">
+      <body className="font-sans antialiased bg-background min-h-screen">
         <FirebaseClientProvider>
           <AuthProvider>
             <DataStoreProvider>
