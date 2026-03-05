@@ -1,252 +1,325 @@
 {
   "entities": {
-    "employee": {
-      "title": "Employee",
-      "description": "Represents an employee in the organization.",
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
       "type": "object",
+      "description": "Represents a user within the KRA Dashboard application. This entity is crucial for linking all KRA-related data to a specific individual, ensuring data consistency across devices based on their login email.",
       "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "avatarUrl": { "type": "string" },
-        "branch": { "type": "string" },
-        "isManager": { "type": "boolean" },
-        "email": { "type": "string", "format": "email" },
-        "role": { "type": "string", "enum": ["Admin", "Manager", "Employee"] },
-        "address": { "type": "string" },
-        "joiningDate": { "type": "string", "format": "date-time" },
-        "birthDate": { "type": "string", "format": "date-time" },
-        "familyMobileNumber": { "type": "string" },
-        "extraLeaves": { "type": "number" },
-        "permissions": { "$ref": "#/entities/employeePermissions" }
-      },
-      "required": ["id", "name", "email"]
-    },
-    "employeePermissions": {
-        "title": "Employee Permissions",
-        "description": "Defines page-level access for an employee.",
-        "type": "object",
-        "properties": {
-            "employees": { "type": "string" },
-            "kras": { "type": "string" },
-            "routine_tasks": { "type": "string" },
-            "leaves": { "type": "string" },
-            "attendance": { "type": "string" },
-            "expenses": { "type": "string" },
-            "habit_tracker": { "type": "string" },
-            "holidays": { "type": "string" },
-            "recruitment": { "type": "string" },
-            "hr_calendar": { "type": "string" },
-            "settings": { "type": "string" }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "The unique email address of the user, used for login and associating all their KRA data. This directly addresses the user's request for consistent data across devices based on email ID.",
+          "format": "email"
+        },
+        "firstName": {
+          "type": "string",
+          "description": "The first name of the user."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "The last name of the user."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the user account was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating the last time the user's information was updated.",
+          "format": "date-time"
         }
+      },
+      "required": [
+        "id",
+        "email",
+        "firstName",
+        "lastName",
+        "createdAt",
+        "updatedAt"
+      ]
     },
-    "kra": {
-      "title": "Key Result Area (KRA)",
-      "description": "A specific goal or objective for an employee.",
+    "KeyResultArea": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "KeyResultArea",
       "type": "object",
+      "description": "Defines a Key Result Area (KRA) within the organization. These are high-level objectives that individual tasks will contribute to.",
       "properties": {
-        "id": { "type": "string" },
-        "taskDescription": { "type": "string" },
-        "employee": { "$ref": "#/entities/employee" },
-        "progress": { "type": "number" },
-        "status": { "type": "string", "enum": ["On Track", "At Risk", "Completed", "Pending"] },
-        "weightage": { "type": "number" },
-        "marksAchieved": { "type": "number" },
-        "bonus": { "type": "number" },
-        "penalty": { "type": "number" },
-        "startDate": { "type": "string", "format": "date-time" },
-        "endDate": { "type": "string", "format": "date-time" },
-        "actions": { "type": "array", "items": { "$ref": "#/entities/actionItem" } },
-        "handover": { "type": "string" },
-        "target": { "type": "number" },
-        "achieved": { "type": "number" }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the KeyResultArea entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "A concise, descriptive name for the KRA."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed explanation of the KRA's objective and scope."
+        },
+        "targetValue": {
+          "type": "number",
+          "description": "A numerical target value for the KRA, if applicable (e.g., a sales target, percentage improvement)."
+        },
+        "targetUnit": {
+          "type": "string",
+          "description": "The unit of measurement for the target value (e.g., 'USD', '%', 'units')."
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Indicates whether this KRA definition is currently active and available for use."
+        },
+        "recommendedDescription": {
+          "type": "string",
+          "description": "An improved or refined version of the KRA description, potentially recommended by the GenAI tool for clarity."
+        },
+        "lastRefinedAt": {
+          "type": "string",
+          "description": "Timestamp of the last time the description was refined or recommended by the GenAI tool.",
+          "format": "date-time"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the KRA definition was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating the last time the KRA definition was updated.",
+          "format": "date-time"
+        }
       },
-      "required": ["id", "employee"]
+      "required": [
+        "id",
+        "name",
+        "description",
+        "isActive",
+        "createdAt",
+        "updatedAt"
+      ]
     },
-    "actionItem": {
-        "title": "Action Item (KPI)",
-        "description": "A sub-task or key performance indicator within a KRA.",
-        "type": "object",
-        "properties": {
-            "id": { "type": "string" },
-            "name": { "type": "string" },
-            "dueDate": { "type": "string", "format": "date-time" },
-            "isCompleted": { "type": "boolean" },
-            "weightage": { "type": "number" },
-            "updates": { "type": "array", "items": { "$ref": "#/entities/weeklyUpdate" } },
-            "target": { "type": "number" },
-            "achieved": { "type": "number" }
-        }
-    },
-    "weeklyUpdate": {
-        "title": "Weekly Update",
-        "description": "A weekly progress update on an action item.",
-        "type": "object",
-        "properties": {
-            "id": { "type": "string" },
-            "date": { "type": "string", "format": "date-time" },
-            "status": { "type": "string" },
-            "comment": { "type": "string" },
-            "value": { "type": "number" }
-        }
-    },
-    "branch": {
-      "title": "Branch",
-      "description": "Represents a department or branch in the organization.",
+    "Task": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Task",
       "type": "object",
+      "description": "Represents an individual task assigned to a user, linked to a specific KRA. This entity tracks progress, status, and assigned scores for each task.",
       "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "managerId": { "type": "string" }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Task entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who is assigned this task. (Relationship: User 1:N Task)"
+        },
+        "kraId": {
+          "type": "string",
+          "description": "Reference to the Key Result Area that this task contributes to. (Relationship: KeyResultArea 1:N Task)"
+        },
+        "title": {
+          "type": "string",
+          "description": "A brief, descriptive title for the task."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the task, including expected outcomes or steps."
+        },
+        "startDate": {
+          "type": "string",
+          "description": "The date when the task is expected to start.",
+          "format": "date"
+        },
+        "dueDate": {
+          "type": "string",
+          "description": "The date by which the task is expected to be completed.",
+          "format": "date"
+        },
+        "completionDate": {
+          "type": "string",
+          "description": "The actual date when the task was completed.",
+          "format": "date"
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the task (e.g., 'Not Started', 'In Progress', 'Completed', 'On Hold')."
+        },
+        "progressPercentage": {
+          "type": "number",
+          "description": "The current percentage of completion for the task (0-100)."
+        },
+        "score": {
+          "type": "number",
+          "description": "The score assigned to the task, typically upon completion, reflecting its quality or impact."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Any additional notes or comments related to the task."
+        },
+        "recommendedDescription": {
+          "type": "string",
+          "description": "An improved or refined version of the task description, potentially recommended by the GenAI tool for clarity."
+        },
+        "lastRefinedAt": {
+          "type": "string",
+          "description": "Timestamp of the last time the task description was refined or recommended by the GenAI tool.",
+          "format": "date-time"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the task was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating the last time the task's information was updated.",
+          "format": "date-time"
+        }
       },
-      "required": ["id", "name"]
+      "required": [
+        "id",
+        "userId",
+        "kraId",
+        "title",
+        "description",
+        "startDate",
+        "dueDate",
+        "status",
+        "progressPercentage",
+        "createdAt",
+        "updatedAt"
+      ]
     },
-    "leave": {
-        "title": "Leave",
-        "description": "A leave request from an employee.",
-        "type": "object",
-        "properties": {
-            "id": { "type": "string" },
-            "employee": { "$ref": "#/entities/employee" },
-            "startDate": { "type": "string", "format": "date-time" },
-            "endDate": { "type": "string", "format": "date-time" },
-            "reason": { "type": "string" },
-            "status": { "type": "string", "enum": ["Pending", "Approved", "Rejected"] },
-            "duration": { "type": "number" }
+    "KRAPeriodEvaluation": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "KRAPeriodEvaluation",
+      "type": "object",
+      "description": "Records the formal evaluation of a user's performance against their KRAs for a specific period. This is used for reporting and increment management.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the KRAPeriodEvaluation entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User whose performance is being evaluated. (Relationship: User 1:N KRAPeriodEvaluation)"
+        },
+        "evaluationPeriodStart": {
+          "type": "string",
+          "description": "The start date of the evaluation period.",
+          "format": "date"
+        },
+        "evaluationPeriodEnd": {
+          "type": "string",
+          "description": "The end date of the evaluation period.",
+          "format": "date"
+        },
+        "overallScore": {
+          "type": "number",
+          "description": "The aggregated overall performance score for the user during this period based on KRA tasks."
+        },
+        "performanceSummary": {
+          "type": "string",
+          "description": "A narrative summary of the user's performance and achievements during the evaluation period."
+        },
+        "reviewerId": {
+          "type": "string",
+          "description": "Reference to the User who conducted this evaluation, if applicable. (Relationship: User 1:N KRAPeriodEvaluation)"
+        },
+        "evaluationDate": {
+          "type": "string",
+          "description": "The date and time when this evaluation was completed and recorded.",
+          "format": "date-time"
+        },
+        "incrementRecommendation": {
+          "type": "string",
+          "description": "Recommendation regarding salary increments, promotions, or other HR actions based on the evaluation."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the evaluation record was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating the last time the evaluation record was updated.",
+          "format": "date-time"
         }
-    },
-    "attendance": {
-        "title": "Attendance",
-        "description": "Daily attendance record for an employee.",
-        "type": "object",
-        "properties": {
-            "id": { "type": "string" },
-            "employee": { "$ref": "#/entities/employee" },
-            "date": { "type": "string", "format": "date-time" },
-            "status": { "type": "string", "enum": ["Present", "Absent", "Half-day"] }
-        }
-    },
-    "expense": {
-        "title": "Expense",
-        "description": "An expense claim submitted by an employee.",
-        "type": "object",
-        "properties": {
-            "id": { "type": "string" },
-            "employee": { "$ref": "#/entities/employee" },
-            "date": { "type": "string", "format": "date-time" },
-            "expenseType": { "type": "string" },
-            "description": { "type": "string" },
-            "distanceInKm": { "type": "number" },
-            "ratePerKm": { "type": "number" },
-            "amount": { "type": "number" },
-            "totalAmount": { "type": "number" },
-            "status": { "type": "string" }
-        }
-    },
-    "habit": {
-        "title": "Habit",
-        "description": "A habit being tracked by an employee.",
-        "type": "object",
-        "properties": {
-            "id": { "type": "string" },
-            "name": { "type": "string" },
-            "description": { "type": "string" },
-            "employee": { "$ref": "#/entities/employee" },
-            "checkIns": { "type": "array", "items": { "type": "string", "format": "date-time" } },
-            "goalDays": { "type": "number" },
-            "startDate": { "type": "string", "format": "date-time" },
-            "deadline": { "type": "string" }
-        }
-    },
-    "holiday": {
-        "title": "Holiday",
-        "description": "A company-wide holiday.",
-        "type": "object",
-        "properties": {
-            "id": { "type": "string" },
-            "name": { "type": "string" },
-            "date": { "type": "string", "format": "date-time" },
-            "type": { "type": "string" }
-        }
-    },
-    "recruit": {
-        "title": "Recruit",
-        "description": "A candidate in the recruitment pipeline.",
-        "type": "object",
-        "properties": {
-            "id": { "type": "string" },
-            "name": { "type": "string" },
-            "email": { "type": "string" },
-            "phone": { "type": "string" },
-            "position": { "type": "string" },
-            "branch": { "type": "string" },
-            "appliedDate": { "type": "string", "format": "date-time" },
-            "status": { "type": "string" },
-            "notes": { "type": "string" },
-            "avatarUrl": { "type": "string" },
-            "comment": { "type": "string" },
-            "expectedSalary": { "type": "number" },
-            "workExperience": { "type": "string" },
-            "qualification": { "type": "string" },
-            "location": { "type": "string" },
-            "resumeUrl": { "type": "string" }
-        }
-    },
-    "routineTask": {
-        "title": "Routine Task",
-        "description": "A routine task assigned to an employee.",
-        "type": "object",
-        "properties": {
-            "id": { "type": "string" },
-            "title": { "type": "string" },
-            "description": { "type": "string" },
-            "employee": { "$ref": "#/entities/employee" },
-            "assignedDate": { "type": "string", "format": "date-time" },
-            "dueDate": { "type": "string", "format": "date-time" },
-            "status": { "type": "string" },
-            "priority": { "type": "string" },
-            "remarks": { "type": "string" }
-        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "evaluationPeriodStart",
+        "evaluationPeriodEnd",
+        "overallScore",
+        "evaluationDate",
+        "createdAt",
+        "updatedAt"
+      ]
     }
   },
   "auth": {
-    "providers": ["password"]
+    "providers": [
+      "password",
+      "anonymous"
+    ]
   },
   "firestore": {
-    "/kras/{kraId}": {
-      "schema": { "$ref": "#/entities/kra" },
-      "description": "Stores individual Key Result Areas (KRAs)."
-    },
-    "/branches/{branchId}": {
-      "schema": { "$ref": "#/entities/branch" },
-      "description": "Stores company branches or departments."
-    },
-    "/leaves/{leaveId}": {
-      "schema": { "$ref": "#/entities/leave" },
-      "description": "Stores employee leave requests."
-    },
-    "/expenses/{expenseId}": {
-      "schema": { "$ref": "#/entities/expense" },
-      "description": "Stores employee expense claims."
-    },
-    "/routineTasks/{taskId}": {
-      "schema": { "$ref": "#/entities/routineTask" },
-      "description": "Stores routine tasks assigned to employees."
-    },
-    "/habits/{habitId}": {
-      "schema": { "$ref": "#/entities/habit" },
-      "description": "Stores employee habit tracking data."
-    },
-    "/holidays/{holidayId}": {
-      "schema": { "$ref": "#/entities/holiday" },
-      "description": "Stores company-wide holidays."
-    },
-    "/recruits/{recruitId}": {
-      "schema": { "$ref": "#/entities/recruit" },
-      "description": "Stores recruitment candidate data."
-    },
-    "/attendances/{attendanceId}": {
-        "schema": { "$ref": "#/entities/attendance" },
-        "description": "Stores daily attendance records."
-    }
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores individual user profiles. The document ID (`userId`) will be the Firebase Authentication UID (`request.auth.uid`), ensuring that all user-specific data across different devices is consistently linked to the authenticated user."
+        }
+      },
+      {
+        "path": "/users/{userId}/tasks/{taskId}",
+        "definition": {
+          "entityName": "Task",
+          "schema": {
+            "$ref": "#/backend/entities/Task"
+          },
+          "description": "Stores individual tasks assigned to a specific user. The `userId` in the path ensures ownership and data segregation. Includes denormalized `userId` and `kraId` for linking to the user and the global KRA definition, enabling authorization independence and simple security rules."
+        }
+      },
+      {
+        "path": "/users/{userId}/kraEvaluations/{evaluationId}",
+        "definition": {
+          "entityName": "KRAPeriodEvaluation",
+          "schema": {
+            "$ref": "#/backend/entities/KRAPeriodEvaluation"
+          },
+          "description": "Stores formal evaluations for a user over a specific period. The `userId` in the path ensures ownership. Includes denormalized `userId` for authorization independence and `reviewerId` for identifying the evaluator, facilitating clear access control for the evaluated user and potential admin/reviewer roles."
+        }
+      },
+      {
+        "path": "/keyResultAreas/{kraId}",
+        "definition": {
+          "entityName": "KeyResultArea",
+          "schema": {
+            "$ref": "#/backend/entities/KeyResultArea"
+          },
+          "description": "Stores global definitions of Key Result Areas (KRAs) that can be referenced by tasks. These are organizational definitions, readable by all authenticated users, and writable primarily by administrative users, providing structural segregation for global data."
+        }
+      },
+      {
+        "path": "/roles_admin/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "A collection where the existence of a document with a user's UID indicates they have administrative privileges. This uses the 'existence over content' model for Database Access Control (DBAC), making admin role checks simple and efficient in security rules."
+        }
+      }
+    ],
+    "reasoning": "The recommended Firestore structure is designed to fully address the user's primary concern regarding data consistency across devices, while also ensuring robust security, scalability, and debuggability in line with the core design principles. The foundational approach leverages Firebase Authentication's `request.auth.uid` as the primary key for user-specific data, guaranteeing that a user logging in from any device with the same email ID (and thus, the same `uid`) will access their identical dataset.\n\n**Authorization Independence (CRITICAL):** This design achieves Authorization Independence by explicitly embedding the `userId` into the path of all user-owned data. For example, `tasks` are stored under `/users/{userId}/tasks/{taskId}`. This structure allows Firestore security rules to directly compare `request.auth.uid` with the `{userId}` wildcard in the path, eliminating the need for expensive and complex `get()` operations to check ownership against a parent user document. This also enables atomic creation of related documents without compromising security rules. The `KeyResultArea` definitions are segregated into a top-level collection (`/keyResultAreas/{kraId}`) to separate global, organizational data from user-specific private data, avoiding hierarchical authorization dependencies.\n\n**QAPs (Rules are not Filters):** The structure inherently supports Query Against Paths (QAPs) for secure `list` operations. User-specific collections like `/users/{userId}/tasks` are naturally queryable by the owner. When a user requests their tasks, the client-side query will target `db.collection('users').doc(request.auth.uid).collection('tasks')`. The security rules will then enforce that `request.auth.uid == userId` (where `userId` is the path wildcard), effectively ensuring that a user can only list *their own* tasks. This prevents accidental data exposure and complex, inefficient client-side filtering. For global `KeyResultArea` definitions, all authenticated users can `list` from `/keyResultAreas`, as these are intended to be globally accessible for reference. Administrative roles are handled via a dedicated `roles_admin` collection, enabling explicit admin checks for broader `list` access to reporting data without violating QAPs for regular users. This 'existence over content' model for roles is efficient and secure."
   }
 }

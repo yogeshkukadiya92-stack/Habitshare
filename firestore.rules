@@ -1,40 +1,125 @@
-{
-  "rules": {
-    "kras": {
-      ".read": "auth != null",
-      ".write": "auth != null"
-    },
-    "branches": {
-      ".read": "auth != null",
-      ".write": "auth != null"
-    },
-    "leaves": {
-      ".read": "auth != null",
-      ".write": "auth != null"
-    },
-    "expenses": {
-      ".read": "auth != null",
-      ".write": "auth != null"
-    },
-    "routineTasks": {
-      ".read": "auth != null",
-      ".write": "auth != null"
-    },
-    "habits": {
-      ".read": "auth != null",
-      ".write": "auth != null"
-    },
-    "holidays": {
-      ".read": "auth != null",
-      ".write": "auth != null"
-    },
-    "recruits": {
-      ".read": "auth != null",
-      ".write": "auth != null"
-    },
-    "attendances": {
-      ".read": "auth != null",
-      ".write": "auth != null"
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * KRA DASHBOARD SECURITY RULES
+     *
+     * CORE PHILOSOPHY:
+     * This ruleset implements a strict User-Ownership model. All user-specific data is nested under 
+     * a top-level /users/{userId} path, where {userId} corresponds directly to the Firebase 
+     * Authentication UID. This ensures that when a user logs in with the same credentials (email) 
+     * on any device, they are routed to the exact same data tree, solving the "different data 
+     * on different devices" issue.
+     *
+     * DATA STRUCTURE:
+     * - /users/{userId}: Private user profiles and the root of the user's data tree.
+     * - /users/{userId}/tasks/{taskId}: User-owned tasks linked to specific KRAs.
+     * - /users/{userId}/kraEvaluations/{id}: Performance evaluations for the specific user.
+     * - /keyResultAreas/{id}: Global, organization-wide definitions (Read-only for users).
+     * - /roles_admin/{userId}: Administrative role flags (Existence-based).
+     *
+     * KEY SECURITY DECISIONS:
+     * 1. Authorization Independence: We use the document path {userId} as the primary source of truth 
+     *    for ownership, enabling fast and efficient rules without cross-document lookups.
+     * 2. Relational Integrity: On creation, we force internal data fields (like userId) to match 
+     *    the authenticated user's ID to ensure consistency between the path and the data.
+     * 3. Role-Based Access: A dedicated 'roles_admin' collection is used to grant elevated 
+     *    permissions (like managing global KRAs) based on the presence of a user's UID.
+     * 4. Prototyping Flexibility: While access is strictly controlled, we do not enforce 
+     *    data schemas or types for content fields, allowing for rapid front-end iteration.
+     */
+
+    // --- GLOBAL HELPER FUNCTIONS ---
+
+    /** Checks if the user is authenticated. */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /** Checks if the authenticated user's UID matches the provided userId. */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /** Checks if the document exists and the user is the owner. Used for updates and deletes. */
+    function isExistingOwner(userId) {
+      return resource != null && isOwner(userId);
+    }
+
+    /** 
+     * Checks if the user has administrative privileges. 
+     * Uses the 'existence over content' model for efficient role checking.
+     */
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+
+    // --- COLLECTION RULES ---
+
+    /**
+     * @description Rules for the root user profile document.
+     * @path /users/{userId}
+     * @allow (create) if request.auth.uid == userId
+     * @deny (list) if request.auth.uid != userId (Preventing user discovery)
+     * @principle Ownership and Self-Creation.
+     */
+    match /users/{userId} {
+      allow get, list: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isAdmin(); // Users generally shouldn't delete their own account records.
+
+      /**
+       * @description User-specific tasks. Tasks are strictly private to the owner.
+       * @path /users/{userId}/tasks/{taskId}
+       * @allow (create) if path userId is auth.uid AND task.userId in data matches.
+       * @deny (list) if authenticated UID does not match the userId in the path.
+       * @principle Path-based ownership with relational integrity validation.
+       */
+      match /tasks/{taskId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && request.resource.data.userId == userId;
+        allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+        allow delete: if isExistingOwner(userId);
+      }
+
+      /**
+       * @description User-specific KRA evaluations. Viewable by the user, manageable by admins.
+       * @path /users/{userId}/kraEvaluations/{evaluationId}
+       * @allow (get) if user is the owner or an admin.
+       * @deny (create) if user is not an admin (Users don't evaluate themselves).
+       * @principle Shared access between owner (read) and administrators (write).
+       */
+      match /kraEvaluations/{evaluationId} {
+        allow get, list: if isOwner(userId) || isAdmin();
+        allow create, update, delete: if isAdmin();
+      }
+    }
+
+    /**
+     * @description Global Key Result Area definitions.
+     * @path /keyResultAreas/{kraId}
+     * @allow (list) if user is signed in.
+     * @deny (update) if user is not an admin.
+     * @principle Global read access with administrative write control.
+     */
+    match /keyResultAreas/{kraId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    /**
+     * @description Administrative roles marker collection.
+     * @path /roles_admin/{userId}
+     * @allow (get) if user is checking their own admin status.
+     * @deny (list) if user is not an admin.
+     * @principle Restricted access to internal role mapping.
+     */
+    match /roles_admin/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create, update, delete: if false; // Role management should happen via Admin SDK or Console.
     }
   }
 }
