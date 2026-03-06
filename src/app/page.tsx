@@ -24,7 +24,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Eye, ShieldCheck, Users, TrendingUp, PlusCircle, Download, Upload, FileSpreadsheet, Trash2, Mail, Home, Calendar as CalendarIcon, Cake, Phone, Edit, ChevronDown, Fingerprint, Filter, Database, UserPlus, Sparkles } from 'lucide-react';
+import { Eye, ShieldCheck, Users, TrendingUp, PlusCircle, Download, Upload, FileSpreadsheet, Trash2, Mail, Home, Calendar as CalendarIcon, Cake, Phone, Edit, ChevronDown, Fingerprint, Filter, Database, UserPlus, Sparkles, CalendarDays } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
@@ -32,7 +32,7 @@ import { ViewSwitcher } from '@/components/view-switcher';
 import { EmployeeCard } from '@/components/employee-card';
 import { useAuth } from '@/components/auth-provider';
 import { AddEmployeeDialog } from '@/components/add-employee-dialog';
-import { getYear, startOfMonth, endOfMonth, format } from 'date-fns';
+import { getYear, getMonth, startOfMonth, endOfMonth, format } from 'date-fns';
 import { useDataStore } from '@/hooks/use-data-store';
 import { KraTable } from '@/components/kra-table';
 import { AddKraDialog } from '@/components/add-kra-dialog';
@@ -78,8 +78,8 @@ function DashboardContent() {
     handleDeleteMultipleEmployees
   } = useDataStore();
   const [selectedBranch, setSelectedBranch] = React.useState('all');
-  const [selectedYear, setSelectedYear] = React.useState<string>('all');
-  const [selectedMonth, setSelectedMonth] = React.useState<string>('all');
+  const [selectedYear, setSelectedYear] = React.useState<string>(String(getYear(new Date())));
+  const [selectedMonth, setSelectedMonth] = React.useState<string>(String(getMonth(new Date())));
   const [view, setView] = React.useState<'list' | 'grid'>('list');
   const [selectedEmployeeIds, setSelectedEmployeeIds] = React.useState<string[]>([]);
   const [showProfileDetails, setShowProfileDetails] = React.useState(false);
@@ -100,13 +100,11 @@ function DashboardContent() {
     if (savedView === 'grid' || savedView === 'list') setView(savedView);
   }, []);
 
-  const { employeeSummary, branchOptions, performanceData, availableYears, availableMonths, employeeKras } = React.useMemo(() => {
+  const { employeeSummary, branchOptions, performanceData, availableYears, availableMonths, filteredKrasForEmployee } = React.useMemo(() => {
         let krasToProcess = kras;
-        let empKras: KRA[] = [];
 
         if (pagePermission === 'employee_only' && user) {
             krasToProcess = kras.filter(k => k.employee.email === user.email);
-            empKras = krasToProcess;
         }
 
         const filteredKrasByDate = krasToProcess.filter(kra => {
@@ -160,7 +158,7 @@ function DashboardContent() {
             performanceData: perfData.sort((a,b) => b.performanceScore - a.performanceScore),
             availableYears: Array.from(yearsSet).sort((a, b) => b - a),
             availableMonths: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-            employeeKras: empKras
+            filteredKrasForEmployee: filteredKrasByDate
         };
     }, [kras, branches, employees, pagePermission, user, selectedYear, selectedMonth]);
 
@@ -185,11 +183,33 @@ function DashboardContent() {
                         <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Welcome, {currentEmployeeData.name?.split(' ')[0]}!</h1>
                         <p className='text-slate-500 font-medium'>Performance overview and active KRAs.</p>
                     </div>
-                    <EditEmployeeDialog employee={currentEmployeeData} onSave={handleSaveEmployee}>
-                        <Button variant="outline" size="sm" className='gap-2 rounded-lg border-slate-200'>
-                            <Edit className='h-4 w-4'/> Edit Profile
-                        </Button>
-                    </EditEmployeeDialog>
+                    <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 bg-white p-1 rounded-lg border shadow-sm">
+                            <Select value={selectedYear} onValueChange={setSelectedYear}>
+                                <SelectTrigger className="w-[110px] h-8 text-xs border-none shadow-none focus:ring-0">
+                                    <CalendarDays className="h-3 w-3 mr-1 text-slate-400" />
+                                    <SelectValue placeholder="Year" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {availableYears.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                            <Separator orientation="vertical" className="h-4" />
+                            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                                <SelectTrigger className="w-[120px] h-8 text-xs border-none shadow-none focus:ring-0">
+                                    <SelectValue placeholder="Month" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {availableMonths.map((m, i) => <SelectItem key={i} value={String(i)}>{m}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <EditEmployeeDialog employee={currentEmployeeData} onSave={handleSaveEmployee}>
+                            <Button variant="outline" size="sm" className='gap-2 rounded-lg border-slate-200'>
+                                <Edit className='h-4 w-4'/> Edit Profile
+                            </Button>
+                        </EditEmployeeDialog>
+                    </div>
                  </div>
 
                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -230,10 +250,10 @@ function DashboardContent() {
                     <Card className='lg:col-span-2 professional-card'>
                         <CardHeader>
                             <CardTitle className='text-xl'>My Performance Goals (KRAs)</CardTitle>
-                            <CardDescription>Active weekly goals and performance metrics.</CardDescription>
+                            <CardDescription>Active weekly goals for {availableMonths[parseInt(selectedMonth)]} {selectedYear}.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {loading ? <Skeleton className="h-40 w-full" /> : <KraTable kras={employeeKras} employees={employees} onSave={handleSaveKra} onDelete={() => {}} />}
+                            {loading ? <Skeleton className="h-40 w-full" /> : <KraTable kras={filteredKrasForEmployee} employees={employees} onSave={handleSaveKra} onDelete={() => {}} />}
                         </CardContent>
                     </Card>
                  </div>
