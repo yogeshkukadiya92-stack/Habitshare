@@ -275,6 +275,14 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
     kras.reduce((sum, kra) => sum + (kra.weightage || 0), 0)
   , [kras]);
 
+  const totalBonus = React.useMemo(() => 
+    kras.reduce((sum, kra) => sum + (kra.bonus || 0), 0)
+  , [kras]);
+
+  const totalPenalty = React.useMemo(() => 
+    kras.reduce((sum, kra) => sum + (kra.penalty || 0), 0)
+  , [kras]);
+
   const totalPerformance = React.useMemo(() => 
     kras.reduce((sum, kra) => sum + ((kra.marksAchieved || 0) + (kra.bonus || 0) - (kra.penalty || 0)), 0)
   , [kras]);
@@ -565,8 +573,16 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
                     <span className="text-muted-foreground border-t border-muted-foreground/20 w-8 text-center">{weeklyTotals.week5.target}</span>
                 </div>
               </TableCell>
-              <TableCell className="text-center text-xl font-black text-primary">
-                {totalPerformance.toFixed(2)}
+              <TableCell className="text-center">
+                <div className="flex flex-col items-center">
+                    <span className="text-xl font-black text-primary leading-tight">
+                        {totalPerformance.toFixed(2)}
+                    </span>
+                    <div className="flex gap-2 text-[9px] font-bold uppercase mt-1">
+                        <span className="text-green-600">B: +{totalBonus}</span>
+                        <span className="text-rose-600">P: -{totalPenalty}</span>
+                    </div>
+                </div>
               </TableCell>
               <TableCell />
             </TableRow>
