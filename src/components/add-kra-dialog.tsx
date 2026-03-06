@@ -672,7 +672,6 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                             {...field} 
                                             value={field.value ?? ''} 
                                             onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
-                                            disabled={!isAdmin}
                                             className="border-green-100 bg-green-50/20 font-bold text-green-700"
                                         />
                                     )}
@@ -689,7 +688,6 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                             {...field} 
                                             value={field.value ?? ''} 
                                             onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
-                                            disabled={!isAdmin}
                                             className="border-rose-100 bg-rose-50/20 font-bold text-rose-700"
                                         />
                                     )}
