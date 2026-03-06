@@ -387,6 +387,12 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
         if (kra.target !== totalTarget) {
             newActivities.push({ id: uuidv4(), timestamp, actorName, action: 'Updated Goal Target', details: `Changed from ${kra.target} to ${totalTarget}` });
         }
+        if (kra.bonus !== data.bonus) {
+            newActivities.push({ id: uuidv4(), timestamp, actorName, action: 'Updated Bonus Marks', details: `Changed from ${kra.bonus || 0} to ${data.bonus || 0}` });
+        }
+        if (kra.penalty !== data.penalty) {
+            newActivities.push({ id: uuidv4(), timestamp, actorName, action: 'Updated Penalty Marks', details: `Changed from ${kra.penalty || 0} to ${data.penalty || 0}` });
+        }
     } else {
         newActivities.push({ id: uuidv4(), timestamp, actorName, action: 'KRA Created', details: `New KRA assigned to ${selectedEmployee.name}` });
     }
@@ -612,7 +618,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                         <Controller
                                             name={`actions.${index}.target`}
                                             control={control}
-                                            render={({ field: f }) => <Input type="number" {...f} value={f.value ?? ''} onChange={e => f.onChange(e.target.value === '' ? undefined : Number(e.target.value))} disabled={!isAdmin} />}
+                                            render={({ field: f }) => <Input type="number" {...f} value={field.value ?? ''} onChange={e => f.onChange(e.target.value === '' ? undefined : Number(e.target.value))} disabled={!isAdmin} />}
                                         />
                                     </div>
                                     <div className='w-20'>
@@ -643,14 +649,59 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                 
                 <Separator />
 
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label className="text-right font-bold">Marks Achieved</Label>
-                    <div className="col-span-3">
-                        <Controller
-                            name="marksAchieved"
-                            control={control}
-                            render={({ field }) => <Input type="number" {...field} value={field.value ?? ''} readOnly className='bg-primary/5 font-bold text-lg text-center' />}
-                        />
+                <div className="grid grid-cols-4 items-start gap-4">
+                    <Label className="text-right pt-2 font-semibold">Marks & Adjustments</Label>
+                    <div className="col-span-3 space-y-4">
+                        <div className="grid grid-cols-3 gap-4">
+                            <div className="space-y-1">
+                                <Label className="text-[10px] font-bold uppercase text-slate-500">Base Marks</Label>
+                                <Controller
+                                    name="marksAchieved"
+                                    control={control}
+                                    render={({ field }) => <Input type="number" {...field} value={field.value ?? ''} readOnly className='bg-slate-100 font-bold' />}
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <Label className="text-[10px] font-bold uppercase text-green-600">Bonus Marks</Label>
+                                <Controller
+                                    name="bonus"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Input 
+                                            type="number" 
+                                            {...field} 
+                                            value={field.value ?? ''} 
+                                            onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
+                                            disabled={!isAdmin}
+                                            className="border-green-100 bg-green-50/20 font-bold text-green-700"
+                                        />
+                                    )}
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <Label className="text-[10px] font-bold uppercase text-rose-600">Penalty Marks</Label>
+                                <Controller
+                                    name="penalty"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Input 
+                                            type="number" 
+                                            {...field} 
+                                            value={field.value ?? ''} 
+                                            onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
+                                            disabled={!isAdmin}
+                                            className="border-rose-100 bg-rose-50/20 font-bold text-rose-700"
+                                        />
+                                    )}
+                                />
+                            </div>
+                        </div>
+                        <div className="p-3 border rounded-lg bg-primary/5 flex items-center justify-between">
+                            <span className="text-sm font-bold text-primary">Final Performance Score:</span>
+                            <span className="text-2xl font-black text-primary">
+                                {((watch('marksAchieved') || 0) + (watch('bonus') || 0) - (watch('penalty') || 0)).toFixed(2)}
+                            </span>
+                        </div>
                     </div>
                 </div>
 
