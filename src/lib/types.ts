@@ -59,6 +59,14 @@ export interface ActionItem {
   achieved?: number;
 }
 
+export interface ActivityLog {
+    id: string;
+    timestamp: Date;
+    actorName: string;
+    action: string;
+    details?: string;
+}
+
 export interface KRA {
   id:string;
   taskDescription?: string;
@@ -83,6 +91,7 @@ export interface KRA {
     week4: WeeklyProgress;
     week5: WeeklyProgress;
   };
+  activities?: ActivityLog[];
 }
 
 export interface Branch {

@@ -16,15 +16,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Sparkles, Loader2, PlusCircle, Trash2, Check, ChevronsUpDown, MessageSquare, History, CalendarDays } from 'lucide-react';
+import { Sparkles, Loader2, PlusCircle, Trash2, Check, ChevronsUpDown, MessageSquare, History, CalendarDays, Activity } from 'lucide-react';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { refineKraTaskDescription } from '@/ai/flows/kra-refinement';
 import { useToast } from '@/hooks/use-toast';
-import type { KRA, ActionItem, Employee, WeeklyUpdate } from '@/lib/types';
+import type { KRA, ActionItem, Employee, WeeklyUpdate, ActivityLog } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
@@ -32,6 +32,7 @@ import { useAuth } from './auth-provider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Separator } from './ui/separator';
 import { Badge } from './ui/badge';
+import { ScrollArea } from './ui/scroll-area';
 
 const weeklyUpdateSchema = z.object({
     id: z.string(),
@@ -77,6 +78,7 @@ const kraSchema = z.object({
     week4: weeklyProgressItemSchema,
     week5: weeklyProgressItemSchema,
   }).optional(),
+  adminComment: z.string().optional(),
 });
 
 type KraFormValues = z.infer<typeof kraSchema>;
@@ -221,7 +223,8 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
         week3: { target: null, achieved: null, description: '' },
         week4: { target: null, achieved: null, description: '' },
         week5: { target: null, achieved: null, description: '' },
-      }
+      },
+      adminComment: '',
     },
   });
 
@@ -310,7 +313,8 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
             week3: { target: null, achieved: null, description: '' },
             week4: { target: null, achieved: null, description: '' },
             week5: { target: null, achieved: null, description: '' },
-        }
+        },
+        adminComment: '',
       });
     }
   }, [open, kra, reset]);
@@ -361,6 +365,32 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
 
     const progress = totalTarget > 0 ? Math.round((finalAchieved / totalTarget) * 100) : 0;
 
+    // Detect Changes for Activity Log
+    const newActivities: ActivityLog[] = [...(kra?.activities || [])];
+    const timestamp = new Date();
+    const actorName = loggedInUser?.name || 'System';
+
+    if (isAdmin && data.adminComment) {
+        newActivities.push({
+            id: uuidv4(),
+            timestamp,
+            actorName,
+            action: 'Admin Comment',
+            details: data.adminComment
+        });
+    }
+
+    if (kra) {
+        if (kra.weightage !== data.weightage) {
+            newActivities.push({ id: uuidv4(), timestamp, actorName, action: 'Updated Weightage', details: `Changed from ${kra.weightage} to ${data.weightage}` });
+        }
+        if (kra.target !== totalTarget) {
+            newActivities.push({ id: uuidv4(), timestamp, actorName, action: 'Updated Goal Target', details: `Changed from ${kra.target} to ${totalTarget}` });
+        }
+    } else {
+        newActivities.push({ id: uuidv4(), timestamp, actorName, action: 'KRA Created', details: `New KRA assigned to ${selectedEmployee.name}` });
+    }
+
     const newKra: KRA = {
       id: kra?.id || uuidv4(),
       taskDescription: data.taskDescription,
@@ -379,6 +409,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
       target: totalTarget,
       achieved: finalAchieved,
       weeklyProgress: data.weeklyProgress,
+      activities: newActivities,
     };
     onSave?.(newKra);
     setOpen(false);
@@ -642,6 +673,53 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                             control={control}
                             render={({ field }) => <Textarea {...field} rows={2} placeholder="Status handover or general remarks..." className="italic text-sm" />}
                         />
+                    </div>
+                </div>
+
+                <Separator />
+
+                {isAdmin && (
+                    <div className="grid grid-cols-4 items-start gap-4">
+                        <Label className="text-right pt-2 font-bold text-rose-600">Admin Action/Comment</Label>
+                        <div className="col-span-3">
+                            <Controller
+                                name="adminComment"
+                                control={control}
+                                render={({ field }) => <Textarea {...field} rows={2} placeholder="Add a comment or log an action for the employee..." className="border-rose-100 bg-rose-50/20" />}
+                            />
+                            <p className="text-[10px] text-muted-foreground mt-1 italic">This comment will be added to the KRA Activity Log below.</p>
+                        </div>
+                    </div>
+                )}
+
+                <div className="grid grid-cols-4 items-start gap-4 pt-4">
+                    <Label className="text-right pt-2 font-bold flex items-center gap-2 justify-end">
+                        <Activity className="h-4 w-4" /> Activity Log
+                    </Label>
+                    <div className="col-span-3">
+                        <div className="border rounded-lg bg-slate-50 p-4">
+                            <ScrollArea className="h-48">
+                                {kra?.activities && kra.activities.length > 0 ? (
+                                    <div className="space-y-4">
+                                        {[...kra.activities].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map((activity) => (
+                                            <div key={activity.id} className="border-l-2 border-primary/30 pl-3 py-1">
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <span className="text-[10px] font-bold text-slate-900">{activity.actorName}</span>
+                                                    <span className="text-[9px] text-slate-400">{format(new Date(activity.timestamp), 'MMM d, HH:mm')}</span>
+                                                </div>
+                                                <p className="text-[11px] font-semibold text-primary">{activity.action}</p>
+                                                {activity.details && <p className="text-[10px] text-slate-600 mt-0.5">{activity.details}</p>}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="h-full flex flex-col items-center justify-center text-slate-400 py-10">
+                                        <Activity className="h-8 w-8 mb-2 opacity-20" />
+                                        <p className="text-xs">No activity recorded yet.</p>
+                                    </div>
+                                )}
+                            </ScrollArea>
+                        </div>
                     </div>
                 </div>
             </div>
