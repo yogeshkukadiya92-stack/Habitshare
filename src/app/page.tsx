@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -177,83 +178,83 @@ function DashboardContent() {
 
     if (pagePermission === 'employee_only' && currentEmployeeData) {
         return (
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-3">
                  <div className='flex items-center justify-between'>
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Welcome, {currentEmployeeData.name?.split(' ')[0]}!</h1>
-                        <p className='text-xs text-slate-500 font-medium'>Monthly performance and goals overview.</p>
+                        <h1 className="text-xl font-bold text-slate-900 tracking-tight">Welcome, {currentEmployeeData.name?.split(' ')[0]}!</h1>
+                        <p className='text-[10px] text-slate-500 font-medium'>Performance overview for {availableMonths[parseInt(selectedMonth)]} {selectedYear}.</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1 bg-white p-1 rounded-lg border shadow-sm h-9">
+                    <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1 bg-white p-1 rounded-lg border shadow-sm h-8">
                             <Select value={selectedYear} onValueChange={setSelectedYear}>
-                                <SelectTrigger className="w-[90px] h-7 text-[11px] border-none shadow-none focus:ring-0">
-                                    <CalendarDays className="h-3 w-3 mr-1 text-slate-400" />
+                                <SelectTrigger className="w-[80px] h-6 text-[10px] border-none shadow-none focus:ring-0 px-1.5">
+                                    <CalendarDays className="h-2.5 w-2.5 mr-1 text-slate-400" />
                                     <SelectValue placeholder="Year" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {availableYears.map(y => <SelectItem key={y} value={String(y)} className="text-[11px]">{y}</SelectItem>)}
+                                    {availableYears.map(y => <SelectItem key={y} value={String(y)} className="text-[10px]">{y}</SelectItem>)}
                                 </SelectContent>
                             </Select>
-                            <Separator orientation="vertical" className="h-4" />
+                            <Separator orientation="vertical" className="h-3" />
                             <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                                <SelectTrigger className="w-[100px] h-7 text-[11px] border-none shadow-none focus:ring-0">
+                                <SelectTrigger className="w-[90px] h-6 text-[10px] border-none shadow-none focus:ring-0 px-1.5">
                                     <SelectValue placeholder="Month" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {availableMonths.map((m, i) => <SelectItem key={i} value={String(i)} className="text-[11px]">{m}</SelectItem>)}
+                                    {availableMonths.map((m, i) => <SelectItem key={i} value={String(i)} className="text-[10px]">{m}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                         </div>
                         <EditEmployeeDialog employee={currentEmployeeData} onSave={handleSaveEmployee}>
-                            <Button variant="outline" size="sm" className='h-9 gap-2 rounded-lg border-slate-200 text-xs'>
-                                <Edit className='h-3.5 w-3.5'/> Edit Profile
+                            <Button variant="outline" size="sm" className='h-8 gap-1.5 rounded-lg border-slate-200 text-[10px]'>
+                                <Edit className='h-3 w-3'/> Edit Profile
                             </Button>
                         </EditEmployeeDialog>
                     </div>
                  </div>
 
-                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-                    <Card className='lg:col-span-1 h-fit'>
-                        <CardHeader className='flex-row items-center justify-between p-4 bg-slate-50/50'>
-                            <div className='flex items-center gap-3'>
-                                <Avatar className='h-10 w-10 border border-slate-200'>
+                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
+                    <Card className='lg:col-span-1 h-fit shadow-sm'>
+                        <CardHeader className='flex-row items-center justify-between p-3 bg-slate-50/50'>
+                            <div className='flex items-center gap-2'>
+                                <Avatar className='h-8 w-8 border border-slate-200'>
                                     <AvatarImage src={currentEmployeeData.avatarUrl} alt={currentEmployeeData.name} />
-                                    <AvatarFallback>{currentEmployeeData.name?.charAt(0)}</AvatarFallback>
+                                    <AvatarFallback className="text-[10px]">{currentEmployeeData.name?.charAt(0)}</AvatarFallback>
                                 </Avatar>
                                 <div>
-                                    <CardTitle className='text-sm'>{currentEmployeeData.name}</CardTitle>
-                                    <CardDescription className='text-[10px] font-semibold text-primary uppercase'>{currentEmployeeData.branch || 'General'}</CardDescription>
+                                    <CardTitle className='text-xs font-bold'>{currentEmployeeData.name}</CardTitle>
+                                    <CardDescription className='text-[9px] font-bold text-primary uppercase'>{currentEmployeeData.branch || 'General'}</CardDescription>
                                 </div>
                             </div>
-                            <Button variant="ghost" size="icon" className='h-8 w-8' onClick={() => setShowProfileDetails(!showProfileDetails)}>
-                                <ChevronDown className={cn("h-4 w-4 transition-transform", showProfileDetails && "rotate-180")} />
+                            <Button variant="ghost" size="icon" className='h-7 w-7' onClick={() => setShowProfileDetails(!showProfileDetails)}>
+                                <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showProfileDetails && "rotate-180")} />
                             </Button>
                         </CardHeader>
                         {showProfileDetails && (
-                            <CardContent className='text-[11px] space-y-2.5 p-4 border-t animate-in fade-in slide-in-from-top-1'>
+                            <CardContent className='text-[10px] space-y-2 p-3 border-t animate-in fade-in slide-in-from-top-1'>
                                 <div className='flex items-center gap-2'>
-                                    <Mail className="h-3 w-3 text-slate-400" />
+                                    <Mail className="h-2.5 w-2.5 text-slate-400" />
                                     <span className='font-medium'>{currentEmployeeData.email}</span>
                                 </div>
                                 <div className='flex items-start gap-2'>
-                                    <Home className="h-3 w-3 text-slate-400 mt-0.5" />
+                                    <Home className="h-2.5 w-2.5 text-slate-400 mt-0.5" />
                                     <span className='font-medium leading-tight'>{currentEmployeeData.address || 'No address'}</span>
                                 </div>
                                 <div className='flex items-center gap-2'>
-                                    <CalendarIcon className="h-3 w-3 text-slate-400" />
+                                    <CalendarIcon className="h-2.5 w-2.5 text-slate-400" />
                                     <span className='font-medium'>Joined: {currentEmployeeData.joiningDate ? format(new Date(currentEmployeeData.joiningDate), "MMM d, yyyy") : 'N/A'}</span>
                                 </div>
                             </CardContent>
                         )}
                     </Card>
 
-                    <Card className='lg:col-span-3 professional-card'>
-                        <CardHeader className='p-4'>
-                            <CardTitle className='text-lg'>My Performance Goals (KRAs)</CardTitle>
-                            <CardDescription className='text-xs'>Active goals for {availableMonths[parseInt(selectedMonth)]} {selectedYear}.</CardDescription>
+                    <Card className='lg:col-span-3 professional-card shadow-sm'>
+                        <CardHeader className='p-3 border-b'>
+                            <CardTitle className='text-base font-bold'>Monthly Performance Goals (KRAs)</CardTitle>
+                            <CardDescription className='text-[10px]'>Active targets for {availableMonths[parseInt(selectedMonth)]} {selectedYear}.</CardDescription>
                         </CardHeader>
-                        <CardContent className='p-0 sm:p-4'>
-                            {loading ? <Skeleton className="h-40 w-full" /> : <KraTable kras={filteredKrasForEmployee} employees={employees} onSave={handleSaveKra} onDelete={() => {}} />}
+                        <CardContent className='p-0 sm:p-2'>
+                            {loading ? <Skeleton className="h-32 w-full" /> : <KraTable kras={filteredKrasForEmployee} employees={employees} onSave={handleSaveKra} onDelete={() => {}} />}
                         </CardContent>
                     </Card>
                  </div>
@@ -263,57 +264,57 @@ function DashboardContent() {
 
   return (
      <TooltipProvider>
-        <div className="flex flex-col gap-4">
-            <div className='flex flex-col md:flex-row md:items-center justify-between gap-3'>
+        <div className="flex flex-col gap-3">
+            <div className='flex flex-col md:flex-row md:items-center justify-between gap-2'>
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight text-slate-900">Organizational Dashboard</h1>
-                    <p className='text-xs text-slate-500 font-medium'>Minimal oversight of personnel resources.</p>
+                    <h1 className="text-xl font-bold tracking-tight text-slate-900">Organizational Dashboard</h1>
+                    <p className='text-[10px] text-slate-500 font-medium'>Enterprise personnel and performance oversight.</p>
                 </div>
-                <div className='flex items-center gap-2 bg-white p-1 rounded-lg border shadow-sm h-10'>
+                <div className='flex items-center gap-1.5 bg-white p-1 rounded-lg border shadow-sm h-9'>
                     {pagePermission !== 'employee_only' && <ViewSwitcher view={view} onViewChange={handleViewChange} />}
-                    <Separator orientation="vertical" className="h-6 mx-1" />
+                    <Separator orientation="vertical" className="h-5 mx-0.5" />
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button variant={showFilters ? "secondary" : "ghost"} size="sm" onClick={() => setShowFilters(!showFilters)} className="h-8 w-8 p-0">
-                                <Filter className="h-4 w-4" />
+                            <Button variant={showFilters ? "secondary" : "ghost"} size="sm" onClick={() => setShowFilters(!showFilters)} className="h-7 w-7 p-0">
+                                <Filter className="h-3.5 w-3.5" />
                             </Button>
                         </TooltipTrigger>
-                        <TooltipContent>Filters</TooltipContent>
+                        <TooltipContent className="text-xs">Filters</TooltipContent>
                     </Tooltip>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button variant={showTools ? "secondary" : "ghost"} size="sm" onClick={() => setShowTools(!showTools)} className="h-8 w-8 p-0">
-                                <Settings2 className="h-4 w-4" />
+                            <Button variant={showTools ? "secondary" : "ghost"} size="sm" onClick={() => setShowTools(!showTools)} className="h-7 w-7 p-0">
+                                <Settings2 className="h-3.5 w-3.5" />
                             </Button>
                         </TooltipTrigger>
-                        <TooltipContent>Import/Export Tools</TooltipContent>
+                        <TooltipContent className="text-xs">Import/Export Tools</TooltipContent>
                     </Tooltip>
                 </div>
             </div>
 
-            <Card className='professional-card'>
-                <CardHeader className="p-4 space-y-4">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                    <div className='flex items-center gap-3'>
-                        <div className='bg-primary/10 p-2 rounded-lg text-primary'>
-                            <Users className='h-5 w-5'/>
+            <Card className='professional-card shadow-sm'>
+                <CardHeader className="p-3 space-y-3">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-3">
+                    <div className='flex items-center gap-2'>
+                        <div className='bg-primary/10 p-1.5 rounded-lg text-primary'>
+                            <Users className='h-4 w-4'/>
                         </div>
                         <div>
-                            <CardTitle className='text-lg'>Personnel Directory</CardTitle>
-                            <CardDescription className='text-xs'>Active employees: {filteredEmployeeSummary.length}</CardDescription>
+                            <CardTitle className='text-base font-bold'>Personnel Directory</CardTitle>
+                            <CardDescription className='text-[10px]'>Active employees: {filteredEmployeeSummary.length}</CardDescription>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                         {(pagePermission === 'edit' || pagePermission === 'download') && (
                             <>
                                 <AddKraDialog onSave={handleSaveKra} employees={employees}>
-                                    <Button variant="outline" size="sm" className="h-9 gap-2 text-xs">
-                                        <PlusCircle className="h-3.5 w-3.5" /> Assign KRA
+                                    <Button variant="outline" size="sm" className="h-8 gap-1.5 text-[10px]">
+                                        <PlusCircle className="h-3 w-3" /> Assign KRA
                                     </Button>
                                 </AddKraDialog>
                                 <AddEmployeeDialog onSave={handleSaveEmployee}>
-                                    <Button size="sm" className="h-9 gap-2 text-xs">
-                                        <UserPlus className="h-3.5 w-3.5" /> Add Employee
+                                    <Button size="sm" className="h-8 gap-1.5 text-[10px]">
+                                        <UserPlus className="h-3 w-3" /> Add Employee
                                     </Button>
                                 </AddEmployeeDialog>
                             </>
@@ -322,89 +323,89 @@ function DashboardContent() {
                 </div>
 
                 {showFilters && (
-                    <div className="flex flex-wrap items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200 animate-in fade-in slide-in-from-top-1">
+                    <div className="flex flex-wrap items-center gap-2 p-2 bg-slate-50 rounded-lg border border-slate-200 animate-in fade-in slide-in-from-top-1">
                         <Select value={selectedYear} onValueChange={setSelectedYear}>
-                            <SelectTrigger className="w-[110px] h-8 text-[11px] bg-white"><SelectValue placeholder="Year" /></SelectTrigger>
+                            <SelectTrigger className="w-[100px] h-7 text-[10px] bg-white"><SelectValue placeholder="Year" /></SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all" className="text-[11px]">All Years</SelectItem>
-                                {availableYears.map(y => <SelectItem key={y} value={String(y)} className="text-[11px]">{y}</SelectItem>)}
+                                <SelectItem value="all" className="text-[10px]">All Years</SelectItem>
+                                {availableYears.map(y => <SelectItem key={y} value={String(y)} className="text-[10px]">{y}</SelectItem>)}
                             </SelectContent>
                         </Select>
                         <Select value={selectedMonth} onValueChange={setSelectedMonth} disabled={selectedYear === 'all'}>
-                            <SelectTrigger className="w-[120px] h-8 text-[11px] bg-white"><SelectValue placeholder="Month" /></SelectTrigger>
+                            <SelectTrigger className="w-[110px] h-7 text-[10px] bg-white"><SelectValue placeholder="Month" /></SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all" className="text-[11px]">All Months</SelectItem>
-                                {availableMonths.map((m, i) => <SelectItem key={i} value={String(i)} className="text-[11px]">{m}</SelectItem>)}
+                                <SelectItem value="all" className="text-[10px]">All Months</SelectItem>
+                                {availableMonths.map((m, i) => <SelectItem key={i} value={String(i)} className="text-[10px]">{m}</SelectItem>)}
                             </SelectContent>
                         </Select>
                         <Select value={selectedBranch} onValueChange={setSelectedBranch}>
-                            <SelectTrigger className="w-[160px] h-8 text-[11px] bg-white"><SelectValue placeholder="Department" /></SelectTrigger>
+                            <SelectTrigger className="w-[140px] h-7 text-[10px] bg-white"><SelectValue placeholder="Department" /></SelectTrigger>
                             <SelectContent>
-                                {branchOptions.map(b => <SelectItem key={b} value={b} className="text-[11px]">{b === 'all' ? 'All Depts.' : b}</SelectItem>)}
+                                {branchOptions.map(b => <SelectItem key={b} value={b} className="text-[10px]">{b === 'all' ? 'All Depts.' : b}</SelectItem>)}
                             </SelectContent>
                         </Select>
                     </div>
                 )}
 
                 {showTools && pagePermission === 'download' && (
-                    <div className="flex flex-wrap items-center gap-2 p-3 bg-slate-900 rounded-lg text-white animate-in fade-in slide-in-from-top-1">
+                    <div className="flex flex-wrap items-center gap-1.5 p-2 bg-slate-900 rounded-lg text-white animate-in fade-in slide-in-from-top-1">
                         <input type="file" ref={fileInputRef} onChange={() => {}} className="hidden" accept=".xlsx, .xls" />
-                        <Button variant="outline" size="sm" className="h-8 text-[10px] bg-transparent border-slate-700 text-white hover:bg-slate-800"><FileSpreadsheet className="h-3.5 w-3.5 mr-1.5" /> Template</Button>
-                        <Button variant="outline" size="sm" className="h-8 text-[10px] bg-transparent border-slate-700 text-white hover:bg-slate-800"><Upload className="h-3.5 w-3.5 mr-1.5" /> Import</Button>
-                        <Button variant="outline" size="sm" className="h-8 text-[10px] bg-transparent border-slate-700 text-white hover:bg-slate-800"><Download className="h-3.5 w-3.5 mr-1.5" /> Export All</Button>
+                        <Button variant="outline" size="sm" className="h-7 text-[9px] bg-transparent border-slate-700 text-white hover:bg-slate-800 px-2"><FileSpreadsheet className="h-3 w-3 mr-1" /> Template</Button>
+                        <Button variant="outline" size="sm" className="h-7 text-[9px] bg-transparent border-slate-700 text-white hover:bg-slate-800 px-2"><Upload className="h-3 w-3 mr-1" /> Import</Button>
+                        <Button variant="outline" size="sm" className="h-7 text-[9px] bg-transparent border-slate-700 text-white hover:bg-slate-800 px-2"><Download className="h-3 w-3 mr-1" /> Export All</Button>
                     </div>
                 )}
                 </CardHeader>
-                <CardContent className='p-4 pt-0'>
+                <CardContent className='p-3 pt-0'>
                     <Tabs defaultValue="list">
-                        <TabsList className="bg-slate-100 p-1 mb-4 h-9">
-                            <TabsTrigger value="list" className='text-xs gap-2 h-7'><Users className="h-3.5 w-3.5" /> Directory</TabsTrigger>
-                            <TabsTrigger value="performance" className='text-xs gap-2 h-7'><TrendingUp className="h-3.5 w-3.5" /> Analytics</TabsTrigger>
+                        <TabsList className="bg-slate-100 p-1 mb-3 h-8">
+                            <TabsTrigger value="list" className='text-[10px] gap-1.5 h-6'><Users className="h-3 w-3" /> Directory</TabsTrigger>
+                            <TabsTrigger value="performance" className='text-[10px] gap-1.5 h-6'><TrendingUp className="h-3 w-3" /> Analytics</TabsTrigger>
                         </TabsList>
                         <TabsContent value="list">
                              {selectedEmployeeIds.length > 0 && (
-                                <div className="flex items-center justify-between p-2 mb-3 bg-rose-50 border border-rose-100 rounded-lg">
-                                  <span className="text-xs font-semibold text-rose-700">{selectedEmployeeIds.length} selected</span>
-                                  <Button variant="destructive" size="sm" onClick={handleBulkDelete} className="h-7 text-[10px] gap-1.5"><Trash2 className="h-3 w-3" /> Delete</Button>
+                                <div className="flex items-center justify-between p-1.5 mb-2 bg-rose-50 border border-rose-100 rounded-lg">
+                                  <span className="text-[10px] font-bold text-rose-700">{selectedEmployeeIds.length} selected</span>
+                                  <Button variant="destructive" size="sm" onClick={handleBulkDelete} className="h-6 text-[9px] gap-1"><Trash2 className="h-2.5 w-2.5" /> Delete</Button>
                                 </div>
                              )}
                              {view === 'list' ? (
                                 <div className="border rounded-lg overflow-hidden bg-white">
                                     <Table>
                                         <TableHeader className='bg-slate-50'>
-                                            <TableRow className='h-10'>
-                                                <TableHead className="w-[40px] px-3"><Checkbox checked={selectedEmployeeIds.length === filteredEmployeeSummary.length} onCheckedChange={handleSelectAll} /></TableHead>
-                                                <TableHead className='text-[9px] font-bold uppercase tracking-wider text-slate-500'>Identity</TableHead>
-                                                <TableHead className='text-[9px] font-bold uppercase tracking-wider text-slate-500'>Dept.</TableHead>
-                                                <TableHead className='text-[9px] font-bold uppercase tracking-wider text-slate-500 text-center'>KRAs</TableHead>
-                                                <TableHead className='text-[9px] font-bold uppercase tracking-wider text-slate-500'>Score</TableHead>
-                                                <TableHead className='text-right px-3'></TableHead>
+                                            <TableRow className='h-8'>
+                                                <TableHead className="w-[35px] px-2"><Checkbox checked={selectedIds.length === filteredEmployeeSummary.length} onCheckedChange={handleSelectAll} className="h-3 w-3" /></TableHead>
+                                                <TableHead className='text-[8px] font-bold uppercase tracking-wider text-slate-500 py-0 h-8'>Identity</TableHead>
+                                                <TableHead className='text-[8px] font-bold uppercase tracking-wider text-slate-500 py-0 h-8'>Dept.</TableHead>
+                                                <TableHead className='text-[8px] font-bold uppercase tracking-wider text-slate-500 text-center py-0 h-8'>KRAs</TableHead>
+                                                <TableHead className='text-[8px] font-bold uppercase tracking-wider text-slate-500 py-0 h-8'>Score</TableHead>
+                                                <TableHead className='text-right px-2 py-0 h-8'></TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {loading ? Array.from({ length: 3 }).map((_, i) => <TableRow key={i}><TableCell colSpan={6}><Skeleton className="h-10 w-full" /></TableCell></TableRow>) :
+                                            {loading ? Array.from({ length: 3 }).map((_, i) => <TableRow key={i}><TableCell colSpan={6}><Skeleton className="h-8 w-full" /></TableCell></TableRow>) :
                                                 filteredEmployeeSummary.map(({ employee, kraCount, averagePerformance }) => (
-                                                    <TableRow key={employee.id} className='group hover:bg-slate-50 h-12'>
-                                                        <TableCell className='px-3'><Checkbox checked={selectedEmployeeIds.includes(employee.id)} onCheckedChange={(c) => handleSelectOne(employee.id, !!c)} /></TableCell>
-                                                        <TableCell>
+                                                    <TableRow key={employee.id} className='group hover:bg-slate-50 h-10'>
+                                                        <TableCell className='px-2 py-1'><Checkbox checked={selectedEmployeeIds.includes(employee.id)} onCheckedChange={(c) => handleSelectOne(employee.id, !!c)} className="h-3 w-3" /></TableCell>
+                                                        <TableCell className="py-1">
                                                             <div className="flex items-center gap-2">
-                                                                <Avatar className="h-8 w-8 border border-slate-200"><AvatarImage src={employee.avatarUrl} alt={employee.name} /><AvatarFallback className='text-[10px]'>{employee.name?.charAt(0)}</AvatarFallback></Avatar>
+                                                                <Avatar className="h-7 w-7 border border-slate-200"><AvatarImage src={employee.avatarUrl} alt={employee.name} /><AvatarFallback className='text-[9px]'>{employee.name?.charAt(0)}</AvatarFallback></Avatar>
                                                                 <div>
-                                                                    <div className="text-[11px] font-semibold text-slate-900">{employee.name}</div>
-                                                                    <div className='text-[9px] text-slate-400 font-mono'>{employee.id.slice(0, 8)}...</div>
+                                                                    <div className="text-[10px] font-semibold text-slate-900 leading-tight">{employee.name}</div>
+                                                                    <div className='text-[8px] text-slate-400 font-mono'>{employee.id.slice(0, 6)}...</div>
                                                                 </div>
                                                             </div>
                                                         </TableCell>
-                                                        <TableCell className='text-[11px] font-medium text-slate-600'>{employee.branch || 'N/A'}</TableCell>
-                                                        <TableCell className='text-center'><Badge variant="secondary" className='text-[10px] h-5 px-1.5'>{kraCount}</Badge></TableCell>
-                                                        <TableCell>
-                                                            <div className="flex items-center gap-2 w-[140px]">
-                                                                <div className='flex-1 bg-slate-100 h-1.5 rounded-full'><div className={cn('h-full rounded-full transition-all duration-500', averagePerformance >= 80 ? 'bg-emerald-500' : averagePerformance >= 50 ? 'bg-amber-500' : 'bg-rose-500')} style={{ width: `${averagePerformance}%` }} /></div>
-                                                                <span className="text-[10px] font-bold w-8 text-right">{averagePerformance}%</span>
+                                                        <TableCell className='text-[10px] font-medium text-slate-600 py-1'>{employee.branch || 'N/A'}</TableCell>
+                                                        <TableCell className='text-center py-1'><Badge variant="secondary" className='text-[9px] h-4 px-1.5'>{kraCount}</Badge></TableCell>
+                                                        <TableCell className="py-1">
+                                                            <div className="flex items-center gap-1.5 w-[120px]">
+                                                                <div className='flex-1 bg-slate-100 h-1 rounded-full'><div className={cn('h-full rounded-full transition-all duration-500', averagePerformance >= 80 ? 'bg-emerald-500' : averagePerformance >= 50 ? 'bg-amber-500' : 'bg-rose-500')} style={{ width: `${averagePerformance}%` }} /></div>
+                                                                <span className="text-[9px] font-bold w-7 text-right">{averagePerformance}%</span>
                                                             </div>
                                                         </TableCell>
-                                                        <TableCell className="text-right px-3">
-                                                            <Link href={`/employees/${employee.id}`}><Button variant="outline" size="sm" className='h-7 text-[10px] px-2'>Profile</Button></Link>
+                                                        <TableCell className="text-right px-2 py-1">
+                                                            <Link href={`/employees/${employee.id}`}><Button variant="outline" size="sm" className='h-6 text-[9px] px-2'>Profile</Button></Link>
                                                         </TableCell>
                                                     </TableRow>
                                                 ))
@@ -413,11 +414,11 @@ function DashboardContent() {
                                     </Table>
                                 </div>
                              ) : (
-                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
                                     {filteredEmployeeSummary.map((summary) => (
                                         <div key={summary.employee.id} className="relative group">
-                                          <div className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <Checkbox checked={selectedEmployeeIds.includes(summary.employee.id)} onCheckedChange={(c) => handleSelectOne(summary.employee.id, !!c)} className="bg-white border-slate-300" />
+                                          <div className="absolute top-1.5 left-1.5 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <Checkbox checked={selectedEmployeeIds.includes(summary.employee.id)} onCheckedChange={(c) => handleSelectOne(summary.employee.id, !!c)} className="bg-white border-slate-300 h-3 w-3" />
                                           </div>
                                           <EmployeeCard summary={summary} />
                                         </div>
@@ -426,14 +427,14 @@ function DashboardContent() {
                              )}
                         </TabsContent>
                         <TabsContent value="performance">
-                             <div className="h-[350px] pt-2">
+                             <div className="h-[300px] pt-1">
                                 {loading ? <Skeleton className="h-full w-full" /> : 
                                     <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart data={performanceData} layout="vertical" margin={{ left: 20, right: 20 }}>
+                                        <BarChart data={performanceData} layout="vertical" margin={{ left: 10, right: 10 }}>
                                             <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                                             <XAxis type="number" domain={[0, 100]} hide />
-                                            <YAxis dataKey="employee.name" type="category" width={100} tick={{ fontSize: 10, fill: '#64748b', fontWeight: 500 }} axisLine={false} />
-                                            <Bar dataKey="performanceScore" radius={[0, 2, 2, 0]} barSize={12}>
+                                            <YAxis dataKey="employee.name" type="category" width={80} tick={{ fontSize: 9, fill: '#64748b', fontWeight: 500 }} axisLine={false} />
+                                            <Bar dataKey="performanceScore" radius={[0, 2, 2, 0]} barSize={10}>
                                                 {performanceData.map((e, i) => <Cell key={i} fill={e.performanceScore >= 80 ? '#10b981' : e.performanceScore >= 50 ? '#f59e0b' : '#f43f5e'} />)}
                                             </Bar>
                                         </BarChart>

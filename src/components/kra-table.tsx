@@ -90,25 +90,26 @@ const QuickUpdateDialog = ({ action, onUpdate, children }: { action: ActionItem,
             <DialogTrigger asChild>{children}</DialogTrigger>
             <DialogContent className="sm:max-w-xs">
                 <DialogHeader>
-                    <DialogTitle>Quick Progress Update</DialogTitle>
-                    <DialogDescription>
+                    <DialogTitle className="text-sm">Quick Progress Update</DialogTitle>
+                    <DialogDescription className="text-xs">
                         Update achieved units for "{action.name}".
                         <span className="block mt-1 font-bold text-orange-600">Still Pending: {pending}</span>
                     </DialogDescription>
                 </DialogHeader>
-                <div className="py-4 space-y-2">
-                    <Label htmlFor="achievedValue">Total Work Done (Achieved)</Label>
+                <div className="py-2 space-y-2">
+                    <Label htmlFor="achievedValue" className="text-[11px]">Total Work Done (Achieved)</Label>
                     <Input
                         id="achievedValue"
                         type="number"
                         value={value}
                         onChange={(e) => setValue(Number(e.target.value))}
+                        className="h-8 text-xs"
                         placeholder="e.g., 150"
                     />
-                    <p className='text-xs text-muted-foreground'>Goal Target: {action.target || 'N/A'}</p>
+                    <p className='text-[10px] text-muted-foreground'>Goal Target: {action.target || 'N/A'}</p>
                 </div>
                 <DialogFooter>
-                    <Button onClick={handleSave} className='w-full'>Update Goal Achieved</Button>
+                    <Button onClick={handleSave} size="sm" className='w-full text-xs h-8'>Update Goal Achieved</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -181,19 +182,20 @@ const KpiRow = ({ kra, action, onSave }: { kra: KRA, action: ActionItem, onSave:
 
   return (
     <Collapsible key={action.id} open={open} onOpenChange={setOpen}>
-      <div className='flex items-center gap-2 text-sm py-1.5 group border-b border-dashed last:border-0 border-muted-foreground/20'>
+      <div className='flex items-center gap-2 text-[11px] py-1 group border-b border-dashed last:border-0 border-muted-foreground/20'>
         <Checkbox 
             id={`action-${kra.id}-${action.id}`}
             checked={action.isCompleted}
             onCheckedChange={handleCheckedChange}
+            className="h-3 w-3"
         />
         <div className={cn("flex-1", action.isCompleted && 'line-through text-muted-foreground')}>
             <span className="font-medium">{action.name}</span>
              {action.target && (
-                <div className='flex gap-2 mt-0.5'>
-                    <span className='text-[10px] text-primary bg-primary/10 px-1.5 rounded'>Tgt: {target}</span>
-                    <span className='text-[10px] text-green-600 bg-green-50 px-1.5 rounded'>Done: {achieved}</span>
-                    <span className='text-[10px] text-orange-600 bg-orange-50 px-1.5 rounded font-bold'>Pending: {pending}</span>
+                <div className='flex gap-1.5 mt-0.5'>
+                    <span className='text-[9px] text-primary bg-primary/10 px-1 rounded'>Tgt: {target}</span>
+                    <span className='text-[9px] text-green-600 bg-green-50 px-1 rounded'>Done: {achieved}</span>
+                    <span className='text-[9px] text-orange-600 bg-orange-50 px-1 rounded font-bold'>Pending: {pending}</span>
                 </div>
             )}
         </div>
@@ -201,40 +203,40 @@ const KpiRow = ({ kra, action, onSave }: { kra: KRA, action: ActionItem, onSave:
         <QuickUpdateDialog action={{...action, achieved}} onUpdate={handleQuickUpdate}>
             <Tooltip>
                 <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:text-primary hover:bg-primary/10">
-                        <History className="h-3.5 w-3.5" />
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-primary hover:text-primary hover:bg-primary/10">
+                        <History className="h-3 w-3" />
                     </Button>
                 </TooltipTrigger>
-                <TooltipContent>Quick Progress Log</TooltipContent>
+                <TooltipContent className="text-[10px]">Quick Progress Log</TooltipContent>
             </Tooltip>
         </QuickUpdateDialog>
 
         <div className="flex flex-col items-center">
-            <span className="text-[10px] text-muted-foreground uppercase font-bold">Weight</span>
-            <Badge variant="outline" className='font-mono h-5 px-1 min-w-[30px] justify-center'>{parseFloat(kpiWeightage.toFixed(2))}</Badge>
+            <span className="text-[8px] text-muted-foreground uppercase font-bold">Weight</span>
+            <Badge variant="outline" className='font-mono h-4 px-1 text-[9px] min-w-[25px] justify-center'>{parseFloat(kpiWeightage.toFixed(2))}</Badge>
         </div>
-        <div className="flex flex-col items-center">
-            <span className="text-[10px] text-muted-foreground uppercase font-bold">Marks</span>
-            <Badge variant="secondary" className='font-mono h-5 px-1 min-w-[30px] justify-center'>{parseFloat(marks.toFixed(2))}</Badge>
+        <div className="flex flex-col items-center ml-1">
+            <span className="text-[8px] text-muted-foreground uppercase font-bold">Marks</span>
+            <Badge variant="secondary" className='font-mono h-4 px-1 text-[9px] min-w-[25px] justify-center'>{parseFloat(marks.toFixed(2))}</Badge>
         </div>
         {(action.updates && action.updates.length > 0) && (
               <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="icon" className='h-6 w-6'>
-                    <ChevronRight className={cn("h-4 w-4 transition-transform", open && "rotate-90")} />
+                <Button variant="ghost" size="icon" className='h-5 w-5 ml-1'>
+                    <ChevronRight className={cn("h-3 w-3 transition-transform", open && "rotate-90")} />
                 </Button>
             </CollapsibleTrigger>
         )}
     </div>
-      <CollapsibleContent className='py-2 pr-4 pl-6 bg-muted/20 rounded-b-md'>
-        <p className='text-xs font-semibold mb-1 flex items-center gap-1'><History className="h-3 w-3"/> Weekly Progress Logs:</p>
-        <div className='border rounded-md max-h-40 overflow-y-auto bg-background'>
+      <CollapsibleContent className='py-1 pr-2 pl-4 bg-muted/20 rounded-b-md'>
+        <p className='text-[9px] font-semibold mb-1 flex items-center gap-1'><History className="h-2.5 w-2.5"/> Weekly Progress Logs:</p>
+        <div className='border rounded bg-background overflow-hidden'>
             <Table>
                 <TableHeader>
-                    <TableRow className="h-7">
-                        <TableHead className='h-7 text-[10px] py-0 px-2'>Date & Time</TableHead>
-                        <TableHead className='h-7 text-[10px] py-0 px-2'>Status</TableHead>
-                        <TableHead className='h-7 text-[10px] py-0 px-2'>Change</TableHead>
-                        <TableHead className='h-7 text-[10px] py-0 px-2'>Comment</TableHead>
+                    <TableRow className="h-6">
+                        <TableHead className='h-6 text-[8px] py-0 px-1.5'>Date</TableHead>
+                        <TableHead className='h-6 text-[8px] py-0 px-1.5'>Status</TableHead>
+                        <TableHead className='h-6 text-[8px] py-0 px-1.5'>+/-</TableHead>
+                        <TableHead className='h-6 text-[8px] py-0 px-1.5'>Comment</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -245,15 +247,15 @@ const KpiRow = ({ kra, action, onSave }: { kra: KRA, action: ActionItem, onSave:
                     }).map(update => {
                         const updateDate = new Date(update.date);
                         return (
-                        <TableRow key={update.id} className="h-7 hover:bg-transparent">
-                            <TableCell className='text-[10px] py-1 px-2 whitespace-nowrap'>
+                        <TableRow key={update.id} className="h-6 hover:bg-transparent">
+                            <TableCell className='text-[8px] py-0.5 px-1.5 whitespace-nowrap'>
                                 {isValid(updateDate) ? format(updateDate, 'MMM d, HH:mm') : 'N/A'}
                             </TableCell>
-                            <TableCell className='py-1 px-2'>
-                                <Badge variant="outline" className={cn('text-[9px] px-1 h-4 leading-none', weeklyUpdateStatusStyles[update.status])}>{update.status}</Badge>
+                            <TableCell className='py-0.5 px-1.5'>
+                                <Badge variant="outline" className={cn('text-[7px] px-0.5 h-3 leading-none', weeklyUpdateStatusStyles[update.status])}>{update.status}</Badge>
                             </TableCell>
-                            <TableCell className='text-[10px] py-1 px-2 font-bold'>{update.value}</TableCell>
-                              <TableCell className='text-[10px] py-1 px-2 text-muted-foreground'>
+                            <TableCell className='text-[8px] py-0.5 px-1.5 font-bold'>{update.value}</TableCell>
+                              <TableCell className='text-[8px] py-0.5 px-1.5 text-muted-foreground'>
                                   <span className="line-clamp-1" title={update.comment}>{update.comment}</span>
                               </TableCell>
                         </TableRow>
@@ -344,16 +346,16 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
     return (
         <Tooltip>
             <TooltipTrigger asChild>
-                <div className="flex flex-col items-center text-[10px] cursor-help">
+                <div className="flex flex-col items-center text-[9px] cursor-help">
                     <span className="font-bold text-primary">{weekData.achieved ?? 0}</span>
-                    <span className="text-muted-foreground border-t border-muted-foreground/20 w-8 text-center">{weekData.target ?? 0}</span>
+                    <span className="text-muted-foreground border-t border-muted-foreground/20 w-6 text-center">{weekData.target ?? 0}</span>
                 </div>
             </TooltipTrigger>
             {weekData.description && (
-                <TooltipContent className="max-w-[250px]">
+                <TooltipContent className="max-w-[200px]">
                     <div className="space-y-1">
-                        <p className="font-bold border-b pb-1 text-xs">Weekly KRA Details:</p>
-                        <p className="text-xs leading-relaxed">{weekData.description}</p>
+                        <p className="font-bold border-b pb-0.5 text-[10px]">Weekly KRA Details:</p>
+                        <p className="text-[10px] leading-tight">{weekData.description}</p>
                     </div>
                 </TooltipContent>
             )}
@@ -363,27 +365,27 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
 
   return (
      <TooltipProvider>
-    <div className='space-y-4'>
+    <div className='space-y-2'>
       {selectedIds.length > 0 && (
-        <div className="flex items-center justify-between p-2 bg-muted rounded-md border border-primary/20">
-          <span className="text-sm font-medium">{selectedIds.length} items selected</span>
+        <div className="flex items-center justify-between p-1.5 bg-muted rounded-md border border-primary/20">
+          <span className="text-xs font-medium">{selectedIds.length} items selected</span>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm" className="gap-2">
-                <Trash2 className="h-4 w-4" />
+              <Button variant="destructive" size="sm" className="h-7 text-[10px] gap-1.5">
+                <Trash2 className="h-3.5 w-3.5" />
                 Delete Selected
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                <AlertDialogDescription>
+                <AlertDialogTitle className="text-base">Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription className="text-sm">
                   This will permanently delete {selectedIds.length} KRAs. This action cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive hover:bg-destructive/90">
+                <AlertDialogCancel size="sm" className="text-xs h-8">Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleBulkDelete} size="sm" className="bg-destructive hover:bg-destructive/90 text-xs h-8">
                   Delete
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -392,26 +394,27 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
         </div>
       )}
       <div className='border rounded-lg overflow-hidden bg-white shadow-sm overflow-x-auto'>
-      <Table className="min-w-[1200px]">
-        <TableHeader className="bg-muted/50">
-          <TableRow>
-            <TableHead className="w-[50px]">
+      <Table className="min-w-[1100px]">
+        <TableHeader className="bg-muted/50 h-9">
+          <TableRow className="h-9">
+            <TableHead className="w-[40px] px-3">
               <Checkbox 
                 checked={selectedIds.length === kras.length && kras.length > 0}
                 onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                className="h-3.5 w-3.5"
               />
             </TableHead>
-            <TableHead>Employee</TableHead>
-            <TableHead className='w-[350px]'>KRA-KPI Task Details</TableHead>
-            <TableHead className="text-center w-24">Total Achieved</TableHead>
-            <TableHead className="text-center w-24">Weightage</TableHead>
-            <TableHead className="text-center w-24">Performance</TableHead>
-            <TableHead className="text-center w-20">W1</TableHead>
-            <TableHead className="text-center w-20">W2</TableHead>
-            <TableHead className="text-center w-20">W3</TableHead>
-            <TableHead className="text-center w-20">W4</TableHead>
-            <TableHead className="text-center w-20">W5</TableHead>
-            <TableHead>
+            <TableHead className="text-[10px] uppercase font-bold py-0 h-9">Employee</TableHead>
+            <TableHead className='w-[300px] text-[10px] uppercase font-bold py-0 h-9'>Task Details</TableHead>
+            <TableHead className="text-center w-20 text-[10px] uppercase font-bold py-0 h-9">Total Achieved</TableHead>
+            <TableHead className="text-center w-20 text-[10px] uppercase font-bold py-0 h-9">Weightage</TableHead>
+            <TableHead className="text-center w-20 text-[10px] uppercase font-bold py-0 h-9">Performance</TableHead>
+            <TableHead className="text-center w-14 text-[10px] uppercase font-bold py-0 h-9">W1</TableHead>
+            <TableHead className="text-center w-14 text-[10px] uppercase font-bold py-0 h-9">W2</TableHead>
+            <TableHead className="text-center w-14 text-[10px] uppercase font-bold py-0 h-9">W3</TableHead>
+            <TableHead className="text-center w-14 text-[10px] uppercase font-bold py-0 h-9">W4</TableHead>
+            <TableHead className="text-center w-14 text-[10px] uppercase font-bold py-0 h-9">W5</TableHead>
+            <TableHead className="w-10 h-9">
               <span className="sr-only">Actions</span>
             </TableHead>
           </TableRow>
@@ -419,7 +422,7 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
         <TableBody>
           {kras.length === 0 && (
             <TableRow>
-              <TableCell colSpan={12} className="h-24 text-center">No KRAs found.</TableCell>
+              <TableCell colSpan={12} className="h-20 text-center text-xs text-muted-foreground">No KRAs found.</TableCell>
             </TableRow>
           )}
           {kras.map((kra) => {
@@ -440,46 +443,47 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
             const totalPending = Math.max(0, totalTarget - totalAchieved);
 
             return (
-            <TableRow key={kra.id} className="align-top">
-              <TableCell>
+            <TableRow key={kra.id} className="align-top hover:bg-slate-50/50">
+              <TableCell className="px-3 pt-2">
                 <Checkbox 
                   checked={selectedIds.includes(kra.id)}
                   onCheckedChange={(checked) => handleSelectOne(kra.id, !!checked)}
+                  className="h-3.5 w-3.5"
                 />
               </TableCell>
-              <TableCell>
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-8 w-8">
+              <TableCell className="pt-2">
+                <div className="flex items-center gap-2">
+                  <Avatar className="h-7 w-7">
                     <AvatarImage src={kra.employee.avatarUrl} alt={kra.employee.name} data-ai-hint="people" />
-                    <AvatarFallback>{kra.employee.name.charAt(0)}</AvatarFallback>
+                    <AvatarFallback className="text-[10px]">{kra.employee.name.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <div className="font-medium text-xs sm:text-sm">{kra.employee.name}</div>
-                    <div className='flex items-center gap-1 mt-0.5 text-[10px] text-muted-foreground font-mono'>
-                        <Fingerprint className='h-2.5 w-2.5'/> ID: {kra.employee.id}
+                    <div className="font-semibold text-[11px] leading-tight">{kra.employee.name}</div>
+                    <div className='flex items-center gap-1 mt-0.5 text-[9px] text-muted-foreground font-mono'>
+                        <Fingerprint className='h-2 w-2'/> {kra.employee.id.slice(0,6)}
                     </div>
                   </div>
                 </div>
               </TableCell>
-              <TableCell className="max-w-sm">
+              <TableCell className="max-w-sm pt-2">
                   <AddKraDialog kra={kra} onSave={onSave} employees={employees}>
                       <div className="cursor-pointer">
-                          <p className="font-bold text-primary hover:underline">{kra.taskDescription || "General KRA Task"}</p>
-                          <div className="flex flex-wrap gap-2 mt-1">
-                             <Badge variant="outline" className="text-[10px] h-5 py-0">Goal: {totalTarget}</Badge>
-                             <Badge variant="outline" className="text-[10px] h-5 py-0 text-green-600 bg-green-50 border-green-100">Done: {totalAchieved}</Badge>
-                             <Badge variant="outline" className="text-[10px] h-5 py-0 text-orange-600 bg-orange-50 border-orange-100 font-bold">Pending: {totalPending}</Badge>
-                             <span className="text-[10px] text-muted-foreground self-center">Due: {kra.endDate && isValid(new Date(kra.endDate)) ? format(new Date(kra.endDate), 'MMM d, yyyy') : 'N/A'}</span>
+                          <p className="font-bold text-primary hover:underline text-[11px] leading-tight line-clamp-2">{kra.taskDescription || "General KRA Task"}</p>
+                          <div className="flex flex-wrap gap-1.5 mt-1">
+                             <Badge variant="outline" className="text-[9px] h-4 py-0 px-1">Goal: {totalTarget}</Badge>
+                             <Badge variant="outline" className="text-[9px] h-4 py-0 px-1 text-green-600 bg-green-50 border-green-100">Done: {totalAchieved}</Badge>
+                             <Badge variant="outline" className="text-[9px] h-4 py-0 px-1 text-orange-600 bg-orange-50 border-orange-100 font-bold">Pend: {totalPending}</Badge>
+                             <span className="text-[9px] text-muted-foreground self-center">Due: {kra.endDate && isValid(new Date(kra.endDate)) ? format(new Date(kra.endDate), 'MMM d') : 'N/A'}</span>
                           </div>
                       </div>
                   </AddKraDialog>
                   {(kra.actions && kra.actions.length > 0) && (
-                      <div className='mt-3 space-y-1 pl-3 border-l-2 border-primary/20 ml-1'>
-                          <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-wider py-1 border-b mb-1">
+                      <div className='mt-2 space-y-0.5 pl-2 border-l-2 border-primary/20 ml-1'>
+                          <div className="flex items-center gap-2 text-[9px] font-bold text-muted-foreground uppercase tracking-wider py-0.5 border-b mb-1">
                               <span className="flex-1">KPI Sub-Goals</span>
-                              <span className='w-12 text-center'>Weight</span>
-                              <span className='w-12 text-center'>Marks</span>
-                              <span className='w-6'></span>
+                              <span className='w-10 text-center'>Wght</span>
+                              <span className='w-10 text-center'>Mrks</span>
+                              <span className='w-5'></span>
                           </div>
                           {kra.actions.map((action) => (
                              <KpiRow key={action.id} kra={kra} action={action} onSave={onSave} />
@@ -487,60 +491,60 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
                       </div>
                   )}
               </TableCell>
-              <TableCell className="text-center">
+              <TableCell className="text-center pt-2">
                   <div className="flex flex-col items-center">
-                      <span className="font-bold text-green-600 text-sm">{totalAchieved}</span>
-                      <span className="text-[9px] text-muted-foreground border-t w-10">Tgt: {totalTarget}</span>
+                      <span className="font-bold text-green-600 text-[11px]">{totalAchieved}</span>
+                      <span className="text-[8px] text-muted-foreground border-t w-8 mt-0.5">Tgt: {totalTarget}</span>
                   </div>
               </TableCell>
-              <TableCell className="text-center">
+              <TableCell className="text-center pt-2">
                    {kra.weightage !== null ? (
-                      <span className="font-bold text-base text-muted-foreground">{kra.weightage}</span>
+                      <span className="font-bold text-[13px] text-slate-600">{kra.weightage}</span>
                   ) : (
-                      <span className="text-muted-foreground">-</span>
+                      <span className="text-muted-foreground text-[11px]">-</span>
                   )}
               </TableCell>
-              <TableCell className="text-center">
+              <TableCell className="text-center pt-2">
                   <Tooltip>
                       <TooltipTrigger>
-                          <span className={cn("font-black text-lg block", finalMarks >= (kra.weightage || 0) ? 'text-green-600' : 'text-primary', hasBonusOrPenalty && 'underline decoration-dotted')}>
+                          <span className={cn("font-black text-[14px] block leading-tight", finalMarks >= (kra.weightage || 0) ? 'text-green-600' : 'text-primary', hasBonusOrPenalty && 'underline decoration-dotted')}>
                               {finalMarks.toFixed(2)}
                           </span>
                       </TooltipTrigger>
                        {hasBonusOrPenalty && (
-                          <TooltipContent>
-                              <div className="text-xs">
+                          <TooltipContent className="text-[10px] p-2">
+                              <div className="space-y-0.5">
                                   <p>Base Marks: {baseMarks.toFixed(2)}</p>
-                                  {bonus > 0 && <p className="text-green-600">Bonus: +{bonus}</p>}
-                                  {penalty > 0 && <p className="text-destructive">Penalty: -{penalty}</p>}
-                                  <p className="font-bold border-t mt-1 pt-1">Grand Total: {finalMarks.toFixed(2)}</p>
+                                  {bonus > 0 && <p className="text-green-600 font-medium">Bonus: +{bonus}</p>}
+                                  {penalty > 0 && <p className="text-destructive font-medium">Penalty: -{penalty}</p>}
+                                  <p className="font-bold border-t mt-1 pt-1">Total: {finalMarks.toFixed(2)}</p>
                               </div>
                           </TooltipContent>
                       )}
                   </Tooltip>
               </TableCell>
-              <TableCell className="text-center">{renderWeekCell(kra.weeklyProgress?.week1)}</TableCell>
-              <TableCell className="text-center">{renderWeekCell(kra.weeklyProgress?.week2)}</TableCell>
-              <TableCell className="text-center">{renderWeekCell(kra.weeklyProgress?.week3)}</TableCell>
-              <TableCell className="text-center">{renderWeekCell(kra.weeklyProgress?.week4)}</TableCell>
-              <TableCell className="text-center">{renderWeekCell(kra.weeklyProgress?.week5)}</TableCell>
-              <TableCell>
+              <TableCell className="text-center pt-2">{renderWeekCell(kra.weeklyProgress?.week1)}</TableCell>
+              <TableCell className="text-center pt-2">{renderWeekCell(kra.weeklyProgress?.week2)}</TableCell>
+              <TableCell className="text-center pt-2">{renderWeekCell(kra.weeklyProgress?.week3)}</TableCell>
+              <TableCell className="text-center pt-2">{renderWeekCell(kra.weeklyProgress?.week4)}</TableCell>
+              <TableCell className="text-center pt-2">{renderWeekCell(kra.weeklyProgress?.week5)}</TableCell>
+              <TableCell className="pt-2">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button aria-haspopup="true" size="icon" variant="ghost">
-                        <MoreHorizontal className="h-4 w-4" />
+                      <Button aria-haspopup="true" size="icon" variant="ghost" className="h-7 w-7">
+                        <MoreHorizontal className="h-3.5 w-3.5" />
                         <span className="sr-only">Toggle menu</span>
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                    <DropdownMenuContent align="end" className="text-[11px]">
+                      <DropdownMenuLabel className="text-[10px]">Actions</DropdownMenuLabel>
                       <AddKraDialog kra={kra} onSave={onSave} employees={employees}>
-                          <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="gap-2">
-                              <History className="h-4 w-4"/> Log Progress / Weekly Update
+                          <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="gap-2 text-[11px] cursor-pointer">
+                              <History className="h-3 w-3"/> Weekly Update
                           </DropdownMenuItem>
                       </AddKraDialog>
-                      <DropdownMenuItem onClick={() => onDelete(kra.id)} className="text-destructive gap-2">
-                          <Trash2 className="h-4 w-4"/> Delete KRA
+                      <DropdownMenuItem onClick={() => onDelete(kra.id)} className="text-destructive gap-2 text-[11px] cursor-pointer">
+                          <Trash2 className="h-3 w-3"/> Delete
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -550,64 +554,64 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
           })}
         </TableBody>
         {kras.length > 0 && (
-          <TableFooter className="bg-slate-50/80 font-bold border-t-2">
-            <TableRow>
-              <TableCell colSpan={3} className="text-right py-4 pr-6 text-slate-500 uppercase text-[10px] tracking-widest">
-                Aggregated Totals
+          <TableFooter className="bg-slate-50/80 font-bold border-t-2 h-12">
+            <TableRow className="h-12">
+              <TableCell colSpan={3} className="text-right py-2 pr-4 text-slate-500 uppercase text-[9px] tracking-widest h-12">
+                Monthly Aggregated Totals
               </TableCell>
-              <TableCell className="text-center">
+              <TableCell className="text-center h-12 py-1">
                 <div className="flex flex-col items-center">
-                    <span className="text-lg font-black text-green-600 leading-tight">
+                    <span className="text-[13px] font-black text-green-600 leading-tight">
                         {totalOverallAchieved}
                     </span>
-                    <span className="text-[9px] text-muted-foreground border-t w-12 text-center mt-0.5">Tgt: {totalOverallTarget}</span>
+                    <span className="text-[8px] text-muted-foreground border-t w-10 text-center mt-0.5">Tgt: {totalOverallTarget}</span>
                 </div>
               </TableCell>
-              <TableCell className="text-center text-lg font-black text-slate-700">
+              <TableCell className="text-center text-[13px] font-black text-slate-700 h-12 py-1">
                 {totalWeightage}
               </TableCell>
-              <TableCell className="text-center">
+              <TableCell className="text-center h-12 py-1">
                 <div className="flex flex-col items-center">
-                    <span className="text-xl font-black text-primary leading-tight">
+                    <span className="text-[14px] font-black text-primary leading-tight">
                         {totalPerformance.toFixed(2)}
                     </span>
-                    <div className="flex gap-2 text-[9px] font-bold uppercase mt-1">
-                        <span className="text-green-600">B: +{totalBonus}</span>
-                        <span className="text-rose-600">P: -{totalPenalty}</span>
+                    <div className="flex gap-1.5 text-[8px] font-bold uppercase mt-0.5">
+                        <span className="text-green-600">B:+{totalBonus}</span>
+                        <span className="text-rose-600">P:-{totalPenalty}</span>
                     </div>
                 </div>
               </TableCell>
-              <TableCell className="text-center">
-                <div className="flex flex-col items-center text-[10px]">
+              <TableCell className="text-center h-12 py-1">
+                <div className="flex flex-col items-center text-[9px]">
                     <span className="font-bold text-primary">{weeklyTotals.week1.achieved}</span>
-                    <span className="text-muted-foreground border-t border-muted-foreground/20 w-8 text-center">{weeklyTotals.week1.target}</span>
+                    <span className="text-muted-foreground border-t border-muted-foreground/20 w-6 text-center">{weeklyTotals.week1.target}</span>
                 </div>
               </TableCell>
-              <TableCell className="text-center">
-                <div className="flex flex-col items-center text-[10px]">
+              <TableCell className="text-center h-12 py-1">
+                <div className="flex flex-col items-center text-[9px]">
                     <span className="font-bold text-primary">{weeklyTotals.week2.achieved}</span>
-                    <span className="text-muted-foreground border-t border-muted-foreground/20 w-8 text-center">{weeklyTotals.week2.target}</span>
+                    <span className="text-muted-foreground border-t border-muted-foreground/20 w-6 text-center">{weeklyTotals.week2.target}</span>
                 </div>
               </TableCell>
-              <TableCell className="text-center">
-                <div className="flex flex-col items-center text-[10px]">
+              <TableCell className="text-center h-12 py-1">
+                <div className="flex flex-col items-center text-[9px]">
                     <span className="font-bold text-primary">{weeklyTotals.week3.achieved}</span>
-                    <span className="text-muted-foreground border-t border-muted-foreground/20 w-8 text-center">{weeklyTotals.week3.target}</span>
+                    <span className="text-muted-foreground border-t border-muted-foreground/20 w-6 text-center">{weeklyTotals.week3.target}</span>
                 </div>
               </TableCell>
-              <TableCell className="text-center">
-                <div className="flex flex-col items-center text-[10px]">
+              <TableCell className="text-center h-12 py-1">
+                <div className="flex flex-col items-center text-[9px]">
                     <span className="font-bold text-primary">{weeklyTotals.week4.achieved}</span>
-                    <span className="text-muted-foreground border-t border-muted-foreground/20 w-8 text-center">{weeklyTotals.week4.target}</span>
+                    <span className="text-muted-foreground border-t border-muted-foreground/20 w-6 text-center">{weeklyTotals.week4.target}</span>
                 </div>
               </TableCell>
-              <TableCell className="text-center">
-                <div className="flex flex-col items-center text-[10px]">
+              <TableCell className="text-center h-12 py-1">
+                <div className="flex flex-col items-center text-[9px]">
                     <span className="font-bold text-primary">{weeklyTotals.week5.achieved}</span>
-                    <span className="text-muted-foreground border-t border-muted-foreground/20 w-8 text-center">{weeklyTotals.week5.target}</span>
+                    <span className="text-muted-foreground border-t border-muted-foreground/20 w-6 text-center">{weeklyTotals.week5.target}</span>
                 </div>
               </TableCell>
-              <TableCell />
+              <TableCell className="h-12" />
             </TableRow>
           </TableFooter>
         )}

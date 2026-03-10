@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -197,81 +198,81 @@ function KraManagementPage() {
 
   return (
      <TooltipProvider>
-        <div className="flex-1 flex flex-col gap-4">
-            <Card className='professional-card'>
-                <CardHeader className="p-4 flex flex-row items-center justify-between">
-                    <div className='flex items-center gap-3'>
-                        <div className='bg-primary/10 p-2 rounded-lg text-primary'>
-                            <ListChecks className="h-5 w-5" />
+        <div className="flex-1 flex flex-col gap-3">
+            <Card className='professional-card shadow-sm'>
+                <CardHeader className="p-3 flex flex-row items-center justify-between">
+                    <div className='flex items-center gap-2'>
+                        <div className='bg-primary/10 p-1.5 rounded-lg text-primary'>
+                            <ListChecks className="h-4 w-4" />
                         </div>
                         <div>
-                            <CardTitle className='text-lg'>KRA Management</CardTitle>
-                            {!showControls && <CardDescription className='text-[10px]'>Filters hidden • Total KRAs: {filteredKras.length}</CardDescription>}
+                            <CardTitle className='text-base font-bold'>KRA Management</CardTitle>
+                            {!showControls && <CardDescription className='text-[9px] font-medium'>Filters hidden • Total KRAs: {filteredKras.length}</CardDescription>}
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button 
                                     variant="ghost" 
                                     size="sm" 
                                     onClick={() => setShowControls(!showControls)}
-                                    className="h-8 w-8 p-0 rounded-full"
+                                    className="h-7 w-7 p-0 rounded-full"
                                 >
-                                    {showControls ? <ChevronUp className="h-4 w-4" /> : <Settings2 className="h-4 w-4" />}
+                                    {showControls ? <ChevronUp className="h-3.5 w-3.5" /> : <Settings2 className="h-3.5 w-3.5" />}
                                 </Button>
                             </TooltipTrigger>
-                            <TooltipContent>{showControls ? 'Hide Controls' : 'Show Controls'}</TooltipContent>
+                            <TooltipContent className="text-xs">{showControls ? 'Hide Controls' : 'Show Controls'}</TooltipContent>
                         </Tooltip>
                     </div>
                 </CardHeader>
 
                 {showControls && (
-                    <CardContent className="p-4 pt-0 border-b bg-slate-50/50">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div className="flex flex-wrap items-center gap-2">
+                    <CardContent className="p-3 pt-0 border-b bg-slate-50/50">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                            <div className="flex flex-wrap items-center gap-1.5">
                                 <Select value={selectedYear} onValueChange={setSelectedYear}>
-                                    <SelectTrigger className="w-[100px] h-8 text-[11px] bg-white"><SelectValue placeholder="Year" /></SelectTrigger>
+                                    <SelectTrigger className="w-[90px] h-7 text-[10px] bg-white"><SelectValue placeholder="Year" /></SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="all" className="text-[11px]">All Years</SelectItem>
-                                        {availableYears.map(y => <SelectItem key={y} value={String(y)} className="text-[11px]">{y}</SelectItem>)}
+                                        <SelectItem value="all" className="text-[10px]">All Years</SelectItem>
+                                        {availableYears.map(y => <SelectItem key={y} value={String(y)} className="text-[10px]">{y}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                                 <Select value={selectedMonth} onValueChange={setSelectedMonth} disabled={selectedYear === 'all'}>
-                                    <SelectTrigger className="w-[110px] h-8 text-[11px] bg-white"><SelectValue placeholder="Month" /></SelectTrigger>
+                                    <SelectTrigger className="w-[100px] h-7 text-[10px] bg-white"><SelectValue placeholder="Month" /></SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="all" className="text-[11px]">All Months</SelectItem>
-                                        {availableMonths.map((month, index) => <SelectItem key={index} value={String(index)} className="text-[11px]">{month}</SelectItem>)}
+                                        <SelectItem value="all" className="text-[10px]">All Months</SelectItem>
+                                        {availableMonths.map((month, index) => <SelectItem key={index} value={String(index)} className="text-[10px]">{month}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                                 {pagePermission !== 'employee_only' && (
                                     <Select value={selectedBranch} onValueChange={setSelectedBranch}>
-                                        <SelectTrigger className="w-[140px] h-8 text-[11px] bg-white"><SelectValue placeholder="Department" /></SelectTrigger>
+                                        <SelectTrigger className="w-[130px] h-7 text-[10px] bg-white"><SelectValue placeholder="Department" /></SelectTrigger>
                                         <SelectContent>
-                                            {branchOptions.map(branch => <SelectItem key={branch} value={branch} className="text-[11px]">{branch === 'all' ? 'All Depts.' : branch}</SelectItem>)}
+                                            {branchOptions.map(branch => <SelectItem key={branch} value={branch} className="text-[10px]">{branch === 'all' ? 'All Depts.' : branch}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
                                 )}
                             </div>
 
-                            <div className="flex flex-wrap items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-1.5">
                                 {pagePermission === 'download' && (
-                                    <div className="flex items-center gap-1.5">
+                                    <div className="flex items-center gap-1">
                                         <input type="file" ref={fileInputRef} onChange={handleImport} className="hidden" accept=".xlsx, .xls" />
                                         <Tooltip>
                                             <TooltipTrigger asChild>
-                                                <Button variant="outline" size="sm" onClick={handleDownloadSample} className="h-8 text-[10px] gap-1.5"><FileSpreadsheet className="h-3.5 w-3.5" /> Sample</Button>
+                                                <Button variant="outline" size="sm" onClick={handleDownloadSample} className="h-7 text-[9px] gap-1 px-2"><FileSpreadsheet className="h-3 w-3" /> Sample</Button>
                                             </TooltipTrigger>
-                                            <TooltipContent>Template</TooltipContent>
+                                            <TooltipContent className="text-xs">Template</TooltipContent>
                                         </Tooltip>
-                                        <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="h-8 text-[10px] gap-1.5"><Upload className="h-3.5 w-3.5" /> Import</Button>
-                                        <Button variant="outline" size="sm" onClick={handleExport} className="h-8 text-[10px] gap-1.5"><Download className="h-3.5 w-3.5" /> Export</Button>
+                                        <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="h-7 text-[9px] gap-1 px-2"><Upload className="h-3 w-3" /> Import</Button>
+                                        <Button variant="outline" size="sm" onClick={handleExport} className="h-7 text-[9px] gap-1 px-2"><Download className="h-3 w-3" /> Export</Button>
                                     </div>
                                 )}
                                 {(pagePermission === 'edit' || pagePermission === 'download') && (
                                     <AddKraDialog onSave={handleSaveKra} employees={employees}>
-                                        <Button size="sm" className="h-8 text-[10px] gap-1.5">
-                                            <PlusCircle className="h-3.5 w-3.5" /> Add KRA
+                                        <Button size="sm" className="h-7 text-[9px] gap-1 px-3">
+                                            <PlusCircle className="h-3 w-3" /> Add KRA
                                         </Button>
                                     </AddKraDialog>
                                 )}
@@ -280,12 +281,12 @@ function KraManagementPage() {
                     </CardContent>
                 )}
 
-                <CardContent className="p-0 sm:p-4">
+                <CardContent className="p-0 sm:p-2">
                     {loading ? (
-                        <div className="space-y-2 p-4">
-                            <Skeleton className="h-12 w-full" />
-                            <Skeleton className="h-12 w-full" />
-                            <Skeleton className="h-12 w-full" />
+                        <div className="space-y-1.5 p-2">
+                            <Skeleton className="h-10 w-full" />
+                            <Skeleton className="h-10 w-full" />
+                            <Skeleton className="h-10 w-full" />
                         </div>
                     ) : (
                         <KraTable 
