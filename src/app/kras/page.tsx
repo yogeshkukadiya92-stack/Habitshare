@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -46,8 +47,10 @@ function KraManagementPage() {
   
   const [selectedEmployeeId, setSelectedEmployeeId] = React.useState<string | null>(null);
   const [selectedBranch, setSelectedBranch] = React.useState('all');
-  const [selectedYear, setSelectedYear] = React.useState<string>(String(getYear(new Date())));
-  const [selectedMonth, setSelectedMonth] = React.useState<string>(String(getMonth(new Date())));
+  
+  // Set default filters to 'all' to ensure all KRAs are visible initially
+  const [selectedYear, setSelectedYear] = React.useState<string>('all');
+  const [selectedMonth, setSelectedMonth] = React.useState<string>('all');
   const [showControls, setShowControls] = React.useState(true);
   const [searchTerm, setSearchTerm] = React.useState('');
   
@@ -120,6 +123,7 @@ function KraManagementPage() {
         'Marks Achieved': k.marksAchieved,
         'Bonus': k.bonus,
         'Penalty': k.penalty,
+        'Start Date': format(ensureDate(k.startDate), 'yyyy-MM-dd'),
         'End Date': format(ensureDate(k.endDate), 'yyyy-MM-dd')
     }));
     
@@ -136,6 +140,7 @@ function KraManagementPage() {
             'Task Description': 'Increase sales by 10% in the West region.',
             'Weightage': 20,
             'Target': 500000,
+            'Start Date': '2024-01-01',
             'End Date': '2024-12-31'
         }
     ];
@@ -155,6 +160,7 @@ function KraManagementPage() {
         'Marks Achieved': k.marksAchieved,
         'Bonus': k.bonus,
         'Penalty': k.penalty,
+        'Start Date': format(ensureDate(k.startDate), 'yyyy-MM-dd'),
         'End Date': format(ensureDate(k.endDate), 'yyyy-MM-dd')
     }));
     
@@ -180,6 +186,7 @@ function KraManagementPage() {
             const importedKras: KRA[] = json.map((row, index) => {
                 const target = Number(row['Target'] || 0);
                 const weightage = Number(row['Weightage'] || 0);
+                const startDate = row['Start Date'] ? ensureDate(row['Start Date']) : new Date();
                 const endDate = row['End Date'] ? ensureDate(row['End Date']) : new Date();
 
                 return {
@@ -192,7 +199,7 @@ function KraManagementPage() {
                     marksAchieved: 0,
                     bonus: 0,
                     penalty: 0,
-                    startDate: new Date(),
+                    startDate: startDate,
                     endDate: endDate,
                     target: target,
                     achieved: 0,
@@ -245,7 +252,7 @@ function KraManagementPage() {
                             </CardTitle>
                             {selectedEmployeeId && (
                                 <CardDescription className='text-[10px] font-medium flex items-center gap-2'>
-                                    {selectedEmployee?.branch} • {availableMonths[parseInt(selectedMonth)]} {selectedYear}
+                                    {selectedEmployee?.branch} • {selectedMonth === 'all' ? 'All Time' : availableMonths[parseInt(selectedMonth)]} {selectedYear === 'all' ? '' : selectedYear}
                                 </CardDescription>
                             )}
                         </div>
@@ -354,7 +361,27 @@ function KraManagementPage() {
                         </div>
                     ) : !selectedEmployeeId ? (
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                            {filteredEmployees.map((emp) => (
+                            {filteredEmployees.map((emp) => {
+                                // Calculate total KRA count for this employee based on filters
+                                const empKrasCount = kras.filter(k => {
+                                    if (k.employee?.id !== emp.id) return false;
+                                    if (selectedYear === 'all' && selectedMonth === 'all') return true;
+                                    const year = parseInt(selectedYear);
+                                    const month = parseInt(selectedMonth);
+                                    const kraStart = ensureDate(k.startDate);
+                                    const kraEnd = ensureDate(k.endDate);
+                                    if (selectedYear !== 'all' && selectedMonth === 'all') {
+                                        return getYear(kraStart) <= year && getYear(kraEnd) >= year;
+                                    }
+                                    if (selectedYear !== 'all' && selectedMonth !== 'all') {
+                                         const monthStart = startOfMonth(new Date(year, month));
+                                         const monthEnd = endOfMonth(new Date(year, month));
+                                         return kraStart <= monthEnd && kraEnd >= monthStart;
+                                    }
+                                    return true;
+                                }).length;
+
+                                return (
                                 <div 
                                     key={emp.id} 
                                     onClick={() => setSelectedEmployeeId(emp.id)}
@@ -371,11 +398,12 @@ function KraManagementPage() {
                                     </div>
                                     <h3 className="text-[11px] font-bold text-slate-900 leading-tight mb-0.5 group-hover:text-primary transition-colors">{emp.name}</h3>
                                     <p className="text-[9px] text-slate-500 font-medium mb-1">{emp.branch || 'No Department'}</p>
+                                    <Badge variant="secondary" className="text-[8px] h-3 px-1 mb-1">{empKrasCount} KRAs</Badge>
                                     <div className='flex items-center gap-1 text-[8px] text-muted-foreground font-mono mt-auto pt-1 border-t w-full justify-center'>
                                         <Fingerprint className='h-2 w-2'/> {emp.id.slice(0,8)}
                                     </div>
                                 </div>
-                            ))}
+                            )})}
                             {filteredEmployees.length === 0 && (
                                 <div className="col-span-full py-20 text-center flex flex-col items-center gap-2">
                                     <Users className="h-10 w-10 text-slate-200" />

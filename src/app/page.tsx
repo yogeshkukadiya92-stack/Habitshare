@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -77,9 +78,11 @@ function DashboardContent() {
     handleSaveEmployee,
     handleDeleteMultipleEmployees
   } = useDataStore();
+  
+  // Set default filters to 'all' to ensure all KRAs are counted initially
   const [selectedBranch, setSelectedBranch] = React.useState('all');
-  const [selectedYear, setSelectedYear] = React.useState<string>(String(getYear(new Date())));
-  const [selectedMonth, setSelectedMonth] = React.useState<string>(String(getMonth(new Date())));
+  const [selectedYear, setSelectedYear] = React.useState<string>('all');
+  const [selectedMonth, setSelectedMonth] = React.useState<string>('all');
   const [view, setView] = React.useState<'list' | 'grid'>('list');
   const [selectedEmployeeIds, setSelectedEmployeeIds] = React.useState<string[]>([]);
   const [showFilters, setShowFilters] = React.useState(false);
@@ -108,8 +111,6 @@ function DashboardContent() {
 
         const year = parseInt(selectedYear);
         const month = parseInt(selectedMonth);
-        const monthStart = startOfMonth(new Date(year, month));
-        const monthEnd = endOfMonth(new Date(year, month));
 
         const filteredKrasByDate = krasToProcess.filter(kra => {
             if (selectedYear === 'all' && selectedMonth === 'all') return true;
@@ -122,6 +123,8 @@ function DashboardContent() {
             }
             
             if (selectedYear !== 'all' && selectedMonth !== 'all') {
+                 const monthStart = startOfMonth(new Date(year, month));
+                 const monthEnd = endOfMonth(new Date(year, month));
                  return kraStart <= monthEnd && kraEnd >= monthStart;
             }
             return true;
@@ -263,25 +266,27 @@ function DashboardContent() {
                  <div className='flex items-center justify-between'>
                     <div>
                         <h1 className="text-xl font-bold text-slate-900 tracking-tight">Welcome, {currentEmployeeData.name?.split(' ')[0]}!</h1>
-                        <p className='text-[10px] text-slate-500 font-medium'>Performance overview for {availableMonths[parseInt(selectedMonth)]} {selectedYear}.</p>
+                        <p className='text-[10px] text-slate-500 font-medium'>Performance overview for {selectedMonth === 'all' ? 'All Months' : availableMonths[parseInt(selectedMonth)]} {selectedYear === 'all' ? '' : selectedYear}.</p>
                     </div>
                     <div className="flex items-center gap-1.5">
                         <div className="flex items-center gap-1 bg-white p-1 rounded-lg border shadow-sm h-8">
                             <Select value={selectedYear} onValueChange={setSelectedYear}>
-                                <SelectTrigger className="w-[80px] h-6 text-[10px] border-none shadow-none focus:ring-0 px-1.5">
+                                <SelectTrigger className="w-[85px] h-6 text-[10px] border-none shadow-none focus:ring-0 px-1.5">
                                     <CalendarDays className="h-2.5 w-2.5 mr-1 text-slate-400" />
                                     <SelectValue placeholder="Year" />
                                 </SelectTrigger>
                                 <SelectContent>
+                                    <SelectItem value="all" className="text-[10px]">All Years</SelectItem>
                                     {availableYears.map(y => <SelectItem key={y} value={String(y)} className="text-[10px]">{y}</SelectItem>)}
                                 </SelectContent>
                             </Select>
                             <Separator orientation="vertical" className="h-3" />
-                            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                                <SelectTrigger className="w-[90px] h-6 text-[10px] border-none shadow-none focus:ring-0 px-1.5">
+                            <Select value={selectedMonth} onValueChange={setSelectedMonth} disabled={selectedYear === 'all'}>
+                                <SelectTrigger className="w-[95px] h-6 text-[10px] border-none shadow-none focus:ring-0 px-1.5">
                                     <SelectValue placeholder="Month" />
                                 </SelectTrigger>
                                 <SelectContent>
+                                    <SelectItem value="all" className="text-[10px]">All Months</SelectItem>
                                     {availableMonths.map((m, i) => <SelectItem key={i} value={String(i)} className="text-[10px]">{m}</SelectItem>)}
                                 </SelectContent>
                             </Select>
@@ -298,7 +303,7 @@ function DashboardContent() {
                     <Card className='w-full professional-card shadow-sm'>
                         <CardHeader className='p-3 border-b'>
                             <CardTitle className='text-base font-bold'>Monthly Performance Goals (KRAs)</CardTitle>
-                            <CardDescription className='text-[10px]'>Active targets for {availableMonths[parseInt(selectedMonth)]} {selectedYear}.</CardDescription>
+                            <CardDescription className='text-[10px]'>Active targets for {selectedMonth === 'all' ? 'Overall Period' : availableMonths[parseInt(selectedMonth)]} {selectedYear === 'all' ? '' : selectedYear}.</CardDescription>
                         </CardHeader>
                         <CardContent className='p-0 sm:p-2'>
                             {loading ? <Skeleton className="h-32 w-full" /> : <KraTable kras={filteredKrasForEmployee} employees={employees} onSave={handleSaveKra} onDelete={() => {}} />}
