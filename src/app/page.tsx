@@ -175,6 +175,78 @@ function DashboardContent() {
     const handleSelectOne = (id: string, checked: boolean) => setSelectedEmployeeIds(prev => checked ? [...prev, id] : prev.filter(i => i !== id));
     const handleBulkDelete = () => { handleDeleteMultipleEmployees(selectedEmployeeIds); setSelectedEmployeeIds([]); toast({ title: "Bulk Delete Successful" }); };
 
+    const handleExport = () => {
+        const dataToExport = employees.map(e => ({
+            'ID': e.id,
+            'Name': e.name,
+            'Email': e.email,
+            'Branch': e.branch,
+            'Role': e.role,
+            'Address': e.address,
+            'Family Contact': e.familyMobileNumber,
+            'Joining Date': e.joiningDate ? format(new Date(e.joiningDate), 'yyyy-MM-dd') : '',
+            'Birth Date': e.birthDate ? format(new Date(e.birthDate), 'yyyy-MM-dd') : '',
+        }));
+        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Employees');
+        XLSX.writeFile(workbook, `Employees_Export_${format(new Date(), 'yyyyMMdd')}.xlsx`);
+        toast({ title: "Export Successful", description: "Employee data has been exported." });
+    };
+
+    const handleDownloadSample = () => {
+        const sampleData = [
+            {
+                'Name': 'Sunil Kumar',
+                'Email': 'sunil.k@example.com',
+                'Branch': 'Sales',
+                'Role': 'Employee',
+                'Address': 'Pune, Maharashtra',
+                'Family Contact': '9876543210',
+                'Joining Date': '2024-01-01',
+                'Birth Date': '1990-05-15',
+            }
+        ];
+        const worksheet = XLSX.utils.json_to_sheet(sampleData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Sample_Employees');
+        XLSX.writeFile(workbook, 'Employee_Import_Template.xlsx');
+    };
+
+    const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = new Uint8Array(e.target?.result as ArrayBuffer);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const json = XLSX.utils.sheet_to_json(worksheet) as any[];
+                const importedEmployees: Employee[] = json.map((row, index) => ({
+                    id: row['ID'] || `EMP-${Date.now()}-${index}`,
+                    name: String(row['Name'] || ''),
+                    email: String(row['Email'] || ''),
+                    branch: String(row['Branch'] || ''),
+                    role: (row['Role'] as UserRole) || 'Employee',
+                    address: String(row['Address'] || ''),
+                    familyMobileNumber: String(row['Family Contact'] || ''),
+                    joiningDate: row['Joining Date'] ? new Date(row['Joining Date']) : undefined,
+                    birthDate: row['Birth Date'] ? new Date(row['Birth Date']) : undefined,
+                    avatarUrl: `https://placehold.co/32x32.png?text=${String(row['Name'] || 'A').charAt(0)}`,
+                }));
+                importedEmployees.forEach(handleSaveEmployee);
+                toast({ title: "Import Successful", description: `${json.length} employees imported.` });
+            } catch(error: any) {
+                toast({ title: "Import Failed", description: error.message, variant: 'destructive' });
+            } finally {
+                if(fileInputRef.current) fileInputRef.current.value = '';
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    };
+
     if (pagePermission === 'employee_only' && currentEmployeeData) {
         return (
             <div className="flex flex-col gap-3">
@@ -314,10 +386,10 @@ function DashboardContent() {
 
                 {showTools && pagePermission === 'download' && (
                     <div className="flex flex-wrap items-center gap-1.5 p-2 bg-slate-900 rounded-lg text-white animate-in fade-in slide-in-from-top-1">
-                        <input type="file" ref={fileInputRef} onChange={() => {}} className="hidden" accept=".xlsx, .xls" />
-                        <Button variant="outline" size="sm" className="h-7 text-[9px] bg-transparent border-slate-700 text-white hover:bg-slate-800 px-2"><FileSpreadsheet className="h-3 w-3 mr-1" /> Template</Button>
-                        <Button variant="outline" size="sm" className="h-7 text-[9px] bg-transparent border-slate-700 text-white hover:bg-slate-800 px-2"><Upload className="h-3 w-3 mr-1" /> Import</Button>
-                        <Button variant="outline" size="sm" className="h-7 text-[9px] bg-transparent border-slate-700 text-white hover:bg-slate-800 px-2"><Download className="h-3 w-3 mr-1" /> Export All</Button>
+                        <input type="file" ref={fileInputRef} onChange={handleImport} className="hidden" accept=".xlsx, .xls" />
+                        <Button variant="outline" size="sm" onClick={handleDownloadSample} className="h-7 text-[9px] bg-transparent border-slate-700 text-white hover:bg-slate-800 px-2"><FileSpreadsheet className="h-3 w-3 mr-1" /> Template</Button>
+                        <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="h-7 text-[9px] bg-transparent border-slate-700 text-white hover:bg-slate-800 px-2"><Upload className="h-3 w-3 mr-1" /> Import</Button>
+                        <Button variant="outline" size="sm" onClick={handleExport} className="h-7 text-[9px] bg-transparent border-slate-700 text-white hover:bg-slate-800 px-2"><Download className="h-3 w-3 mr-1" /> Export All</Button>
                     </div>
                 )}
                 </CardHeader>
