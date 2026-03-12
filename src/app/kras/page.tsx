@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Protected } from '@/components/protected';
-import { PlusCircle, ListChecks, ChevronUp, ChevronDown, Settings2, Users, ArrowLeft, User, Search, Fingerprint } from 'lucide-react';
+import { PlusCircle, ListChecks, ChevronUp, Settings2, Users, ArrowLeft, Search, Fingerprint, Download, Upload, FileSpreadsheet } from 'lucide-react';
 import { getYear, getMonth, startOfMonth, endOfMonth, format } from 'date-fns';
 import { useDataStore } from '@/hooks/use-data-store';
 import { KraTable } from '@/components/kra-table';
@@ -33,6 +33,7 @@ import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { v4 as uuidv4 } from 'uuid';
 
 function KraManagementPage() {
   const { 
@@ -108,7 +109,7 @@ function KraManagementPage() {
     [employees, selectedEmployeeId]
   );
 
-  const handleExport = () => {
+  const handleExportAll = () => {
     const dataToExport = kras.map(k => ({
         'Employee ID': k.employee.id,
         'Employee Name': k.employee.name,
@@ -127,6 +128,95 @@ function KraManagementPage() {
     XLSX.utils.book_append_sheet(workbook, worksheet, 'KRAs');
     XLSX.writeFile(workbook, `KRA_Data_Full_Export_${format(new Date(), 'yyyyMMdd')}.xlsx`);
     toast({ title: "Export Successful", description: "All KRA data has been exported." });
+  };
+
+  const handleDownloadKRATemplate = () => {
+    const templateData = [
+        {
+            'Task Description': 'Increase sales by 10% in the West region.',
+            'Weightage': 20,
+            'Target': 500000,
+            'End Date': '2024-12-31'
+        }
+    ];
+    const worksheet = XLSX.utils.json_to_sheet(templateData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'KRA_Template');
+    XLSX.writeFile(workbook, 'Individual_KRA_Import_Template.xlsx');
+  };
+
+  const handleExportIndividualKRAs = () => {
+    if (!selectedEmployee) return;
+    const dataToExport = selectedEmployeeKras.map(k => ({
+        'Task Description': k.taskDescription,
+        'Weightage': k.weightage,
+        'Target': k.target,
+        'Achieved': k.achieved,
+        'Marks Achieved': k.marksAchieved,
+        'Bonus': k.bonus,
+        'Penalty': k.penalty,
+        'End Date': format(new Date(k.endDate), 'yyyy-MM-dd')
+    }));
+    
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'MyKRAs');
+    XLSX.writeFile(workbook, `KRA_Data_${selectedEmployee.name.replace(/\s/g, '_')}_${format(new Date(), 'yyyyMMdd')}.xlsx`);
+    toast({ title: "Export Successful", description: `KRA data for ${selectedEmployee.name} exported.` });
+  };
+
+  const handleImportKRAs = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !selectedEmployee) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const data = new Uint8Array(e.target?.result as ArrayBuffer);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+            const json = XLSX.utils.sheet_to_json(worksheet) as any[];
+
+            const importedKras: KRA[] = json.map((row, index) => {
+                const target = Number(row['Target'] || 0);
+                const weightage = Number(row['Weightage'] || 0);
+                const endDate = row['End Date'] ? new Date(row['End Date']) : new Date();
+
+                return {
+                    id: uuidv4(),
+                    taskDescription: String(row['Task Description'] || 'Imported Task'),
+                    employee: selectedEmployee,
+                    progress: 0,
+                    status: 'Pending',
+                    weightage: weightage,
+                    marksAchieved: 0,
+                    bonus: 0,
+                    penalty: 0,
+                    startDate: new Date(),
+                    endDate: isNaN(endDate.getTime()) ? new Date() : endDate,
+                    target: target,
+                    achieved: 0,
+                    actions: [],
+                    activities: [{
+                        id: uuidv4(),
+                        timestamp: new Date(),
+                        actorName: currentUser?.name || 'System',
+                        action: 'KRA Imported',
+                        details: 'KRA added via bulk import'
+                    }]
+                };
+            });
+
+            importedKras.forEach(handleSaveKra);
+            toast({ title: "Import Successful", description: `${json.length} KRAs added to ${selectedEmployee.name}.` });
+
+        } catch (error: any) {
+            toast({ title: "Import Failed", description: error.message, variant: 'destructive' });
+        } finally {
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   return (
@@ -161,6 +251,29 @@ function KraManagementPage() {
                         </div>
                     </div>
                     <div className="flex items-center gap-1.5">
+                        {selectedEmployeeId && pagePermission === 'download' && (
+                            <div className="flex items-center gap-1.5 mr-4 bg-slate-100 p-1 rounded-lg">
+                                <input type="file" ref={fileInputRef} onChange={handleImportKRAs} className="hidden" accept=".xlsx, .xls" />
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button variant="ghost" size="sm" onClick={handleDownloadKRATemplate} className="h-7 text-[9px] gap-1 px-2"><FileSpreadsheet className="h-3 w-3" /> Template</Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="text-xs">Download import template</TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} className="h-7 text-[9px] gap-1 px-2"><Upload className="h-3 w-3" /> Import</Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="text-xs">Bulk add KRAs from Excel</TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button variant="ghost" size="sm" onClick={handleExportIndividualKRAs} className="h-7 text-[9px] gap-1 px-2"><Download className="h-3 w-3" /> Export</Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="text-xs">Export these KRAs</TooltipContent>
+                                </Tooltip>
+                            </div>
+                        )}
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <Button 
@@ -217,8 +330,8 @@ function KraManagementPage() {
                             </div>
 
                             <div className="flex flex-wrap items-center gap-1.5">
-                                {pagePermission === 'download' && (
-                                    <Button variant="outline" size="sm" onClick={handleExport} className="h-7 text-[9px] gap-1 px-2"><PlusCircle className="h-3 w-3" /> Export All</Button>
+                                {!selectedEmployeeId && pagePermission === 'download' && (
+                                    <Button variant="outline" size="sm" onClick={handleExportAll} className="h-7 text-[9px] gap-1 px-2"><PlusCircle className="h-3 w-3" /> Export All Data</Button>
                                 )}
                                 {(pagePermission === 'edit' || pagePermission === 'download') && (
                                     <AddKraDialog onSave={handleSaveKra} employees={employees}>
