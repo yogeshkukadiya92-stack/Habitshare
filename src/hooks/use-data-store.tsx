@@ -40,6 +40,8 @@ interface DataStoreContextType {
   handleDeleteRecruit: (id: string) => void;
   handleDeleteMultipleRecruits: (ids: string[]) => void;
   handleSaveAttendance: (attendance: Attendance) => void;
+  handleSaveBranch: (branch: Branch) => void;
+  handleDeleteBranch: (id: string) => void;
 }
 
 const DataStoreContext = createContext<DataStoreContextType | undefined>(undefined);
@@ -203,10 +205,25 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     });
   };
 
+  const handleSaveBranch = (branch: Branch) => {
+    const docRef = doc(db, 'branches', branch.id);
+    setDoc(docRef, branch, { merge: true }).catch(err => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'write', requestResourceData: branch }));
+    });
+  };
+
+  const handleDeleteBranch = (id: string) => {
+    const docRef = doc(db, 'branches', id);
+    deleteDoc(docRef).catch(err => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'delete' }));
+    });
+  };
+
   const value = {
     loading, kras, employees, branches: branches || [], leaves: leaves || [], expenses: expenses || [], routineTasks: routineTasks || [], habits: habits || [], holidays: holidays || [], recruits: recruits || [], attendances: attendances || [],
     handleSaveKra, handleDeleteKra, handleDeleteMultipleKras, handleSaveEmployee, handleDeleteEmployee, handleDeleteMultipleEmployees, handleSaveLeave, handleDeleteLeave, handleDeleteMultipleLeaves, handleSaveExpense, handleDeleteExpense, handleDeleteMultipleExpenses,
-    handleSaveRoutineTask, handleDeleteRoutineTask, handleDeleteMultipleRoutineTasks, handleSaveHabit, handleSaveHoliday, handleDeleteHoliday, handleDeleteMultipleHolidays, handleSaveRecruit, handleDeleteRecruit, handleDeleteMultipleRecruits, handleSaveAttendance
+    handleSaveRoutineTask, handleDeleteRoutineTask, handleDeleteMultipleRoutineTasks, handleSaveHabit, handleSaveHoliday, handleDeleteHoliday, handleDeleteMultipleHolidays, handleSaveRecruit, handleDeleteRecruit, handleDeleteMultipleRecruits, handleSaveAttendance,
+    handleSaveBranch, handleDeleteBranch
   };
 
   return <DataStoreContext.Provider value={value}>{children}</DataStoreContext.Provider>;

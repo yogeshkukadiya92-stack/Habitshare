@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -238,7 +237,7 @@ const BranchDialog = ({
 
 
 export default function SettingsPage() {
-    const { employees, branches, loading, setKras, setBranches } = useDataStore();
+    const { employees, branches, loading, handleSaveEmployee, handleSaveBranch, handleDeleteBranch } = useDataStore();
     const { toast } = useToast();
     const { getPermission } = useAuth();
     const pagePermission = getPermission('settings');
@@ -253,7 +252,7 @@ export default function SettingsPage() {
     }, [employees, branches])
 
 
-    const handleSaveBranch = (branchToSave: Branch) => {
+    const onSaveBranchAction = (branchToSave: Branch) => {
         const isEditing = branches.some(b => b.id === branchToSave.id);
         
         if (!isEditing && branches.some(b => b.name.toLowerCase() === branchToSave.name.toLowerCase())) {
@@ -261,12 +260,7 @@ export default function SettingsPage() {
             return;
         }
         
-        setBranches(prevBranches => {
-            const updatedBranches = isEditing 
-                ? prevBranches.map(b => b.id === branchToSave.id ? branchToSave : b)
-                : [...prevBranches, branchToSave];
-            return updatedBranches;
-        });
+        handleSaveBranch(branchToSave);
 
         toast({
             title: isEditing ? "Branch Updated" : "Branch Added",
@@ -275,8 +269,8 @@ export default function SettingsPage() {
     };
 
 
-    const handleDeleteBranch = (branchId: string) => {
-        setBranches(prevBranches => prevBranches.filter(branch => branch.id !== branchId));
+    const onDeleteBranchAction = (branchId: string) => {
+        handleDeleteBranch(branchId);
         toast({
             title: "Branch Deleted",
             description: "The branch has been successfully deleted.",
@@ -284,44 +278,29 @@ export default function SettingsPage() {
     };
 
     const handleRoleChange = (employeeId: string, role: UserRole) => {
-        setKras(prevKras => prevKras.map(kra => {
-            if (kra.employee.id === employeeId) {
-                return {
-                    ...kra,
-                    employee: { ...kra.employee, role: role }
-                };
-            }
-            return kra;
-        }));
-        toast({
-            title: "Role Updated",
-            description: `Role has been changed to ${role}.`
-        })
+        const employee = employees.find(e => e.id === employeeId);
+        if (employee) {
+            handleSaveEmployee({ ...employee, role });
+            toast({
+                title: "Role Updated",
+                description: `Role for ${employee.name} has been changed to ${role}.`
+            })
+        }
     };
     
-    const handleSaveEmployee = (employeeToSave: Employee) => {
-        setKras(prevKras => prevKras.map(kra => {
-            if (kra.employee.id === employeeToSave.id) {
-                return { ...kra, employee: employeeToSave };
-            }
-            return kra;
-        }));
+    const onSaveEmployeeAction = (employeeToSave: Employee) => {
+        handleSaveEmployee(employeeToSave);
     };
 
     const handlePermissionChange = (employeeId: string, permissions: EmployeePermissions) => {
-         setKras(prevKras => prevKras.map(kra => {
-            if (kra.employee.id === employeeId) {
-                return {
-                    ...kra,
-                    employee: { ...kra.employee, permissions: permissions }
-                };
-            }
-            return kra;
-        }));
-        toast({
-            title: "Permissions Updated",
-            description: `Permissions have been updated for the user.`
-        })
+        const employee = employees.find(e => e.id === employeeId);
+        if (employee) {
+            handleSaveEmployee({ ...employee, permissions });
+            toast({
+                title: "Permissions Updated",
+                description: `Permissions have been updated for ${employee.name}.`
+            })
+        }
     };
 
     return (
@@ -380,7 +359,7 @@ export default function SettingsPage() {
                         </CardDescription>
                     </div>
                     {pagePermission === 'download' && (
-                        <BranchDialog onSave={handleSaveBranch} employees={sortedEmployees}>
+                        <BranchDialog onSave={onSaveBranchAction} employees={sortedEmployees}>
                             <Button>
                                 <PlusCircle className="mr-2 h-4 w-4" />
                                 Add Branch
@@ -425,7 +404,7 @@ export default function SettingsPage() {
                                             {pagePermission === 'download' && (
                                             <TableCell className="text-right">
                                                  <div className="flex items-center justify-end gap-2">
-                                                     <BranchDialog branch={branch} onSave={handleSaveBranch} employees={sortedEmployees}>
+                                                     <BranchDialog branch={branch} onSave={onSaveBranchAction} employees={sortedEmployees}>
                                                         <Button variant="ghost" size="icon">
                                                             <Edit className="h-4 w-4" />
                                                         </Button>
@@ -445,7 +424,7 @@ export default function SettingsPage() {
                                                             </AlertDialogHeader>
                                                             <AlertDialogFooter>
                                                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                            <AlertDialogAction onClick={() => handleDeleteBranch(branch.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                                                            <AlertDialogAction onClick={() => onDeleteBranchAction(branch.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
                                                             </AlertDialogFooter>
                                                         </AlertDialogContent>
                                                     </AlertDialog>
@@ -526,7 +505,7 @@ export default function SettingsPage() {
                                             </PermissionDialog>
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            <EditEmployeeDialog employee={employee} onSave={handleSaveEmployee}>
+                                            <EditEmployeeDialog employee={employee} onSave={onSaveEmployeeAction}>
                                                 <Button variant="ghost" size="icon" disabled={pagePermission !== 'download'}>
                                                     <Edit className="h-4 w-4" />
                                                 </Button>
