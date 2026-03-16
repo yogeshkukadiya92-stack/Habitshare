@@ -103,6 +103,13 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
     
+    // Activities Feed
+    match /activities/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin();
+    }
+    
     // Roles management
     match /roles_admin/{userId} {
       allow read: if isSignedIn();

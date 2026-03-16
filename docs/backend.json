@@ -12,7 +12,7 @@
         },
         "email": {
           "type": "string",
-          "description": "The unique email address of the user, used for login and associating all their KRA data. This directly addresses the user's request for consistent data across devices based on email ID.",
+          "description": "The unique email address of the user, used for login and associating all their KRA data.",
           "format": "email"
         },
         "firstName": {
@@ -43,11 +43,50 @@
         "updatedAt"
       ]
     },
+    "ActivityLog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ActivityLog",
+      "type": "object",
+      "description": "Logs all significant activities within the organization for the real-time activity feed on the dashboard.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the activity log entry."
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the activity occurred."
+        },
+        "actorName": {
+          "type": "string",
+          "description": "The name of the person who performed the action."
+        },
+        "employeeName": {
+          "type": "string",
+          "description": "The name of the employee affected by the action."
+        },
+        "action": {
+          "type": "string",
+          "description": "A concise summary of the action performed (e.g., 'Leave Request: Approved')."
+        },
+        "details": {
+          "type": "string",
+          "description": "Additional details about the action."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["kra", "leave", "expense", "task", "attendance", "employee"],
+          "description": "The category of the activity for icon mapping."
+        }
+      },
+      "required": ["id", "timestamp", "actorName", "employeeName", "action", "type"]
+    },
     "KeyResultArea": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "KeyResultArea",
       "type": "object",
-      "description": "Defines a Key Result Area (KRA) within the organization. These are high-level objectives that individual tasks will contribute to.",
+      "description": "Defines a Key Result Area (KRA) within the organization.",
       "properties": {
         "id": {
           "type": "string",
@@ -61,204 +100,20 @@
           "type": "string",
           "description": "A detailed explanation of the KRA's objective and scope."
         },
-        "targetValue": {
-          "type": "number",
-          "description": "A numerical target value for the KRA, if applicable (e.g., a sales target, percentage improvement)."
-        },
-        "targetUnit": {
-          "type": "string",
-          "description": "The unit of measurement for the target value (e.g., 'USD', '%', 'units')."
-        },
         "isActive": {
           "type": "boolean",
-          "description": "Indicates whether this KRA definition is currently active and available for use."
-        },
-        "recommendedDescription": {
-          "type": "string",
-          "description": "An improved or refined version of the KRA description, potentially recommended by the GenAI tool for clarity."
-        },
-        "lastRefinedAt": {
-          "type": "string",
-          "description": "Timestamp of the last time the description was refined or recommended by the GenAI tool.",
-          "format": "date-time"
+          "description": "Indicates whether this KRA definition is currently active."
         },
         "createdAt": {
           "type": "string",
-          "description": "Timestamp indicating when the KRA definition was created.",
           "format": "date-time"
         },
         "updatedAt": {
           "type": "string",
-          "description": "Timestamp indicating the last time the KRA definition was updated.",
           "format": "date-time"
         }
       },
-      "required": [
-        "id",
-        "name",
-        "description",
-        "isActive",
-        "createdAt",
-        "updatedAt"
-      ]
-    },
-    "Task": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Task",
-      "type": "object",
-      "description": "Represents an individual task assigned to a user, linked to a specific KRA. This entity tracks progress, status, and assigned scores for each task.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Task entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User who is assigned this task. (Relationship: User 1:N Task)"
-        },
-        "kraId": {
-          "type": "string",
-          "description": "Reference to the Key Result Area that this task contributes to. (Relationship: KeyResultArea 1:N Task)"
-        },
-        "title": {
-          "type": "string",
-          "description": "A brief, descriptive title for the task."
-        },
-        "description": {
-          "type": "string",
-          "description": "A detailed description of the task, including expected outcomes or steps."
-        },
-        "startDate": {
-          "type": "string",
-          "description": "The date when the task is expected to start.",
-          "format": "date"
-        },
-        "dueDate": {
-          "type": "string",
-          "description": "The date by which the task is expected to be completed.",
-          "format": "date"
-        },
-        "completionDate": {
-          "type": "string",
-          "description": "The actual date when the task was completed.",
-          "format": "date"
-        },
-        "status": {
-          "type": "string",
-          "description": "The current status of the task (e.g., 'Not Started', 'In Progress', 'Completed', 'On Hold')."
-        },
-        "progressPercentage": {
-          "type": "number",
-          "description": "The current percentage of completion for the task (0-100)."
-        },
-        "score": {
-          "type": "number",
-          "description": "The score assigned to the task, typically upon completion, reflecting its quality or impact."
-        },
-        "notes": {
-          "type": "string",
-          "description": "Any additional notes or comments related to the task."
-        },
-        "recommendedDescription": {
-          "type": "string",
-          "description": "An improved or refined version of the task description, potentially recommended by the GenAI tool for clarity."
-        },
-        "lastRefinedAt": {
-          "type": "string",
-          "description": "Timestamp of the last time the task description was refined or recommended by the GenAI tool.",
-          "format": "date-time"
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp indicating when the task was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp indicating the last time the task's information was updated.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "kraId",
-        "title",
-        "description",
-        "startDate",
-        "dueDate",
-        "status",
-        "progressPercentage",
-        "createdAt",
-        "updatedAt"
-      ]
-    },
-    "KRAPeriodEvaluation": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "KRAPeriodEvaluation",
-      "type": "object",
-      "description": "Records the formal evaluation of a user's performance against their KRAs for a specific period. This is used for reporting and increment management.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the KRAPeriodEvaluation entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User whose performance is being evaluated. (Relationship: User 1:N KRAPeriodEvaluation)"
-        },
-        "evaluationPeriodStart": {
-          "type": "string",
-          "description": "The start date of the evaluation period.",
-          "format": "date"
-        },
-        "evaluationPeriodEnd": {
-          "type": "string",
-          "description": "The end date of the evaluation period.",
-          "format": "date"
-        },
-        "overallScore": {
-          "type": "number",
-          "description": "The aggregated overall performance score for the user during this period based on KRA tasks."
-        },
-        "performanceSummary": {
-          "type": "string",
-          "description": "A narrative summary of the user's performance and achievements during the evaluation period."
-        },
-        "reviewerId": {
-          "type": "string",
-          "description": "Reference to the User who conducted this evaluation, if applicable. (Relationship: User 1:N KRAPeriodEvaluation)"
-        },
-        "evaluationDate": {
-          "type": "string",
-          "description": "The date and time when this evaluation was completed and recorded.",
-          "format": "date-time"
-        },
-        "incrementRecommendation": {
-          "type": "string",
-          "description": "Recommendation regarding salary increments, promotions, or other HR actions based on the evaluation."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp indicating when the evaluation record was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp indicating the last time the evaluation record was updated.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "evaluationPeriodStart",
-        "evaluationPeriodEnd",
-        "overallScore",
-        "evaluationDate",
-        "createdAt",
-        "updatedAt"
-      ]
+      "required": ["id", "name", "description", "isActive", "createdAt", "updatedAt"]
     }
   },
   "auth": {
@@ -276,50 +131,34 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores individual user profiles. The document ID (`userId`) will be the Firebase Authentication UID (`request.auth.uid`), ensuring that all user-specific data across different devices is consistently linked to the authenticated user."
+          "description": "Stores individual user profiles."
         }
       },
       {
-        "path": "/users/{userId}/tasks/{taskId}",
+        "path": "/activities/{activityId}",
         "definition": {
-          "entityName": "Task",
+          "entityName": "ActivityLog",
           "schema": {
-            "$ref": "#/backend/entities/Task"
+            "$ref": "#/backend/entities/ActivityLog"
           },
-          "description": "Stores individual tasks assigned to a specific user. The `userId` in the path ensures ownership and data segregation. Includes denormalized `userId` and `kraId` for linking to the user and the global KRA definition, enabling authorization independence and simple security rules."
+          "description": "Stores global activity logs for the dashboard feed."
         }
       },
       {
-        "path": "/users/{userId}/kraEvaluations/{evaluationId}",
-        "definition": {
-          "entityName": "KRAPeriodEvaluation",
-          "schema": {
-            "$ref": "#/backend/entities/KRAPeriodEvaluation"
-          },
-          "description": "Stores formal evaluations for a user over a specific period. The `userId` in the path ensures ownership. Includes denormalized `userId` for authorization independence and `reviewerId` for identifying the evaluator, facilitating clear access control for the evaluated user and potential admin/reviewer roles."
-        }
-      },
-      {
-        "path": "/keyResultAreas/{kraId}",
+        "path": "/kras/{kraId}",
         "definition": {
           "entityName": "KeyResultArea",
-          "schema": {
-            "$ref": "#/backend/entities/KeyResultArea"
-          },
-          "description": "Stores global definitions of Key Result Areas (KRAs) that can be referenced by tasks. These are organizational definitions, readable by all authenticated users, and writable primarily by administrative users, providing structural segregation for global data."
+          "description": "Stores organizational KRA records assigned to employees."
         }
       },
       {
         "path": "/roles_admin/{userId}",
         "definition": {
           "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "A collection where the existence of a document with a user's UID indicates they have administrative privileges. This uses the 'existence over content' model for Database Access Control (DBAC), making admin role checks simple and efficient in security rules."
+          "description": "Determines administrative roles by document existence."
         }
       }
     ],
-    "reasoning": "The recommended Firestore structure is designed to fully address the user's primary concern regarding data consistency across devices, while also ensuring robust security, scalability, and debuggability in line with the core design principles. The foundational approach leverages Firebase Authentication's `request.auth.uid` as the primary key for user-specific data, guaranteeing that a user logging in from any device with the same email ID (and thus, the same `uid`) will access their identical dataset.\n\n**Authorization Independence (CRITICAL):** This design achieves Authorization Independence by explicitly embedding the `userId` into the path of all user-owned data. For example, `tasks` are stored under `/users/{userId}/tasks/{taskId}`. This structure allows Firestore security rules to directly compare `request.auth.uid` with the `{userId}` wildcard in the path, eliminating the need for expensive and complex `get()` operations to check ownership against a parent user document. This also enables atomic creation of related documents without compromising security rules. The `KeyResultArea` definitions are segregated into a top-level collection (`/keyResultAreas/{kraId}`) to separate global, organizational data from user-specific private data, avoiding hierarchical authorization dependencies.\n\n**QAPs (Rules are not Filters):** The structure inherently supports Query Against Paths (QAPs) for secure `list` operations. User-specific collections like `/users/{userId}/tasks` are naturally queryable by the owner. When a user requests their tasks, the client-side query will target `db.collection('users').doc(request.auth.uid).collection('tasks')`. The security rules will then enforce that `request.auth.uid == userId` (where `userId` is the path wildcard), effectively ensuring that a user can only list *their own* tasks. This prevents accidental data exposure and complex, inefficient client-side filtering. For global `KeyResultArea` definitions, all authenticated users can `list` from `/keyResultAreas`, as these are intended to be globally accessible for reference. Administrative roles are handled via a dedicated `roles_admin` collection, enabling explicit admin checks for broader `list` access to reporting data without violating QAPs for regular users. This 'existence over content' model for roles is efficient and secure."
+    "reasoning": "The Firestore structure uses a flat collection approach for activities to enable organization-wide real-time feeds while maintaining user-specific data under existing patterns. Security rules are configured to allow cross-user visibility for the activity feed while keeping sensitive profile data protected."
   }
 }
