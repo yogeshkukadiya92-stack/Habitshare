@@ -209,9 +209,20 @@ function DashboardContent() {
   }, [kras, branches, employees, activities, pagePermission, user, selectedYear, selectedMonth]);
 
   const handleActivityClick = (act: ActivityLog) => {
-    switch (act.type) {
+    // Determine target based on explicit type or fallback to action text
+    const type = act.type || (
+        act.action.toLowerCase().includes('kra') ? 'kra' :
+        act.action.toLowerCase().includes('leave') ? 'leave' :
+        act.action.toLowerCase().includes('expense') ? 'expense' :
+        act.action.toLowerCase().includes('task') ? 'task' :
+        act.action.toLowerCase().includes('attendance') ? 'attendance' :
+        act.action.toLowerCase().includes('profile') || act.action.toLowerCase().includes('employee') ? 'employee' : 'kra'
+    );
+
+    switch (type) {
         case 'kra':
             if (act.employeeId) router.push(`/employees/${act.employeeId}`);
+            else router.push('/kras');
             break;
         case 'leave':
             router.push('/leaves');
@@ -227,8 +238,11 @@ function DashboardContent() {
             break;
         case 'employee':
             if (act.relatedId) router.push(`/employees/${act.relatedId}`);
+            else if (act.employeeId) router.push(`/employees/${act.employeeId}`);
+            else router.push('/');
             break;
         default:
+            router.push('/');
             break;
     }
   };
@@ -464,10 +478,10 @@ function DashboardContent() {
                                         <div 
                                             key={act.id} 
                                             onClick={() => handleActivityClick(act)}
-                                            className="p-3 hover:bg-slate-50 transition-colors cursor-pointer group"
+                                            className="p-3 hover:bg-slate-50 transition-all cursor-pointer group border-l-4 border-l-transparent hover:border-l-primary"
                                         >
                                             <div className="flex items-start gap-2.5">
-                                                <div className={cn("mt-1 p-1 rounded-full bg-slate-50 group-hover:bg-white shadow-sm transition-colors", color)}>
+                                                <div className={cn("mt-1 p-1.5 rounded-full bg-slate-50 group-hover:bg-white shadow-sm transition-colors", color)}>
                                                     <Icon className="h-3.5 w-3.5" />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
@@ -481,7 +495,7 @@ function DashboardContent() {
                                                         <Badge variant="outline" className='text-[7px] h-3 px-1 border-slate-200 bg-white text-slate-400 uppercase tracking-tighter'>By: {act.actorName}</Badge>
                                                     </div>
                                                 </div>
-                                                <ChevronRight className="h-3 w-3 text-slate-300 mt-1 opacity-0 group-hover:opacity-100 transition-all" />
+                                                <ChevronRight className="h-3.5 w-3.5 text-slate-300 mt-1.5 opacity-0 group-hover:opacity-100 transition-all translate-x-[-4px] group-hover:translate-x-0" />
                                             </div>
                                         </div>
                                     )})}
