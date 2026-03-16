@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -24,7 +23,7 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { Employee, KRA, KRAStatus, WeeklyUpdateStatus, ActionItem, WeeklyUpdate, WeeklyProgress } from '@/lib/types';
-import { cn, ensureDate } from '@/lib/utils';
+import { cn, ensureDate, sortKras } from '@/lib/utils';
 import { format, isValid } from 'date-fns';
 import { AddKraDialog } from './add-kra-dialog';
 import {
@@ -448,6 +447,14 @@ const SortableKraRow = ({ kra, selectedIds, onSelectOne, onSave, onDelete, emplo
 export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const { handleDeleteMultipleKras, handleReorderKras } = useDataStore();
+  
+  // Internal state to hold the list during/after dragging to prevent snap-back
+  const [displayKras, setDisplayKras] = React.useState<KRA[]>(kras);
+
+  // Sync internal state when kras prop changes (e.g. from server)
+  React.useEffect(() => {
+    setDisplayKras(kras);
+  }, [kras]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -463,36 +470,42 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (active.id !== over?.id) {
-        const oldIndex = kras.findIndex((k) => k.id === active.id);
-        const newIndex = kras.findIndex((k) => k.id === over?.id);
-        const newKras = arrayMove(kras, oldIndex, newIndex);
+        const oldIndex = displayKras.findIndex((k) => k.id === active.id);
+        const newIndex = displayKras.findIndex((k) => k.id === over?.id);
+        
+        const newKras = arrayMove(displayKras, oldIndex, newIndex);
+        
+        // Update local state immediately for visual responsiveness
+        setDisplayKras(newKras);
+        
+        // Update Firestore asynchronously
         handleReorderKras(newKras);
     }
   };
 
   const totalWeightage = React.useMemo(() => 
-    kras.reduce((sum, kra) => sum + (kra.weightage || 0), 0)
-  , [kras]);
+    displayKras.reduce((sum, kra) => sum + (kra.weightage || 0), 0)
+  , [displayKras]);
 
   const totalBonus = React.useMemo(() => 
-    kras.reduce((sum, kra) => sum + (kra.bonus || 0), 0)
-  , [kras]);
+    displayKras.reduce((sum, kra) => sum + (kra.bonus || 0), 0)
+  , [displayKras]);
 
   const totalPenalty = React.useMemo(() => 
-    kras.reduce((sum, kra) => sum + (kra.penalty || 0), 0)
-  , [kras]);
+    displayKras.reduce((sum, kra) => sum + (kra.penalty || 0), 0)
+  , [displayKras]);
 
   const totalPerformance = React.useMemo(() => 
-    kras.reduce((sum, kra) => sum + ((kra.marksAchieved || 0) + (kra.bonus || 0) - (kra.penalty || 0)), 0)
-  , [kras]);
+    displayKras.reduce((sum, kra) => sum + ((kra.marksAchieved || 0) + (kra.bonus || 0) - (kra.penalty || 0)), 0)
+  , [displayKras]);
 
   const totalOverallTarget = React.useMemo(() => 
-    kras.reduce((sum, kra) => sum + (kra.target || 0), 0)
-  , [kras]);
+    displayKras.reduce((sum, kra) => sum + (kra.target || 0), 0)
+  , [displayKras]);
 
   const totalOverallAchieved = React.useMemo(() => 
-    kras.reduce((sum, kra) => sum + (kra.achieved || 0), 0)
-  , [kras]);
+    displayKras.reduce((sum, kra) => sum + (kra.achieved || 0), 0)
+  , [displayKras]);
 
   const weeklyTotals = React.useMemo(() => {
     const totals = {
@@ -503,7 +516,7 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
       week5: { target: 0, achieved: 0 },
     };
 
-    kras.forEach(kra => {
+    displayKras.forEach(kra => {
       if (kra.weeklyProgress) {
         Object.keys(kra.weeklyProgress).forEach(week => {
           const w = week as keyof typeof totals;
@@ -515,11 +528,11 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
     });
 
     return totals;
-  }, [kras]);
+  }, [displayKras]);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedIds(kras.map(k => k.id));
+      setSelectedIds(displayKras.map(k => k.id));
     } else {
       setSelectedIds([]);
     }
@@ -603,7 +616,7 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
                 <div className="flex items-center gap-2">
                     <span className="w-4"></span>
                     <Checkbox 
-                        checked={selectedIds.length === kras.length && kras.length > 0}
+                        checked={selectedIds.length === displayKras.length && displayKras.length > 0}
                         onCheckedChange={(checked) => handleSelectAll(!!checked)}
                         className="h-3.5 w-3.5"
                     />
@@ -625,16 +638,16 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
             </TableRow>
             </TableHeader>
             <TableBody>
-            {kras.length === 0 && (
+            {displayKras.length === 0 && (
                 <TableRow>
                 <TableCell colSpan={12} className="h-20 text-center text-xs text-muted-foreground">No KRAs found.</TableCell>
                 </TableRow>
             )}
             <SortableContext 
-                items={kras.map(k => k.id)}
+                items={displayKras.map(k => k.id)}
                 strategy={verticalListSortingStrategy}
             >
-                {kras.map((kra) => (
+                {displayKras.map((kra) => (
                     <SortableKraRow 
                         key={kra.id}
                         kra={kra}
@@ -648,7 +661,7 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
                 ))}
             </SortableContext>
             </TableBody>
-            {kras.length > 0 && (
+            {displayKras.length > 0 && (
             <TableFooter className="bg-slate-50/80 font-bold border-t-2 h-12">
                 <TableRow className="h-12">
                 <TableCell colSpan={3} className="text-right py-2 pr-4 text-slate-500 uppercase text-[9px] tracking-widest h-12">

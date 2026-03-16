@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useContext, useMemo } from 'react';
@@ -6,7 +5,7 @@ import { collection, doc, deleteDoc, setDoc, serverTimestamp, query, orderBy, li
 import { useFirestore, useUser, useCollection, useMemoFirebase, FirestorePermissionError, errorEmitter } from '@/firebase';
 import type { Employee, KRA, Branch, Leave, Expense, RoutineTask, Habit, Holiday, Recruit, Attendance, ActivityLog } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
-import { ensureDate } from '@/lib/utils';
+import { ensureDate, sortKras } from '@/lib/utils';
 
 interface DataStoreContextType {
   loading: boolean;
@@ -82,14 +81,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   const employees = useMemo(() => users || [], [users]);
   const kras = useMemo(() => {
     if (!krasData) return [];
-    return [...krasData].sort((a, b) => {
-        if (a.order !== undefined && b.order !== undefined && a.order !== b.order) {
-            return a.order - b.order;
-        }
-        const dateA = ensureDate(a.createdAt || a.updatedAt).getTime();
-        const dateB = ensureDate(b.createdAt || b.updatedAt).getTime();
-        return dateA - dateB;
-    });
+    return sortKras(krasData);
   }, [krasData]);
   const activities = useMemo(() => activitiesData || [], [activitiesData]);
 
@@ -135,6 +127,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   };
 
   const handleReorderKras = (reorderedKras: KRA[]) => {
+    // Update Firestore with new sequence orders
     reorderedKras.forEach((kra, index) => {
         const docRef = doc(db, 'kras', kra.id);
         setDoc(docRef, { order: index }, { merge: true }).catch(err => {

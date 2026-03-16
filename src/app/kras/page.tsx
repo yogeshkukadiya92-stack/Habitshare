@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -34,7 +33,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { v4 as uuidv4 } from 'uuid';
-import { ensureDate } from '@/lib/utils';
+import { ensureDate, sortKras } from '@/lib/utils';
 
 function KraManagementPage() {
   const { 
@@ -85,7 +84,7 @@ function KraManagementPage() {
   const selectedEmployeeKras = React.useMemo(() => {
     if (!selectedEmployeeId) return [];
     
-    return kras.filter(kra => {
+    const filtered = kras.filter(kra => {
         if (!kra.employee || kra.employee.id !== selectedEmployeeId) return false;
         
         if (selectedYear === 'all' && selectedMonth === 'all') return true;
@@ -104,12 +103,9 @@ function KraManagementPage() {
              return kraStart <= monthEnd && kraEnd >= monthStart;
         }
         return true;
-    }).sort((a, b) => {
-        // Sort by creation time so new ones are at the bottom
-        const dateA = ensureDate(a.createdAt || a.updatedAt).getTime();
-        const dateB = ensureDate(b.createdAt || b.updatedAt).getTime();
-        return dateA - dateB;
     });
+
+    return sortKras(filtered);
   }, [kras, selectedEmployeeId, selectedYear, selectedMonth]);
 
   const selectedEmployee = React.useMemo(() => 
