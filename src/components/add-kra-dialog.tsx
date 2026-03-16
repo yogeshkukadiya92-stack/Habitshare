@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Sparkles, Loader2, PlusCircle, Trash2, Check, ChevronsUpDown, MessageSquare, History, CalendarDays, Activity } from 'lucide-react';
+import { Sparkles, Loader2, PlusCircle, Trash2, Check, ChevronsUpDown, MessageSquare, History, CalendarDays, Activity, Calendar as CalendarIcon } from 'lucide-react';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -24,7 +24,7 @@ import { refineKraTaskDescription } from '@/ai/flows/kra-refinement';
 import { useToast } from '@/hooks/use-toast';
 import type { KRA, ActionItem, Employee, WeeklyUpdate, ActivityLog } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
-import { format, isValid } from 'date-fns';
+import { format, addDays, startOfWeek, addWeeks } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn, ensureDate } from '@/lib/utils';
@@ -71,6 +71,8 @@ const kraSchema = z.object({
   extraWork: z.string().optional(),
   target: z.number().min(0).nullable(),
   achieved: z.number().min(0).nullable(),
+  startDate: z.date(),
+  endDate: z.date(),
   weeklyProgress: z.object({
     week1: weeklyProgressItemSchema,
     week2: weeklyProgressItemSchema,
@@ -217,6 +219,8 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
       extraWork: kra?.extraWork || '',
       target: kra?.target || null,
       achieved: kra?.achieved || null,
+      startDate: ensureDate(kra?.startDate || new Date()),
+      endDate: ensureDate(kra?.endDate || addWeeks(new Date(), 4)),
       weeklyProgress: {
         week1: { target: null, achieved: null, description: '' },
         week2: { target: null, achieved: null, description: '' },
@@ -238,6 +242,14 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
   const watchedWeightage = watch('weightage');
   const watchedTarget = watch('target');
   const watchedAchieved = watch('achieved');
+  const watchedStartDate = watch('startDate');
+
+  // Calculate week dates based on start date
+  const getWeekRange = (weekNum: number) => {
+    const start = addDays(watchedStartDate, (weekNum - 1) * 7);
+    const end = addDays(start, 6);
+    return `${format(start, 'MMM d')} - ${format(end, 'MMM d')}`;
+  };
 
   React.useEffect(() => {
     let totalWeeklyTarget = 0;
@@ -298,6 +310,8 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
         marksAchieved: kra?.marksAchieved || null,
         bonus: kra?.bonus || null,
         penalty: kra?.penalty || null,
+        startDate: ensureDate(kra?.startDate || new Date()),
+        endDate: ensureDate(kra?.endDate || addWeeks(new Date(), 4)),
         actions: kra?.actions?.map(a => ({
             ...a,
             dueDate: ensureDate(a.dueDate),
@@ -406,8 +420,8 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
       marksAchieved: data.marksAchieved,
       bonus: data.bonus,
       penalty: data.penalty,
-      startDate: ensureDate(kra?.startDate || new Date()),
-      endDate: ensureDate(kra?.endDate || new Date(new Date().setMonth(new Date().getMonth() + 3))),
+      startDate: data.startDate,
+      endDate: data.endDate,
       actions: updatedActions,
       handover: data.handover,
       extraWork: data.extraWork,
@@ -428,7 +442,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
           <DialogHeader className="p-6 pb-2">
             <DialogTitle>{kra ? 'Update KRA & Progress' : 'Add New KRA'}</DialogTitle>
             <DialogDescription>
-              Set weekly targets, record achievements, and manage KPI goals.
+              Set period, weekly targets, record achievements, and manage KPI goals.
             </DialogDescription>
           </DialogHeader>
           
@@ -470,6 +484,42 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                 </div>
                 </div>
 
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label className="text-right font-semibold">Period</Label>
+                    <div className="col-span-3 flex items-center gap-4">
+                        <div className='flex-1 space-y-1'>
+                            <Label className='text-[10px] text-muted-foreground uppercase font-bold'>Start Date</Label>
+                            <Controller
+                                name="startDate"
+                                control={control}
+                                render={({ field }) => (
+                                    <Input 
+                                        type="date" 
+                                        value={format(field.value, 'yyyy-MM-dd')} 
+                                        onChange={e => field.onChange(new Date(e.target.value))}
+                                        disabled={!isAdmin}
+                                    />
+                                )}
+                            />
+                        </div>
+                        <div className='flex-1 space-y-1'>
+                            <Label className='text-[10px] text-muted-foreground uppercase font-bold'>End Date</Label>
+                            <Controller
+                                name="endDate"
+                                control={control}
+                                render={({ field }) => (
+                                    <Input 
+                                        type="date" 
+                                        value={format(field.value, 'yyyy-MM-dd')} 
+                                        onChange={e => field.onChange(new Date(e.target.value))}
+                                        disabled={!isAdmin}
+                                    />
+                                )}
+                            />
+                        </div>
+                    </div>
+                </div>
+
                 <div className="grid grid-cols-4 items-start gap-4">
                 <Label className="text-right pt-2 font-semibold">Task</Label>
                 <div className="col-span-3">
@@ -495,10 +545,15 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                         <div className="grid grid-cols-5 gap-4">
                             {[1, 2, 3, 4, 5].map((weekNum) => (
                                 <div key={weekNum} className="space-y-3 p-3 border rounded-lg bg-slate-50/50">
-                                    <div className='flex items-center gap-1.5 mb-1'>
-                                        <CalendarDays className='h-3.5 w-3.5 text-primary' />
-                                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Week {weekNum}</span>
+                                    <div className='flex items-center justify-between mb-1'>
+                                        <div className='flex items-center gap-1.5'>
+                                            <CalendarDays className='h-3.5 w-3.5 text-primary' />
+                                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Week {weekNum}</span>
+                                        </div>
                                     </div>
+                                    <p className='text-[9px] font-medium text-muted-foreground text-center bg-white rounded py-0.5 border border-slate-100 shadow-sm'>
+                                        {getWeekRange(weekNum)}
+                                    </p>
                                     <div className='space-y-1.5'>
                                         <Label className="text-[9px] font-bold text-slate-400">Weekly KRA</Label>
                                         <Controller
@@ -594,22 +649,42 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                     <div className="col-span-3 space-y-4">
                         {fields.map((field, index) => (
                             <div key={field.id} className="p-4 border rounded-lg bg-white shadow-sm space-y-3">
-                                <div className="flex items-center gap-3">
-                                    <Controller
-                                        name={`actions.${index}.isCompleted`}
-                                        control={control}
-                                        render={({ field: f }) => <Checkbox checked={f.value} onCheckedChange={f.onChange} />}
-                                    />
-                                    <Controller
-                                        name={`actions.${index}.name`}
-                                        control={control}
-                                        render={({ field: f }) => <Input placeholder="KPI Action" {...f} disabled={!isAdmin} className="flex-1 font-semibold" />}
-                                    />
-                                    {isAdmin && (
-                                        <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className='text-rose-500'>
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    )}
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3 flex-1">
+                                        <Controller
+                                            name={`actions.${index}.isCompleted`}
+                                            control={control}
+                                            render={({ field: f }) => <Checkbox checked={f.value} onCheckedChange={f.onChange} />}
+                                        />
+                                        <Controller
+                                            name={`actions.${index}.name`}
+                                            control={control}
+                                            render={({ field: f }) => <Input placeholder="KPI Action" {...f} disabled={!isAdmin} className="flex-1 font-semibold" />}
+                                        />
+                                    </div>
+                                    <div className='flex items-center gap-2 ml-4'>
+                                        <div className='flex flex-col items-end'>
+                                            <Label className='text-[8px] uppercase font-bold text-slate-400'>Due Date</Label>
+                                            <Controller
+                                                name={`actions.${index}.dueDate`}
+                                                control={control}
+                                                render={({ field: f }) => (
+                                                    <Input 
+                                                        type="date" 
+                                                        className='h-7 text-[10px] py-0 w-28' 
+                                                        value={f.value ? format(new Date(f.value), 'yyyy-MM-dd') : ''}
+                                                        onChange={e => f.onChange(new Date(e.target.value))}
+                                                        disabled={!isAdmin}
+                                                    />
+                                                )}
+                                            />
+                                        </div>
+                                        {isAdmin && (
+                                            <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className='text-rose-500 h-8 w-8'>
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                    </div>
                                 </div>
                                 <div className='flex items-end gap-3 pl-7'>
                                     <div className='flex-1'>

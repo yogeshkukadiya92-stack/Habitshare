@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -24,7 +25,7 @@ import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { Employee, KRA, KRAStatus, WeeklyUpdateStatus, ActionItem, WeeklyUpdate, WeeklyProgress } from '@/lib/types';
 import { cn, ensureDate, sortKras } from '@/lib/utils';
-import { format, isValid } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import { AddKraDialog } from './add-kra-dialog';
 import {
   Tooltip,
@@ -292,7 +293,7 @@ interface SortableKraRowProps {
     onSave: (kra: KRA) => void;
     onDelete: (id: string) => void;
     employees: Employee[];
-    renderWeekCell: (weekData?: WeeklyProgress) => React.ReactNode;
+    renderWeekCell: (weekData?: WeeklyProgress, kraStartDate?: Date, weekNum?: number) => React.ReactNode;
 }
 
 const SortableKraRow = ({ kra, selectedIds, onSelectOne, onSave, onDelete, employees, renderWeekCell }: SortableKraRowProps) => {
@@ -414,11 +415,11 @@ const SortableKraRow = ({ kra, selectedIds, onSelectOne, onSave, onDelete, emplo
                     )}
                 </Tooltip>
             </TableCell>
-            <TableCell className="text-center pt-2">{renderWeekCell(kra.weeklyProgress?.week1)}</TableCell>
-            <TableCell className="text-center pt-2">{renderWeekCell(kra.weeklyProgress?.week2)}</TableCell>
-            <TableCell className="text-center pt-2">{renderWeekCell(kra.weeklyProgress?.week3)}</TableCell>
-            <TableCell className="text-center pt-2">{renderWeekCell(kra.weeklyProgress?.week4)}</TableCell>
-            <TableCell className="text-center pt-2">{renderWeekCell(kra.weeklyProgress?.week5)}</TableCell>
+            <TableCell className="text-center pt-2">{renderWeekCell(kra.weeklyProgress?.week1, kra.startDate, 1)}</TableCell>
+            <TableCell className="text-center pt-2">{renderWeekCell(kra.weeklyProgress?.week2, kra.startDate, 2)}</TableCell>
+            <TableCell className="text-center pt-2">{renderWeekCell(kra.weeklyProgress?.week3, kra.startDate, 3)}</TableCell>
+            <TableCell className="text-center pt-2">{renderWeekCell(kra.weeklyProgress?.week4, kra.startDate, 4)}</TableCell>
+            <TableCell className="text-center pt-2">{renderWeekCell(kra.weeklyProgress?.week5, kra.startDate, 5)}</TableCell>
             <TableCell className="pt-2">
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -551,8 +552,16 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
     setSelectedIds([]);
   };
 
-  const renderWeekCell = (weekData?: WeeklyProgress) => {
+  const renderWeekCell = (weekData?: WeeklyProgress, kraStartDate?: Date, weekNum?: number) => {
     if (!weekData || (weekData.target === null && weekData.achieved === null && !weekData.description)) return "-";
+    
+    let weekRangeStr = "";
+    if (kraStartDate && weekNum) {
+        const start = addDays(ensureDate(kraStartDate), (weekNum - 1) * 7);
+        const end = addDays(start, 6);
+        weekRangeStr = `${format(start, 'MMM d')} - ${format(end, 'MMM d')}`;
+    }
+
     return (
         <Tooltip>
             <TooltipTrigger asChild>
@@ -561,14 +570,13 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
                     <span className="text-muted-foreground border-t border-muted-foreground/20 w-6 text-center">{weekData.target ?? 0}</span>
                 </div>
             </TooltipTrigger>
-            {weekData.description && (
-                <TooltipContent className="max-w-[200px]">
-                    <div className="space-y-1">
-                        <p className="font-bold border-b pb-0.5 text-[10px]">Weekly KRA Details:</p>
-                        <p className="text-[10px] leading-tight">{weekData.description}</p>
-                    </div>
-                </TooltipContent>
-            )}
+            <TooltipContent className="max-w-[200px]">
+                <div className="space-y-1">
+                    <p className="font-bold border-b pb-0.5 text-[10px]">Week {weekNum}: {weekRangeStr}</p>
+                    {weekData.description && <p className="text-[10px] leading-tight">{weekData.description}</p>}
+                    {!weekData.description && <p className="text-[9px] italic text-muted-foreground">No description provided.</p>}
+                </div>
+            </TooltipContent>
         </Tooltip>
     );
   };
@@ -627,11 +635,36 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
                 <TableHead className="text-center w-20 text-[10px] uppercase font-bold py-0 h-9">Total Achieved</TableHead>
                 <TableHead className="text-center w-20 text-[10px] uppercase font-bold py-0 h-9">Weightage</TableHead>
                 <TableHead className="text-center w-20 text-[10px] uppercase font-bold py-0 h-9">Performance</TableHead>
-                <TableHead className="text-center w-14 text-[10px] uppercase font-bold py-0 h-9">W1</TableHead>
-                <TableHead className="text-center w-14 text-[10px] uppercase font-bold py-0 h-9">W2</TableHead>
-                <TableHead className="text-center w-14 text-[10px] uppercase font-bold py-0 h-9">W3</TableHead>
-                <TableHead className="text-center w-14 text-[10px] uppercase font-bold py-0 h-9">W4</TableHead>
-                <TableHead className="text-center w-14 text-[10px] uppercase font-bold py-0 h-9">W5</TableHead>
+                <TableHead className="text-center w-14 text-[10px] uppercase font-bold py-0 h-9">
+                    <Tooltip>
+                        <TooltipTrigger>W1</TooltipTrigger>
+                        <TooltipContent className='text-[9px]'>Week 1 Progress</TooltipContent>
+                    </Tooltip>
+                </TableHead>
+                <TableHead className="text-center w-14 text-[10px] uppercase font-bold py-0 h-9">
+                    <Tooltip>
+                        <TooltipTrigger>W2</TooltipTrigger>
+                        <TooltipContent className='text-[9px]'>Week 2 Progress</TooltipContent>
+                    </Tooltip>
+                </TableHead>
+                <TableHead className="text-center w-14 text-[10px] uppercase font-bold py-0 h-9">
+                    <Tooltip>
+                        <TooltipTrigger>W3</TooltipTrigger>
+                        <TooltipContent className='text-[9px]'>Week 3 Progress</TooltipContent>
+                    </Tooltip>
+                </TableHead>
+                <TableHead className="text-center w-14 text-[10px] uppercase font-bold py-0 h-9">
+                    <Tooltip>
+                        <TooltipTrigger>W4</TooltipTrigger>
+                        <TooltipContent className='text-[9px]'>Week 4 Progress</TooltipContent>
+                    </Tooltip>
+                </TableHead>
+                <TableHead className="text-center w-14 text-[10px] uppercase font-bold py-0 h-9">
+                    <Tooltip>
+                        <TooltipTrigger>W5</TooltipTrigger>
+                        <TooltipContent className='text-[9px]'>Week 5 Progress</TooltipContent>
+                    </Tooltip>
+                </TableHead>
                 <TableHead className="w-10 h-9">
                 <span className="sr-only">Actions</span>
                 </TableHead>
