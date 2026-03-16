@@ -25,7 +25,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Eye, ShieldCheck, Users, TrendingUp, PlusCircle, Download, Upload, FileSpreadsheet, Trash2, Mail, Home, Calendar as CalendarIcon, Cake, Phone, Edit, ChevronDown, Fingerprint, Filter, Database, UserPlus, Sparkles, CalendarDays, Settings2 } from 'lucide-react';
+import { Eye, ShieldCheck, Users, TrendingUp, PlusCircle, Download, Upload, FileSpreadsheet, Trash2, Edit, ChevronDown, Fingerprint, Filter, Database, UserPlus, Sparkles, CalendarDays, Settings2, Trophy, Medal } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
@@ -79,7 +79,6 @@ function DashboardContent() {
     handleDeleteMultipleEmployees
   } = useDataStore();
   
-  // Set default filters to 'all' to ensure all KRAs are counted initially
   const [selectedBranch, setSelectedBranch] = React.useState('all');
   const [selectedYear, setSelectedYear] = React.useState<string>('all');
   const [selectedMonth, setSelectedMonth] = React.useState<string>('all');
@@ -102,7 +101,7 @@ function DashboardContent() {
     if (savedView === 'grid' || savedView === 'list') setView(savedView);
   }, []);
 
-  const { employeeSummary, branchOptions, performanceData, availableYears, availableMonths, filteredKrasForEmployee } = React.useMemo(() => {
+  const { employeeSummary, branchOptions, performanceData, availableYears, availableMonths, filteredKrasForEmployee, topPerformer } = React.useMemo(() => {
         let krasToProcess = kras;
 
         if (pagePermission === 'employee_only' && user) {
@@ -158,6 +157,9 @@ function DashboardContent() {
             perfData.push({ employee, totalWeightage, totalMarksAchieved, performanceScore: averagePerformance });
         });
 
+        const sortedPerf = perfData.sort((a,b) => b.performanceScore - a.performanceScore);
+        const winner = sortedPerf.length > 0 && sortedPerf[0].performanceScore > 0 ? sortedPerf[0] : null;
+
         const uniqueBranches = ['all', ...Array.from(new Set(employees.map(e => e.branch).filter(Boolean) as string[]))];
         const yearsSet = new Set<number>([getYear(new Date())]);
         kras.forEach(k => { 
@@ -168,10 +170,11 @@ function DashboardContent() {
         return { 
             employeeSummary: summaryData.sort((a,b) => a.employee.name.localeCompare(b.employee.name)), 
             branchOptions: uniqueBranches, 
-            performanceData: perfData.sort((a,b) => b.performanceScore - a.performanceScore),
+            performanceData: sortedPerf,
             availableYears: Array.from(yearsSet).sort((a, b) => b - a),
             availableMonths: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-            filteredKrasForEmployee: filteredKrasByDate
+            filteredKrasForEmployee: filteredKrasByDate,
+            topPerformer: winner
         };
     }, [kras, branches, employees, pagePermission, user, selectedYear, selectedMonth]);
 
@@ -344,6 +347,49 @@ function DashboardContent() {
                 </div>
             </div>
 
+            {/* Employee of the Month Section */}
+            {topPerformer && (
+                <div className="animate-in fade-in slide-in-from-top-4 duration-700">
+                    <Card className="border-none shadow-lg bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-white overflow-hidden relative professional-card">
+                        <div className="absolute top-0 left-0 w-full h-full opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] pointer-events-none" />
+                        <CardHeader className="p-4 pb-0 relative z-10">
+                            <div className="flex items-center gap-2">
+                                <Trophy className="h-5 w-5 text-white animate-bounce" />
+                                <CardTitle className="text-sm font-black uppercase tracking-[0.2em] text-white/90">
+                                    {selectedMonth === 'all' ? 'All-Time Champion' : `Employee of the Month: ${availableMonths[parseInt(selectedMonth)]}`}
+                                </CardTitle>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-4 pt-2 relative z-10 flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="relative">
+                                    <Avatar className="h-16 w-16 border-4 border-white/30 shadow-xl ring-4 ring-yellow-300/20">
+                                        <AvatarImage src={topPerformer.employee.avatarUrl} alt={topPerformer.employee.name} />
+                                        <AvatarFallback className="text-amber-600 bg-white font-black text-xl">{topPerformer.employee.name.charAt(0)}</AvatarFallback>
+                                    </Avatar>
+                                    <div className="absolute -bottom-1 -right-1 bg-white text-amber-500 rounded-full p-1 shadow-md">
+                                        <Medal className="h-4 w-4" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-black tracking-tight leading-none mb-1">{topPerformer.employee.name}</h2>
+                                    <p className="text-[11px] font-bold text-white/80 uppercase tracking-widest">{topPerformer.employee.branch || 'Elite Personnel'}</p>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <div className="text-[10px] font-bold text-white/70 uppercase mb-1">Performance Score</div>
+                                <div className="text-4xl font-black tracking-tighter tabular-nums drop-shadow-md">
+                                    {topPerformer.performanceScore}%
+                                </div>
+                                <Badge className="bg-white/20 hover:bg-white/30 text-white border-none text-[9px] font-bold mt-1 px-2">
+                                    <Sparkles className="h-2.5 w-2.5 mr-1" /> EXCELLENCE
+                                </Badge>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+
             <Card className='professional-card shadow-sm'>
                 <CardHeader className="p-3 space-y-3">
                 <div className="flex flex-col md:flex-row items-center justify-between gap-3">
@@ -437,11 +483,19 @@ function DashboardContent() {
                                         <TableBody>
                                             {loading ? Array.from({ length: 3 }).map((_, i) => <TableRow key={i}><TableCell colSpan={6}><Skeleton className="h-8 w-full" /></TableCell></TableRow>) :
                                                 filteredEmployeeSummary.map(({ employee, kraCount, averagePerformance }) => (
-                                                    <TableRow key={employee.id} className='group hover:bg-slate-50 h-10'>
+                                                    <TableRow key={employee.id} className={cn('group hover:bg-slate-50 h-10', topPerformer?.employee.id === employee.id && 'bg-amber-50/30')}>
                                                         <TableCell className='px-2 py-1'><Checkbox checked={selectedEmployeeIds.includes(employee.id)} onCheckedChange={(c) => handleSelectOne(employee.id, !!c)} className="h-3 w-3" /></TableCell>
                                                         <TableCell className="py-1">
                                                             <div className="flex items-center gap-2">
-                                                                <Avatar className="h-7 w-7 border border-slate-200"><AvatarImage src={employee.avatarUrl} alt={employee.name} /><AvatarFallback className='text-[9px]'>{employee.name?.charAt(0)}</AvatarFallback></Avatar>
+                                                                <div className="relative">
+                                                                    <Avatar className="h-7 w-7 border border-slate-200">
+                                                                        <AvatarImage src={employee.avatarUrl} alt={employee.name} />
+                                                                        <AvatarFallback className='text-[9px]'>{employee.name?.charAt(0)}</AvatarFallback>
+                                                                    </Avatar>
+                                                                    {topPerformer?.employee.id === employee.id && (
+                                                                        <div className="absolute -top-1 -right-1 text-amber-500"><Trophy className="h-2.5 w-2.5 fill-current" /></div>
+                                                                    )}
+                                                                </div>
                                                                 <div>
                                                                     <div className="text-[10px] font-semibold text-slate-900 leading-tight">{employee.name}</div>
                                                                     <div className='text-[8px] text-slate-400 font-mono'>{employee.id.slice(0, 6)}...</div>
@@ -472,7 +526,7 @@ function DashboardContent() {
                                           <div className="absolute top-1.5 left-1.5 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <Checkbox checked={selectedEmployeeIds.includes(summary.employee.id)} onCheckedChange={(c) => handleSelectOne(summary.employee.id, !!c)} className="bg-white border-slate-300 h-3 w-3" />
                                           </div>
-                                          <EmployeeCard summary={summary} />
+                                          <EmployeeCard summary={summary} isWinner={topPerformer?.employee.id === summary.employee.id} />
                                         </div>
                                     ))}
                                  </div>
