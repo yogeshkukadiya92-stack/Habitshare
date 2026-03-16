@@ -55,6 +55,7 @@ import { EditEmployeeDialog } from '@/components/edit-employee-dialog';
 import { cn, ensureDate } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useRouter } from 'next/navigation';
 
 interface EmployeeSummary {
     employee: Employee;
@@ -112,6 +113,7 @@ function DashboardContent() {
   const pagePermission = getPermission('employees');
   const { toast } = useToast();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
   const currentEmployeeData = React.useMemo(() => {
     return employees.find(e => e.email === user?.email) || currentUser;
@@ -154,7 +156,6 @@ function DashboardContent() {
             return dateA - dateB;
         });
 
-        // Use global activities from store
         const sortedGlobalActivities = activities.slice(0, 20);
 
         const employeeMap = new Map<string, { employee: Employee; kras: KRA[] }>();
@@ -205,7 +206,32 @@ function DashboardContent() {
             topPerformer: winner,
             globalActivities: sortedGlobalActivities
         };
-    }, [kras, branches, employees, activities, pagePermission, user, selectedYear, selectedMonth]);
+  }, [kras, branches, employees, activities, pagePermission, user, selectedYear, selectedMonth]);
+
+  const handleActivityClick = (act: ActivityLog) => {
+    switch (act.type) {
+        case 'kra':
+            if (act.employeeId) router.push(`/employees/${act.employeeId}`);
+            break;
+        case 'leave':
+            router.push('/leaves');
+            break;
+        case 'expense':
+            router.push('/expenses');
+            break;
+        case 'task':
+            router.push('/routine-tasks');
+            break;
+        case 'attendance':
+            router.push('/attendance');
+            break;
+        case 'employee':
+            if (act.relatedId) router.push(`/employees/${act.relatedId}`);
+            break;
+        default:
+            break;
+    }
+  };
 
   const filteredEmployeeSummary = selectedBranch === 'all'
         ? employeeSummary
@@ -375,7 +401,6 @@ function DashboardContent() {
                 </div>
             </div>
 
-            {/* Employee of the Month Section */}
             {topPerformer && (
                 <div className="animate-in fade-in slide-in-from-top-4 duration-700">
                     <Card className="border-none shadow-lg bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-white overflow-hidden relative professional-card">
@@ -419,7 +444,6 @@ function DashboardContent() {
             )}
 
             <div className='grid grid-cols-1 lg:grid-cols-3 gap-4'>
-                {/* Global Recent Activity Feed */}
                 <Card className='professional-card shadow-sm lg:col-span-1 h-fit'>
                     <CardHeader className="p-3 border-b flex flex-row items-center justify-between">
                         <div className='flex items-center gap-2'>
@@ -437,14 +461,18 @@ function DashboardContent() {
                                         const color = activityColors[act.type || 'kra'] || 'text-blue-500';
                                         
                                         return (
-                                        <div key={act.id} className="p-3 hover:bg-slate-50 transition-colors">
+                                        <div 
+                                            key={act.id} 
+                                            onClick={() => handleActivityClick(act)}
+                                            className="p-3 hover:bg-slate-50 transition-colors cursor-pointer group"
+                                        >
                                             <div className="flex items-start gap-2.5">
-                                                <div className={cn("mt-1 p-1 rounded-full bg-slate-50", color)}>
+                                                <div className={cn("mt-1 p-1 rounded-full bg-slate-50 group-hover:bg-white shadow-sm transition-colors", color)}>
                                                     <Icon className="h-3.5 w-3.5" />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center justify-between gap-2 mb-0.5">
-                                                        <p className="text-[10px] font-bold text-slate-900 truncate">{act.employeeName}</p>
+                                                        <p className="text-[10px] font-bold text-slate-900 truncate group-hover:text-primary transition-colors">{act.employeeName}</p>
                                                         <span className="text-[8px] text-slate-400 font-medium shrink-0">{format(ensureDate(act.timestamp), 'MMM d, HH:mm')}</span>
                                                     </div>
                                                     <p className="text-[10px] font-semibold text-primary leading-tight">{act.action}</p>
@@ -453,6 +481,7 @@ function DashboardContent() {
                                                         <Badge variant="outline" className='text-[7px] h-3 px-1 border-slate-200 bg-white text-slate-400 uppercase tracking-tighter'>By: {act.actorName}</Badge>
                                                     </div>
                                                 </div>
+                                                <ChevronRight className="h-3 w-3 text-slate-300 mt-1 opacity-0 group-hover:opacity-100 transition-all" />
                                             </div>
                                         </div>
                                     )})}
@@ -467,7 +496,6 @@ function DashboardContent() {
                     </CardContent>
                 </Card>
 
-                {/* Directory & Analytics Section */}
                 <Card className='professional-card shadow-sm lg:col-span-2'>
                     <CardHeader className="p-3 space-y-3">
                         <div className="flex flex-col md:flex-row items-center justify-between gap-3">

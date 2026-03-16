@@ -66,7 +66,9 @@ export interface ActivityLog {
     action: string;
     details?: string;
     employeeName?: string;
+    employeeId?: string;
     type?: 'kra' | 'leave' | 'expense' | 'task' | 'attendance' | 'employee';
+    relatedId?: string;
 }
 
 export interface KRA {

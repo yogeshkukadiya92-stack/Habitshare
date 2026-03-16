@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, useMemo } from 'react';
@@ -91,7 +92,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     return employees.find(e => e.id === user?.uid)?.name || user?.email || 'System';
   }, [employees, user]);
 
-  const logGlobalActivity = (action: string, employeeName: string, type: ActivityLog['type'], details?: string) => {
+  const logGlobalActivity = (action: string, employeeName: string, type: ActivityLog['type'], details?: string, relatedId?: string, employeeId?: string) => {
     const id = uuidv4();
     const docRef = doc(db, 'activities', id);
     setDoc(docRef, {
@@ -101,7 +102,9 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
         employeeName,
         action,
         type,
-        details
+        details,
+        relatedId,
+        employeeId
     }).catch(err => console.error("Failed to log activity:", err));
   };
 
@@ -109,7 +112,6 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     const docRef = doc(db, 'kras', kra.id);
     const existingKra = kras.find(k => k.id === kra.id);
     
-    // Find highest order to put new KRA at the end if no order exists
     const maxOrder = kras.reduce((max, k) => Math.max(max, k.order || 0), -1);
     
     const dataToSave = { 
@@ -120,14 +122,13 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     };
 
     setDoc(docRef, dataToSave, { merge: true }).then(() => {
-        logGlobalActivity(`KRA Update: ${kra.taskDescription?.slice(0, 30)}...`, kra.employee.name, 'kra', `Progress: ${kra.progress}%`);
+        logGlobalActivity(`KRA Update: ${kra.taskDescription?.slice(0, 30)}...`, kra.employee.name, 'kra', `Progress: ${kra.progress}%`, kra.id, kra.employee.id);
     }).catch(err => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'write', requestResourceData: kra }));
     });
   };
 
   const handleReorderKras = (reorderedKras: KRA[]) => {
-    // Update Firestore with new sequence orders
     reorderedKras.forEach((kra, index) => {
         const docRef = doc(db, 'kras', kra.id);
         setDoc(docRef, { order: index }, { merge: true }).catch(err => {
@@ -140,7 +141,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     const kra = kras.find(k => k.id === id);
     const docRef = doc(db, 'kras', id);
     deleteDoc(docRef).then(() => {
-        if(kra) logGlobalActivity(`KRA Removed`, kra.employee.name, 'kra');
+        if(kra) logGlobalActivity(`KRA Removed`, kra.employee.name, 'kra', undefined, id, kra.employee.id);
     }).catch(err => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'delete' }));
     });
@@ -151,7 +152,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   const handleSaveEmployee = (employee: Employee) => {
     const docRef = doc(db, 'users', employee.id);
     setDoc(docRef, { ...employee, updatedAt: serverTimestamp() }, { merge: true }).then(() => {
-        logGlobalActivity(`Profile Updated`, employee.name, 'employee');
+        logGlobalActivity(`Profile Updated`, employee.name, 'employee', undefined, employee.id, employee.id);
     }).catch(err => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'write', requestResourceData: employee }));
     });
@@ -161,7 +162,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     const emp = employees.find(e => e.id === id);
     const docRef = doc(db, 'users', id);
     deleteDoc(docRef).then(() => {
-        if(emp) logGlobalActivity(`Employee Removed from system`, emp.name, 'employee');
+        if(emp) logGlobalActivity(`Employee Removed`, emp.name, 'employee', undefined, id, id);
     }).catch(err => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'delete' }));
     });
@@ -172,7 +173,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   const handleSaveLeave = (leave: Leave) => {
     const docRef = doc(db, 'leaves', leave.id);
     setDoc(docRef, leave, { merge: true }).then(() => {
-        logGlobalActivity(`Leave Request: ${leave.status}`, leave.employee.name, 'leave', leave.reason);
+        logGlobalActivity(`Leave Request: ${leave.status}`, leave.employee.name, 'leave', leave.reason, leave.id, leave.employee.id);
     }).catch(err => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'write', requestResourceData: leave }));
     });
@@ -190,7 +191,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   const handleSaveExpense = (expense: Expense) => {
     const docRef = doc(db, 'expenses', expense.id);
     setDoc(docRef, expense, { merge: true }).then(() => {
-        logGlobalActivity(`Expense Claim: ${expense.status}`, expense.employee.name, 'expense', `Amount: ₹${expense.totalAmount}`);
+        logGlobalActivity(`Expense Claim: ${expense.status}`, expense.employee.name, 'expense', `Amount: ₹${expense.totalAmount}`, expense.id, expense.employee.id);
     }).catch(err => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'write', requestResourceData: expense }));
     });
@@ -208,7 +209,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   const handleSaveRoutineTask = (task: RoutineTask) => {
     const docRef = doc(db, 'routineTasks', task.id);
     setDoc(docRef, task, { merge: true }).then(() => {
-        logGlobalActivity(`Task Updated: ${task.status}`, task.employee.name, 'task', task.title);
+        logGlobalActivity(`Task Updated: ${task.status}`, task.employee.name, 'task', task.title, task.id, task.employee.id);
     }).catch(err => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'write', requestResourceData: task }));
     });
@@ -267,7 +268,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     const dateStr = new Date(attendance.date).toISOString().split('T')[0];
     const docRef = doc(db, 'attendances', `${attendance.employee.id}-${dateStr}`);
     setDoc(docRef, attendance, { merge: true }).then(() => {
-        logGlobalActivity(`Attendance Marked: ${attendance.status}`, attendance.employee.name, 'attendance');
+        logGlobalActivity(`Attendance Marked: ${attendance.status}`, attendance.employee.name, 'attendance', undefined, `${attendance.employee.id}-${dateStr}`, attendance.employee.id);
     }).catch(err => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'write', requestResourceData: attendance }));
     });
