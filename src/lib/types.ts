@@ -65,6 +65,8 @@ export interface ActivityLog {
     actorName: string;
     action: string;
     details?: string;
+    employeeName?: string;
+    type?: 'kra' | 'leave' | 'expense' | 'task' | 'attendance' | 'employee';
 }
 
 export interface KRA {

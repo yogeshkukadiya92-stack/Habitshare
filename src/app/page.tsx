@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -24,7 +25,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Eye, ShieldCheck, Users, TrendingUp, PlusCircle, Download, Upload, FileSpreadsheet, Trash2, Edit, ChevronDown, Fingerprint, Filter, Database, UserPlus, Sparkles, CalendarDays, Settings2, Trophy, Medal, Activity, ChevronRight, History } from 'lucide-react';
+import { Eye, ShieldCheck, Users, TrendingUp, PlusCircle, Download, Upload, FileSpreadsheet, Trash2, Edit, ChevronDown, Fingerprint, Filter, Database, UserPlus, Sparkles, CalendarDays, Settings2, Trophy, Medal, Activity, ChevronRight, History, Plane, ReceiptText, ListTodo, UserCheck } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
@@ -68,12 +69,31 @@ interface EmployeePerformance {
     performanceScore: number;
 }
 
+const activityIcons: Record<string, any> = {
+    kra: History,
+    leave: Plane,
+    expense: ReceiptText,
+    task: ListTodo,
+    attendance: UserCheck,
+    employee: UserPlus
+};
+
+const activityColors: Record<string, string> = {
+    kra: 'text-blue-500',
+    leave: 'text-indigo-500',
+    expense: 'text-emerald-500',
+    task: 'text-amber-500',
+    attendance: 'text-rose-500',
+    employee: 'text-purple-500'
+};
+
 function DashboardContent() {
   const { 
     kras, 
     branches, 
     loading, 
     employees, 
+    activities,
     handleSaveKra, 
     handleSaveEmployee,
     handleDeleteMultipleEmployees
@@ -130,20 +150,8 @@ function DashboardContent() {
             return true;
         });
 
-        // Compute Global Activities
-        const allActivities: (ActivityLog & { employeeName: string, taskId: string })[] = [];
-        krasToProcess.forEach(kra => {
-            if (kra.activities) {
-                kra.activities.forEach(act => {
-                    allActivities.push({
-                        ...act,
-                        employeeName: kra.employee.name,
-                        taskId: kra.id
-                    });
-                });
-            }
-        });
-        const sortedGlobalActivities = allActivities.sort((a,b) => ensureDate(b.timestamp).getTime() - ensureDate(a.timestamp).getTime()).slice(0, 15);
+        // Use global activities from store
+        const sortedGlobalActivities = activities.slice(0, 20);
 
         const employeeMap = new Map<string, { employee: Employee; kras: KRA[] }>();
         const managerIds = new Set(branches.map(b => b.managerId));
@@ -193,7 +201,7 @@ function DashboardContent() {
             topPerformer: winner,
             globalActivities: sortedGlobalActivities
         };
-    }, [kras, branches, employees, pagePermission, user, selectedYear, selectedMonth]);
+    }, [kras, branches, employees, activities, pagePermission, user, selectedYear, selectedMonth]);
 
   const filteredEmployeeSummary = selectedBranch === 'all'
         ? employeeSummary
@@ -407,7 +415,7 @@ function DashboardContent() {
             )}
 
             <div className='grid grid-cols-1 lg:grid-cols-3 gap-4'>
-                {/* Recent Activity Feed */}
+                {/* Global Recent Activity Feed */}
                 <Card className='professional-card shadow-sm lg:col-span-1 h-fit'>
                     <CardHeader className="p-3 border-b flex flex-row items-center justify-between">
                         <div className='flex items-center gap-2'>
@@ -420,12 +428,16 @@ function DashboardContent() {
                         <ScrollArea className="h-[450px]">
                             {globalActivities.length > 0 ? (
                                 <div className="divide-y divide-slate-100">
-                                    {globalActivities.map((act) => (
+                                    {globalActivities.map((act) => {
+                                        const Icon = activityIcons[act.type || 'kra'] || History;
+                                        const color = activityColors[act.type || 'kra'] || 'text-blue-500';
+                                        
+                                        return (
                                         <div key={act.id} className="p-3 hover:bg-slate-50 transition-colors">
                                             <div className="flex items-start gap-2.5">
-                                                <Avatar className='h-6 w-6 border'>
-                                                    <AvatarFallback className='text-[8px] bg-primary/5 text-primary'>{act.employeeName[0]}</AvatarFallback>
-                                                </Avatar>
+                                                <div className={cn("mt-1 p-1 rounded-full bg-slate-50", color)}>
+                                                    <Icon className="h-3.5 w-3.5" />
+                                                </div>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center justify-between gap-2 mb-0.5">
                                                         <p className="text-[10px] font-bold text-slate-900 truncate">{act.employeeName}</p>
@@ -434,12 +446,12 @@ function DashboardContent() {
                                                     <p className="text-[10px] font-semibold text-primary leading-tight">{act.action}</p>
                                                     {act.details && <p className="text-[9px] text-slate-500 mt-0.5 line-clamp-2 italic">"{act.details}"</p>}
                                                     <div className='mt-1 flex items-center gap-1'>
-                                                        <Badge variant="outline" className='text-[7px] h-3 px-1 border-slate-200 bg-white text-slate-400 uppercase tracking-tighter'>Actor: {act.actorName}</Badge>
+                                                        <Badge variant="outline" className='text-[7px] h-3 px-1 border-slate-200 bg-white text-slate-400 uppercase tracking-tighter'>By: {act.actorName}</Badge>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    ))}
+                                    )})}
                                 </div>
                             ) : (
                                 <div className="py-20 text-center text-slate-400 flex flex-col items-center gap-2">

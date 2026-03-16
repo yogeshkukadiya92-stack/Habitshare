@@ -1,9 +1,11 @@
+
 'use client';
 
 import React, { createContext, useContext, useMemo } from 'react';
-import { collection, doc, deleteDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, deleteDoc, setDoc, serverTimestamp, query, orderBy, limit } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase, FirestorePermissionError, errorEmitter } from '@/firebase';
-import type { Employee, KRA, Branch, Leave, Expense, RoutineTask, Habit, Holiday, Recruit, Attendance } from '@/lib/types';
+import type { Employee, KRA, Branch, Leave, Expense, RoutineTask, Habit, Holiday, Recruit, Attendance, ActivityLog } from '@/lib/types';
+import { v4 as uuidv4 } from 'uuid';
 
 interface DataStoreContextType {
   loading: boolean;
@@ -17,6 +19,7 @@ interface DataStoreContextType {
   holidays: Holiday[];
   recruits: Recruit[];
   attendances: Attendance[];
+  activities: ActivityLog[];
   handleSaveKra: (kra: KRA) => void;
   handleDeleteKra: (kraId: string) => void;
   handleDeleteMultipleKras: (ids: string[]) => void;
@@ -60,6 +63,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   const holidaysQuery = useMemoFirebase(() => user ? collection(db, 'holidays') : null, [db, user]);
   const recruitsQuery = useMemoFirebase(() => user ? collection(db, 'recruits') : null, [db, user]);
   const attendancesQuery = useMemoFirebase(() => user ? collection(db, 'attendances') : null, [db, user]);
+  const activitiesQuery = useMemoFirebase(() => user ? query(collection(db, 'activities'), orderBy('timestamp', 'desc'), limit(50)) : null, [db, user]);
 
   const { data: users, isLoading: usersLoading } = useCollection<Employee>(usersQuery);
   const { data: krasData, isLoading: krasLoading } = useCollection<KRA>(krasQuery);
@@ -71,22 +75,47 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   const { data: holidays, isLoading: holidaysLoading } = useCollection<Holiday>(holidaysQuery);
   const { data: recruits, isLoading: recruitsLoading } = useCollection<Recruit>(recruitsQuery);
   const { data: attendances, isLoading: attendancesLoading } = useCollection<Attendance>(attendancesQuery);
+  const { data: activitiesData } = useCollection<ActivityLog>(activitiesQuery);
 
   const employees = useMemo(() => users || [], [users]);
   const kras = useMemo(() => krasData || [], [krasData]);
+  const activities = useMemo(() => activitiesData || [], [activitiesData]);
 
   const loading = !user || usersLoading || krasLoading;
 
+  const currentActorName = useMemo(() => {
+    return employees.find(e => e.id === user?.uid)?.name || user?.email || 'System';
+  }, [employees, user]);
+
+  const logGlobalActivity = (action: string, employeeName: string, type: ActivityLog['type'], details?: string) => {
+    const id = uuidv4();
+    const docRef = doc(db, 'activities', id);
+    setDoc(docRef, {
+        id,
+        timestamp: serverTimestamp(),
+        actorName: currentActorName,
+        employeeName,
+        action,
+        type,
+        details
+    }).catch(err => console.error("Failed to log activity:", err));
+  };
+
   const handleSaveKra = (kra: KRA) => {
     const docRef = doc(db, 'kras', kra.id);
-    setDoc(docRef, { ...kra, updatedAt: serverTimestamp() }, { merge: true }).catch(err => {
+    setDoc(docRef, { ...kra, updatedAt: serverTimestamp() }, { merge: true }).then(() => {
+        logGlobalActivity(`KRA Update: ${kra.taskDescription?.slice(0, 30)}...`, kra.employee.name, 'kra', `Progress: ${kra.progress}%`);
+    }).catch(err => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'write', requestResourceData: kra }));
     });
   };
 
   const handleDeleteKra = (id: string) => {
+    const kra = kras.find(k => k.id === id);
     const docRef = doc(db, 'kras', id);
-    deleteDoc(docRef).catch(err => {
+    deleteDoc(docRef).then(() => {
+        if(kra) logGlobalActivity(`KRA Removed`, kra.employee.name, 'kra');
+    }).catch(err => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'delete' }));
     });
   };
@@ -95,14 +124,19 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
 
   const handleSaveEmployee = (employee: Employee) => {
     const docRef = doc(db, 'users', employee.id);
-    setDoc(docRef, { ...employee, updatedAt: serverTimestamp() }, { merge: true }).catch(err => {
+    setDoc(docRef, { ...employee, updatedAt: serverTimestamp() }, { merge: true }).then(() => {
+        logGlobalActivity(`Profile Updated`, employee.name, 'employee');
+    }).catch(err => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'write', requestResourceData: employee }));
     });
   };
 
   const handleDeleteEmployee = (id: string) => {
+    const emp = employees.find(e => e.id === id);
     const docRef = doc(db, 'users', id);
-    deleteDoc(docRef).catch(err => {
+    deleteDoc(docRef).then(() => {
+        if(emp) logGlobalActivity(`Employee Removed from system`, emp.name, 'employee');
+    }).catch(err => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'delete' }));
     });
   };
@@ -111,7 +145,9 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
 
   const handleSaveLeave = (leave: Leave) => {
     const docRef = doc(db, 'leaves', leave.id);
-    setDoc(docRef, leave, { merge: true }).catch(err => {
+    setDoc(docRef, leave, { merge: true }).then(() => {
+        logGlobalActivity(`Leave Request: ${leave.status}`, leave.employee.name, 'leave', leave.reason);
+    }).catch(err => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'write', requestResourceData: leave }));
     });
   };
@@ -127,7 +163,9 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
 
   const handleSaveExpense = (expense: Expense) => {
     const docRef = doc(db, 'expenses', expense.id);
-    setDoc(docRef, expense, { merge: true }).catch(err => {
+    setDoc(docRef, expense, { merge: true }).then(() => {
+        logGlobalActivity(`Expense Claim: ${expense.status}`, expense.employee.name, 'expense', `Amount: ₹${expense.totalAmount}`);
+    }).catch(err => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'write', requestResourceData: expense }));
     });
   };
@@ -143,7 +181,9 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
 
   const handleSaveRoutineTask = (task: RoutineTask) => {
     const docRef = doc(db, 'routineTasks', task.id);
-    setDoc(docRef, task, { merge: true }).catch(err => {
+    setDoc(docRef, task, { merge: true }).then(() => {
+        logGlobalActivity(`Task Updated: ${task.status}`, task.employee.name, 'task', task.title);
+    }).catch(err => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'write', requestResourceData: task }));
     });
   };
@@ -200,7 +240,9 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     if (!attendance.employee?.id) return;
     const dateStr = new Date(attendance.date).toISOString().split('T')[0];
     const docRef = doc(db, 'attendances', `${attendance.employee.id}-${dateStr}`);
-    setDoc(docRef, attendance, { merge: true }).catch(err => {
+    setDoc(docRef, attendance, { merge: true }).then(() => {
+        logGlobalActivity(`Attendance Marked: ${attendance.status}`, attendance.employee.name, 'attendance');
+    }).catch(err => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'write', requestResourceData: attendance }));
     });
   };
@@ -221,6 +263,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
 
   const value = {
     loading, kras, employees, branches: branches || [], leaves: leaves || [], expenses: expenses || [], routineTasks: routineTasks || [], habits: habits || [], holidays: holidays || [], recruits: recruits || [], attendances: attendances || [],
+    activities,
     handleSaveKra, handleDeleteKra, handleDeleteMultipleKras, handleSaveEmployee, handleDeleteEmployee, handleDeleteMultipleEmployees, handleSaveLeave, handleDeleteLeave, handleDeleteMultipleLeaves, handleSaveExpense, handleDeleteExpense, handleDeleteMultipleExpenses,
     handleSaveRoutineTask, handleDeleteRoutineTask, handleDeleteMultipleRoutineTasks, handleSaveHabit, handleSaveHoliday, handleDeleteHoliday, handleDeleteMultipleHolidays, handleSaveRecruit, handleDeleteRecruit, handleDeleteMultipleRecruits, handleSaveAttendance,
     handleSaveBranch, handleDeleteBranch
