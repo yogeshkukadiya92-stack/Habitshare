@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -128,7 +129,7 @@ export function EditEmployeeDialog({ children, employee, onSave }: EditEmployeeD
                     <Controller
                         name="branch"
                         control={control}
-                        render={({ field }) => <Input id="branch" {...field} placeholder="e.g. Engineering" />}
+                        render={({ field }) => <Input id="branch" {...field} placeholder="e.g. Engineering" disabled={!isAdmin} />}
                     />
                 </div>
             </div>
@@ -141,7 +142,7 @@ export function EditEmployeeDialog({ children, employee, onSave }: EditEmployeeD
                     <Controller
                         name="email"
                         control={control}
-                        render={({ field }) => <Input id="email" type="email" {...field} placeholder="employee@example.com" />}
+                        render={({ field }) => <Input id="email" type="email" {...field} placeholder="employee@example.com" disabled={!isAdmin} />}
                     />
                      {errors.email && <p className="text-xs text-destructive mt-1">{errors.email.message}</p>}
                 </div>
@@ -214,6 +215,7 @@ export function EditEmployeeDialog({ children, employee, onSave }: EditEmployeeD
                             className="w-auto"
                             value={field.value ? format(new Date(field.value), 'yyyy-MM-dd') : ''}
                             onChange={e => field.onChange(new Date(e.target.value))}
+                            disabled={!isAdmin}
                             />
                         )}
                     />

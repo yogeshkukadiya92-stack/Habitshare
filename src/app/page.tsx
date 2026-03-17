@@ -394,6 +394,15 @@ function DashboardContent() {
                     <p className='text-[10px] text-slate-500 font-medium'>Enterprise personnel and performance oversight.</p>
                 </div>
                 <div className='flex items-center gap-1.5 bg-white p-1 rounded-lg border shadow-sm h-9'>
+                    {currentEmployeeData && (
+                        <EditEmployeeDialog employee={currentEmployeeData} onSave={handleSaveEmployee}>
+                            <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-[10px] px-2 text-primary font-bold">
+                                <Edit className="h-3 w-3" />
+                                Edit My Profile
+                            </Button>
+                        </EditEmployeeDialog>
+                    )}
+                    <Separator orientation="vertical" className="h-5 mx-0.5" />
                     {pagePermission !== 'employee_only' && <ViewSwitcher view={view} onViewChange={handleViewChange} />}
                     <Separator orientation="vertical" className="h-5 mx-0.5" />
                     <Tooltip>
