@@ -15,7 +15,7 @@ export function AppSidebar() {
 
   const navItems = useMemo(() => [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard, permissionKey: 'employees' as keyof EmployeePermissions },
-    { href: '/kras', label: 'KRA Management', icon: ListChecks, permissionKey: 'employees' as keyof EmployeePermissions },
+    { href: '/kras', label: 'KRA Management', icon: ListChecks, permissionKey: 'kras' as keyof EmployeePermissions },
     { href: '/routine-tasks', label: 'Routine Tasks', icon: ListTodo, permissionKey: 'routine_tasks' as keyof EmployeePermissions },
     { href: '/leaves', label: 'Leave Account', icon: Plane, permissionKey: 'leaves' as keyof EmployeePermissions },
     { href: '/attendance', label: 'Attendance', icon: UserCheck, permissionKey: 'attendance' as keyof EmployeePermissions },
@@ -25,21 +25,13 @@ export function AppSidebar() {
     { href: '/hr-calendar', label: 'HR Calendar', icon: Calendar, permissionKey: 'hr_calendar' as keyof EmployeePermissions },
   ], []);
   
-  const hasEmployeeAccess = (permissionKey: keyof EmployeePermissions) => {
+  const hasAccess = (permissionKey: keyof EmployeePermissions) => {
     return getPermission(permissionKey) !== 'none';
   }
 
   if (!user) {
     return null;
   }
-  
-  const employeeNavItems = [
-    { href: '/', label: 'My Dashboard', icon: LayoutDashboard, permissionKey: 'employees' as keyof EmployeePermissions },
-    { href: '/leaves', label: 'Leave Account', icon: Plane, permissionKey: 'leaves' as keyof EmployeePermissions },
-    { href: '/expenses', label: 'Expense Claims', icon: ReceiptText, permissionKey: 'expenses' as keyof EmployeePermissions },
-  ]
-
-  const itemsToRender = getPermission('employees') === 'employee_only' ? employeeNavItems : navItems;
 
   return (
     <div className="flex h-full flex-col bg-white border-r border-slate-200">
@@ -56,8 +48,8 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent className="py-6 px-3">
         <SidebarMenu>
-          {itemsToRender.map((item) => {
-             const canAccess = hasEmployeeAccess(item.permissionKey);
+          {navItems.map((item) => {
+             const canAccess = hasAccess(item.permissionKey);
              const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
 
              return canAccess && (
