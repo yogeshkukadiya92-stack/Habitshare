@@ -209,7 +209,6 @@ function DashboardContent() {
   }, [kras, branches, employees, activities, pagePermission, user, selectedYear, selectedMonth]);
 
   const handleActivityClick = (act: ActivityLog) => {
-    // Determine target based on explicit type or fallback to action text
     const type = act.type || (
         act.action.toLowerCase().includes('kra') ? 'kra' :
         act.action.toLowerCase().includes('leave') ? 'leave' :
@@ -699,7 +698,7 @@ function DashboardContent() {
                             <div className="py-20 flex flex-col items-center justify-center bg-slate-50/50 border-2 border-dashed border-slate-200 rounded-xl animate-in fade-in zoom-in-95 duration-300">
                                 <Users className='h-12 w-12 text-slate-300 mb-4 opacity-50' />
                                 <h3 className='text-sm font-bold text-slate-600 mb-1'>Personnel Directory Hidden</h3>
-                                <p className='text-xs text-slate-400 mb-6 max-w-[250px] text-center leading-relaxed'>The employee list is currently hidden to save space. Click below to reveal the full directory.</p>
+                                <p className='text-[10px] text-slate-400 mb-6 max-w-[250px] text-center leading-relaxed'>The employee list is currently hidden to save space. Click below to reveal the full directory.</p>
                                 <Button onClick={() => setShowDirectory(true)} size="sm" className='gap-2 h-9 rounded-full px-6 shadow-md transition-all hover:scale-105 active:scale-95'>
                                     <Eye className='h-4 w-4' /> Show All Personnel
                                 </Button>

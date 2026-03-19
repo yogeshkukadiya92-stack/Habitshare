@@ -88,11 +88,11 @@ export function AddEmployeeDialog({ children, onSave }: AddEmployeeDialogProps) 
 
 
   const onSubmit = (data: EmployeeFormValues) => {
-    const email = data.email.toLowerCase().trim();
-    const existing = employees.find(e => e.email?.toLowerCase().trim() === email);
+    const normalizedEmail = data.email.toLowerCase().trim();
+    const existing = employees.find(e => e.email?.toLowerCase().trim() === normalizedEmail);
     
     if (existing) {
-        toast({ title: "Email Already Exists", description: "A profile with this email is already in the system.", variant: "destructive" });
+        toast({ title: "Email Already Exists", description: `A profile for ${existing.name} is already in the system with this email.`, variant: "destructive" });
         return;
     }
 
@@ -100,7 +100,7 @@ export function AddEmployeeDialog({ children, onSave }: AddEmployeeDialogProps) 
       id: uuidv4(),
       avatarUrl: `https://placehold.co/32x32.png?text=${data.name.charAt(0)}`,
       ...data,
-      email: email,
+      email: normalizedEmail,
       joiningDate: data.joiningDate,
       birthDate: data.birthDate,
     };
