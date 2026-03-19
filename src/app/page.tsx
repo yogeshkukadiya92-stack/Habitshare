@@ -25,7 +25,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Eye, ShieldCheck, Users, TrendingUp, PlusCircle, Download, Upload, FileSpreadsheet, Trash2, Edit, ChevronDown, Fingerprint, Filter, Database, UserPlus, Sparkles, CalendarDays, Settings2, Trophy, Medal, Activity, ChevronRight, History, Plane, ReceiptText, ListTodo, UserCheck } from 'lucide-react';
+import { Eye, ShieldCheck, Users, TrendingUp, PlusCircle, Download, Upload, FileSpreadsheet, Trash2, Edit, ChevronDown, Fingerprint, Filter, Database, UserPlus, Sparkles, CalendarDays, Settings2, Trophy, Medal, Activity, ChevronRight, History, Plane, ReceiptText, ListTodo, UserCheck, ShieldAlert } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
@@ -116,7 +116,7 @@ function DashboardContent() {
   const router = useRouter();
 
   const currentEmployeeData = React.useMemo(() => {
-    return employees.find(e => e.email === user?.email) || currentUser;
+    return employees.find(e => e.email?.toLowerCase().trim() === user?.email?.toLowerCase().trim()) || currentUser;
   }, [employees, user?.email, currentUser]);
 
   React.useEffect(() => {
@@ -128,7 +128,7 @@ function DashboardContent() {
         let krasToProcess = kras;
 
         if (pagePermission === 'employee_only' && user) {
-            krasToProcess = kras.filter(k => k.employee?.email === user.email);
+            krasToProcess = kras.filter(k => k.employee?.email?.toLowerCase().trim() === user.email?.toLowerCase().trim());
         }
 
         const year = parseInt(selectedYear);
@@ -338,12 +338,23 @@ function DashboardContent() {
         reader.readAsArrayBuffer(file);
     };
 
-    if (pagePermission === 'employee_only' && currentEmployeeData) {
+    // If permission is NONE or EMPLOYEE_ONLY, show the personal view or Access Denied
+    if (pagePermission === 'none' || pagePermission === 'employee_only') {
+        if (!currentEmployeeData && !loading) {
+            return (
+                <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+                    <ShieldAlert className="h-16 w-16 text-rose-500 opacity-20" />
+                    <h2 className="text-xl font-bold">Access Denied</h2>
+                    <p className="text-muted-foreground text-sm">You do not have permission to view this dashboard.</p>
+                </div>
+            )
+        }
+
         return (
             <div className="flex flex-col gap-3">
                  <div className='flex items-center justify-between'>
                     <div>
-                        <h1 className="text-xl font-bold text-slate-900 tracking-tight">Welcome, {currentEmployeeData.name?.split(' ')[0]}!</h1>
+                        <h1 className="text-xl font-bold text-slate-900 tracking-tight">Welcome, {currentEmployeeData?.name?.split(' ')[0]}!</h1>
                         <p className='text-[10px] text-slate-500 font-medium'>Performance overview for {selectedMonth === 'all' ? 'All Months' : availableMonths[parseInt(selectedMonth)]} {selectedYear === 'all' ? '' : selectedYear}.</p>
                     </div>
                     <div className="flex items-center gap-1.5">
@@ -368,18 +379,20 @@ function DashboardContent() {
                                 </SelectContent>
                             </Select>
                         </div>
-                        <EditEmployeeDialog employee={currentEmployeeData} onSave={handleSaveEmployee}>
-                            <Button variant="outline" size="sm" className='h-8 gap-1.5 rounded-lg border-slate-200 text-[10px]'>
-                                <Edit className='h-3 w-3'/> Edit Profile
-                            </Button>
-                        </EditEmployeeDialog>
+                        {currentEmployeeData && (
+                            <EditEmployeeDialog employee={currentEmployeeData} onSave={handleSaveEmployee}>
+                                <Button variant="outline" size="sm" className='h-8 gap-1.5 rounded-lg border-slate-200 text-[10px]'>
+                                    <Edit className='h-3 w-3'/> Edit Profile
+                                </Button>
+                            </EditEmployeeDialog>
+                        )}
                     </div>
                  </div>
 
                  <div className="w-full">
                     <Card className='w-full professional-card shadow-sm'>
                         <CardHeader className='p-3 border-b'>
-                            <CardTitle className='text-base font-bold'>Monthly Performance Goals (KRAs)</CardTitle>
+                            <CardTitle className='text-base font-bold'>My Performance Goals (KRAs)</CardTitle>
                             <CardDescription className='text-[10px]'>Active targets for {selectedMonth === 'all' ? 'Overall Period' : availableMonths[parseInt(selectedMonth)]} {selectedYear === 'all' ? '' : selectedYear}.</CardDescription>
                         </CardHeader>
                         <CardContent className='p-0 sm:p-2'>
@@ -532,10 +545,17 @@ function DashboardContent() {
                                 <div className='bg-primary/10 p-1.5 rounded-lg text-primary'>
                                     <Users className='h-4 w-4'/>
                                 </div>
-                                <div>
-                                    <CardTitle className='text-base font-bold'>Management Hub</CardTitle>
-                                    <CardDescription className='text-[10px]'> Personnel & performance data.</CardDescription>
-                                </div>
+                                {pagePermission !== 'employee_only' ? (
+                                    <div>
+                                        <CardTitle className='text-base font-bold'>Management Hub</CardTitle>
+                                        <CardDescription className='text-[10px]'> Personnel & performance data.</CardDescription>
+                                    </div>
+                                ) : (
+                                    <div>
+                                        <CardTitle className='text-base font-bold'>Company Directory</CardTitle>
+                                        <CardDescription className='text-[10px]'>Connect with your teammates.</CardDescription>
+                                    </div>
+                                )}
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <Button 
@@ -603,10 +623,10 @@ function DashboardContent() {
                             <Tabs defaultValue="list">
                                 <TabsList className="bg-slate-100 p-1 mb-3 h-8">
                                     <TabsTrigger value="list" className='text-[10px] gap-1.5 h-6'><Users className="h-3 w-3" /> Directory</TabsTrigger>
-                                    <TabsTrigger value="performance" className='text-[10px] gap-1.5 h-6'><TrendingUp className="h-3 w-3" /> Analytics</TabsTrigger>
+                                    {pagePermission !== 'employee_only' && <TabsTrigger value="performance" className='text-[10px] gap-1.5 h-6'><TrendingUp className="h-3 w-3" /> Analytics</TabsTrigger>}
                                 </TabsList>
                                 <TabsContent value="list">
-                                    {selectedEmployeeIds.length > 0 && (
+                                    {selectedEmployeeIds.length > 0 && pagePermission !== 'employee_only' && (
                                         <div className="flex items-center justify-between p-1.5 mb-2 bg-rose-50 border border-rose-100 rounded-lg">
                                         <span className="text-[10px] font-bold text-rose-700">{selectedEmployeeIds.length} selected</span>
                                         <Button variant="destructive" size="sm" onClick={handleBulkDelete} className="h-6 text-[9px] gap-1"><Trash2 className="h-2.5 w-2.5" /> Delete</Button>
@@ -617,7 +637,9 @@ function DashboardContent() {
                                             <Table>
                                                 <TableHeader className='bg-slate-50'>
                                                     <TableRow className='h-8'>
-                                                        <TableHead className="w-[35px] px-2"><Checkbox checked={selectedEmployeeIds.length === filteredEmployeeSummary.length} onCheckedChange={handleSelectAll} className="h-3 w-3" /></TableHead>
+                                                        <TableHead className="w-[35px] px-2">
+                                                            {pagePermission !== 'employee_only' && <Checkbox checked={selectedEmployeeIds.length === filteredEmployeeSummary.length} onCheckedChange={handleSelectAll} className="h-3 w-3" />}
+                                                        </TableHead>
                                                         <TableHead className='text-[8px] font-bold uppercase tracking-wider text-slate-500 py-0 h-8'>Identity</TableHead>
                                                         <TableHead className='text-[8px] font-bold uppercase tracking-wider text-slate-500 py-0 h-8'>Dept.</TableHead>
                                                         <TableHead className='text-[8px] font-bold uppercase tracking-wider text-slate-500 text-center py-0 h-8'>KRAs</TableHead>
@@ -629,7 +651,9 @@ function DashboardContent() {
                                                     {loading ? Array.from({ length: 3 }).map((_, i) => <TableRow key={i}><TableCell colSpan={6}><Skeleton className="h-8 w-full" /></TableCell></TableRow>) :
                                                         filteredEmployeeSummary.map(({ employee, kraCount, averagePerformance }) => (
                                                             <TableRow key={employee.id} className={cn('group hover:bg-slate-50 h-10', topPerformer?.employee.id === employee.id && 'bg-amber-50/30')}>
-                                                                <TableCell className='px-2 py-1'><Checkbox checked={selectedEmployeeIds.includes(employee.id)} onCheckedChange={(c) => handleSelectOne(employee.id, !!c)} className="h-3 w-3" /></TableCell>
+                                                                <TableCell className='px-2 py-1'>
+                                                                    {pagePermission !== 'employee_only' && <Checkbox checked={selectedEmployeeIds.includes(employee.id)} onCheckedChange={(c) => handleSelectOne(employee.id, !!c)} className="h-3 w-3" />}
+                                                                </TableCell>
                                                                 <TableCell className="py-1">
                                                                     <div className="flex items-center gap-2">
                                                                         <div className="relative">
@@ -668,31 +692,35 @@ function DashboardContent() {
                                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
                                             {filteredEmployeeSummary.map((summary) => (
                                                 <div key={summary.employee.id} className="relative group">
-                                                <div className="absolute top-1.5 left-1.5 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <Checkbox checked={selectedEmployeeIds.includes(summary.employee.id)} onCheckedChange={(c) => handleSelectOne(summary.employee.id, !!c)} className="bg-white border-slate-300 h-3 w-3" />
-                                                </div>
+                                                {pagePermission !== 'employee_only' && (
+                                                    <div className="absolute top-1.5 left-1.5 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <Checkbox checked={selectedEmployeeIds.includes(summary.employee.id)} onCheckedChange={(c) => handleSelectOne(summary.employee.id, !!c)} className="bg-white border-slate-300 h-3 w-3" />
+                                                    </div>
+                                                )}
                                                 <EmployeeCard summary={summary} isWinner={topPerformer?.employee.id === summary.employee.id} />
                                                 </div>
                                             ))}
                                         </div>
                                     )}
                                 </TabsContent>
-                                <TabsContent value="performance">
-                                    <div className="h-[300px] pt-1">
-                                        {loading ? <Skeleton className="h-full w-full" /> : 
-                                            <ResponsiveContainer width="100%" height="100%">
-                                                <BarChart data={performanceData} layout="vertical" margin={{ left: 10, right: 10 }}>
-                                                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
-                                                    <XAxis type="number" domain={[0, 100]} hide />
-                                                    <YAxis dataKey="employee.name" type="category" width={80} tick={{ fontSize: 9, fill: '#64748b', fontWeight: 500 }} axisLine={false} />
-                                                    <Bar dataKey="performanceScore" radius={[0, 2, 2, 0]} barSize={10}>
-                                                        {performanceData.map((e, i) => <Cell key={i} fill={e.performanceScore >= 80 ? '#10b981' : e.performanceScore >= 50 ? '#f59e0b' : '#f43f5e'} />)}
-                                                    </Bar>
-                                                </BarChart>
-                                            </ResponsiveContainer>
-                                        }
-                                    </div>
-                                </TabsContent>
+                                {pagePermission !== 'employee_only' && (
+                                    <TabsContent value="performance">
+                                        <div className="h-[300px] pt-1">
+                                            {loading ? <Skeleton className="h-full w-full" /> : 
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <BarChart data={performanceData} layout="vertical" margin={{ left: 10, right: 10 }}>
+                                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                                                        <XAxis type="number" domain={[0, 100]} hide />
+                                                        <YAxis dataKey="employee.name" type="category" width={80} tick={{ fontSize: 9, fill: '#64748b', fontWeight: 500 }} axisLine={false} />
+                                                        <Bar dataKey="performanceScore" radius={[0, 2, 2, 0]} barSize={10}>
+                                                            {performanceData.map((e, i) => <Cell key={i} fill={e.performanceScore >= 80 ? '#10b981' : e.performanceScore >= 50 ? '#f59e0b' : '#f43f5e'} />)}
+                                                        </Bar>
+                                                    </BarChart>
+                                                </ResponsiveContainer>
+                                            }
+                                        </div>
+                                    </TabsContent>
+                                )}
                             </Tabs>
                         ) : (
                             <div className="py-20 flex flex-col items-center justify-center bg-slate-50/50 border-2 border-dashed border-slate-200 rounded-xl animate-in fade-in zoom-in-95 duration-300">

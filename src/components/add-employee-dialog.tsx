@@ -18,13 +18,27 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
-import type { Employee, UserRole } from '@/lib/types';
+import type { Employee, UserRole, EmployeePermissions } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Textarea } from './ui/textarea';
 import { format } from 'date-fns';
 import { useAuth } from './auth-provider';
 import { useDataStore } from '@/hooks/use-data-store';
+
+const defaultPermissions: EmployeePermissions = {
+    employees: 'employee_only',
+    kras: 'employee_only',
+    routine_tasks: 'view',
+    leaves: 'employee_only',
+    attendance: 'view',
+    expenses: 'employee_only',
+    habit_tracker: 'view',
+    holidays: 'view',
+    recruitment: 'view',
+    hr_calendar: 'view',
+    settings: 'none',
+};
 
 const employeeSchema = z.object({
     name: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -103,6 +117,7 @@ export function AddEmployeeDialog({ children, onSave }: AddEmployeeDialogProps) 
       email: normalizedEmail,
       joiningDate: data.joiningDate,
       birthDate: data.birthDate,
+      permissions: defaultPermissions, // Ensure default permissions are assigned
     };
     onSave(newEmployee);
     toast({

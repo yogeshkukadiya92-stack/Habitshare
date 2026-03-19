@@ -102,6 +102,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             ...sourceData,
             id: firebaseUser.uid, // Adopt the UID as the permanent ID
             email: normalizedEmail,
+            permissions: sourceData.permissions || defaultPermissions, // Fix for missing permissions
             updatedAt: serverTimestamp() as any,
           };
           
@@ -157,6 +158,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           if (finalData.role === 'Admin' || isInitialAdmin) {
             finalData.permissions = adminPermissions;
             finalData.role = 'Admin';
+          } else if (!finalData.permissions) {
+            finalData.permissions = defaultPermissions;
           }
           setCurrentUser(finalData);
         }
