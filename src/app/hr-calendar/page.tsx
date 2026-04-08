@@ -75,15 +75,17 @@ export default function HRCalendarPage() {
         return events;
     }, [employees, holidays, currentMonth]);
 
-    const getModifiers = (date: Date) => {
-        const modifiers: Record<string, boolean> = {};
-        calendarEvents.forEach(event => {
-            if (isSameDay(date, event.date)) {
-                modifiers[eventConfig[event.type].className] = true;
-            }
-        });
-        return modifiers;
-    };
+    const modifierMap = React.useMemo(() => {
+        const birthdays = calendarEvents.filter((event) => event.type === 'birthday').map((event) => event.date);
+        const anniversaries = calendarEvents.filter((event) => event.type === 'anniversary').map((event) => event.date);
+        const holidaysDates = calendarEvents.filter((event) => event.type === 'holiday').map((event) => event.date);
+
+        return {
+            'event-birthday': birthdays,
+            'event-anniversary': anniversaries,
+            'event-holiday': holidaysDates,
+        };
+    }, [calendarEvents]);
 
     const selectedDayEvents = calendarEvents.filter(event => isSameDay(event.date, selectedDate)).sort((a,b) => a.type.localeCompare(b.type));
 
@@ -244,7 +246,7 @@ export default function HRCalendarPage() {
                                         onSelect={(day) => setSelectedDate(day || new Date())}
                                         month={currentMonth}
                                         onMonthChange={setCurrentMonth}
-                                        modifiers={getModifiers}
+                                        modifiers={modifierMap}
                                         modifiersClassNames={{
                                             'event-birthday': 'event-birthday',
                                             'event-anniversary': 'event-anniversary',

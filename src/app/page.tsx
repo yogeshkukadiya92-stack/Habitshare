@@ -21,6 +21,7 @@ import { MoodTracker } from '@/components/mood-tracker';
 import { useToast } from '@/hooks/use-toast';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, doc, getDocs, increment, limit, query, setDoc, updateDoc, where } from 'firebase/firestore';
+import { buildShareReportText, ReportRange, getReportRangeLabel } from '@/lib/habit-reports';
 
 export default function Dashboard() {
   const { user, currentUser } = useAuth();
@@ -31,6 +32,7 @@ export default function Dashboard() {
   const [currentDate, setCurrentDate] = React.useState<Date>(new Date());
   const [isAddOpen, setIsAddOpen] = React.useState(false);
   const [isShareReportOpen, setIsShareReportOpen] = React.useState(false);
+  const [reportRange, setReportRange] = React.useState<ReportRange>('weekly');
   const [selectedHabitId, setSelectedHabitId] = React.useState<string | null>(null);
   const [newHabitName, setNewHabitName] = React.useState('');
   const [newHabitDesc, setNewHabitDesc] = React.useState('');
@@ -194,15 +196,28 @@ export default function Dashboard() {
     toast({ title: 'Habit Added', description: 'Your habit has been saved.' });
   };
 
-  const generateReport = (days: number, label: string) => {
-    const targetDates = Array.from({ length: days }).map((_, i) => format(subDays(currentDate, i), 'yyyy-MM-dd'));
-    let summaryText = `*Habit Report - ${label}*\n\n`;
-    myHabits.forEach((h) => {
-      const count = targetDates.filter((d) => h.checkIns.includes(d)).length;
-      summaryText += `${count >= 1 ? '✅' : '❌'} ${h.name}: ${count}/${days}\n`;
-    });
-    window.open(`https://wa.me/?text=${encodeURIComponent(summaryText)}`, '_blank');
+  const shareReport = async (range: ReportRange) => {
+    const summaryText = buildShareReportText(myHabits, currentDate, range);
+
+    try {
+      await navigator.clipboard.writeText(summaryText);
+      toast({
+        title: 'Report copied',
+        description: 'The report summary has been copied to your clipboard.',
+      });
+    } catch {
+      // Clipboard access can fail in some browsers or contexts.
+    }
+
+    window.open(`https://wa.me/?text=${encodeURIComponent(summaryText)}`, '_blank', 'noopener,noreferrer');
   };
+
+  const reportOptions: { key: ReportRange; label: string; description: string }[] = [
+    { key: 'daily', label: 'Daily', description: "Today's habits" },
+    { key: 'weekly', label: 'Weekly', description: 'Last 7 days' },
+    { key: 'monthly', label: 'Monthly', description: 'This month' },
+    { key: 'yearly', label: 'Yearly', description: 'This year' },
+  ];
 
   const getCombinedHabits = () => [...myHabits, ...friendHabits];
   const selectedHabit = selectedHabitId ? getCombinedHabits().find((h) => h.id === selectedHabitId) || null : null;
@@ -233,7 +248,29 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-8 space-y-8">
-          <HabitAnalytics habits={myHabits} />
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-3 rounded-[28px] border border-white/70 bg-white/70 p-4 shadow-xl shadow-slate-100/60 backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-xl font-black tracking-tight text-slate-900">Insight Center</h2>
+                <p className="text-sm font-medium text-slate-500">Switch the report scope to review daily, monthly, or yearly consistency.</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {reportOptions.map((option) => (
+                  <Button
+                    key={option.key}
+                    type="button"
+                    variant={reportRange === option.key ? 'default' : 'outline'}
+                    className="rounded-full px-4"
+                    onClick={() => setReportRange(option.key)}
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <HabitAnalytics habits={myHabits} currentDate={currentDate} range={reportRange} />
+          </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="bg-white/70 backdrop-blur-md border border-slate-200/50 p-1.5 rounded-[24px] mb-8 shadow-xl shadow-slate-100/50">
@@ -260,7 +297,7 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <Button onClick={() => setIsShareReportOpen(true)} variant="outline" className="rounded-2xl bg-green-50/50 text-green-700 border-green-200/50 font-black h-11">
-                  <MessageCircle className="h-4 w-4 mr-2" /> SHARE
+                  <MessageCircle className="h-4 w-4 mr-2" /> REPORTS
                 </Button>
               </div>
 
@@ -336,10 +373,37 @@ export default function Dashboard() {
 
       <Dialog open={isShareReportOpen} onOpenChange={setIsShareReportOpen}>
         <DialogContent className="sm:max-w-md rounded-[40px] border-none p-8">
-          <DialogTitle className="text-3xl font-black flex items-center gap-3"><MessageCircle className="h-8 w-8 text-green-500" /> Share</DialogTitle>
-          <div className="grid gap-4 py-8">
-            <Button onClick={() => generateReport(1, 'Daily')} variant="outline" className="h-20 rounded-[24px] border-slate-100 p-4 justify-start font-black text-lg">Daily Win</Button>
-            <Button onClick={() => generateReport(7, 'Weekly')} variant="outline" className="h-20 rounded-[24px] border-slate-100 p-4 justify-start font-black text-lg">Weekly Review</Button>
+          <DialogTitle className="text-3xl font-black flex items-center gap-3">
+            <MessageCircle className="h-8 w-8 text-green-500" />
+            Reports
+          </DialogTitle>
+          <div className="grid gap-4 py-6">
+            <div className="rounded-3xl border border-slate-100 bg-slate-50 p-4">
+              <p className="text-xs font-black uppercase tracking-[0.3em] text-slate-400">Selected range</p>
+              <p className="mt-2 text-xl font-black text-slate-900">{reportOptions.find((option) => option.key === reportRange)?.label} report</p>
+              <p className="text-sm font-medium text-slate-500">{getReportRangeLabel(reportRange, currentDate)}</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {reportOptions.map((option) => (
+                <Button
+                  key={option.key}
+                  onClick={() => setReportRange(option.key)}
+                  variant={reportRange === option.key ? 'default' : 'outline'}
+                  className="h-16 rounded-[22px] border-slate-100 p-4 justify-start font-black text-lg"
+                >
+                  <span className="flex flex-col items-start">
+                    <span>{option.label}</span>
+                    <span className="text-xs font-semibold opacity-80">{option.description}</span>
+                  </span>
+                </Button>
+              ))}
+            </div>
+
+            <Button onClick={() => shareReport(reportRange)} className="h-14 rounded-[22px] font-black text-base bg-green-600 hover:bg-green-700">
+              <MessageCircle className="h-4 w-4 mr-2" />
+              Share report
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

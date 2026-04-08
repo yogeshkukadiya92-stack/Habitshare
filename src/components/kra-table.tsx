@@ -602,10 +602,10 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel size="sm" className="text-xs h-8">Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleBulkDelete} size="sm" className="bg-destructive hover:bg-destructive/90 text-xs h-8">
-                  Delete
-                </AlertDialogAction>
+              <AlertDialogCancel className="text-xs h-8">Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive hover:bg-destructive/90 text-xs h-8">
+                Delete
+              </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>

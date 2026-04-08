@@ -71,6 +71,8 @@ export interface Employee {
   permissions?: EmployeePermissions;
   familyMobileNumber?: string;
   extraLeaves?: number;
+  createdAt?: any;
+  updatedAt?: any;
 }
 
 export type WeeklyUpdateStatus = 'On Track' | 'Delayed' | 'Completed' | 'At Risk' | 'Issue';

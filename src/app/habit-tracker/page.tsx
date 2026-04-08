@@ -198,7 +198,7 @@ export default function HabitTrackerPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {filteredHabits.length > 0 ? (
                                 filteredHabits.map(habit => (
-                                    <HabitCard key={habit.id} habit={habit} onSave={handleSaveHabit} />
+                                    <HabitCard key={habit.id} habit={habit} />
                                 ))
                             ) : (
                                 <div className="col-span-full text-center text-muted-foreground py-10">

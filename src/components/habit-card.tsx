@@ -2,13 +2,19 @@
 
 import * as React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { HabitShareHabit } from "@/lib/types";
+import type { Habit, HabitShareHabit } from "@/lib/types";
 import { CheckCircle2, Share2, Target, Flame, Heart } from 'lucide-react';
 import { Button } from './ui/button';
 import { format, subDays, isSameDay } from 'date-fns';
 
+type HabitCardHabit = Pick<Habit, 'id' | 'name' | 'description'> & {
+  checkIns: Array<Date | string>;
+  isShared?: boolean;
+  cheers?: number;
+};
+
 interface HabitCardProps {
-  habit: HabitShareHabit;
+  habit: HabitCardHabit | HabitShareHabit;
   onToggleCheckIn?: (habitId: string, dateStr: string) => void;
   onCheer?: (habitId: string) => void;
   onViewDetails?: (habitId: string) => void;
@@ -17,12 +23,17 @@ interface HabitCardProps {
 }
 
 export function HabitCard({ habit, onToggleCheckIn, onCheer, onViewDetails, isFriendView = false, currentDate = new Date() }: HabitCardProps) {
+  const checkInStrings = React.useMemo(
+    () => habit.checkIns.map((checkIn) => (typeof checkIn === 'string' ? checkIn : format(new Date(checkIn), 'yyyy-MM-dd'))),
+    [habit.checkIns],
+  );
+
   // Generate the last 5 days up to currentDate
   const last5Days = Array.from({ length: 5 }).map((_, i) => subDays(currentDate, 4 - i));
   const activeDateStr = format(currentDate, 'yyyy-MM-dd');
 
   const calculateStreak = () => {
-    const dates = new Set(habit.checkIns);
+    const dates = new Set(checkInStrings);
     let streak = 0;
     let streakPointer = new Date(); // Streaks always calculate from actual today to be accurate?
     // Wait, the user asked to see previous dates. Usually streak should reflect the active current date!
@@ -51,7 +62,7 @@ export function HabitCard({ habit, onToggleCheckIn, onCheer, onViewDetails, isFr
   };
 
   const isCheckedIn = (date: Date) => {
-    return habit.checkIns.includes(format(date, 'yyyy-MM-dd'));
+    return checkInStrings.includes(format(date, 'yyyy-MM-dd'));
   };
 
   const activeDateChecked = isCheckedIn(currentDate);

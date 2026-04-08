@@ -58,6 +58,14 @@ export function FriendsFeed({
   };
 
   const qrValue = `habitshare:addfriend:${currentUserEmail}`;
+  const uniqueFriends = React.useMemo(() => {
+    const seen = new Set<string>();
+    return friends.filter((friend) => {
+      if (seen.has(friend.id)) return false;
+      seen.add(friend.id);
+      return true;
+    });
+  }, [friends]);
 
   return (
     <div className="flex flex-col gap-6 w-full">
@@ -138,7 +146,7 @@ export function FriendsFeed({
       <div className="space-y-6">
         <h3 className="text-lg font-bold text-slate-800 px-1 border-b pb-2">Friends' Shared Habits</h3>
 
-        {friends.length === 0 ? (
+        {uniqueFriends.length === 0 ? (
           <div className="py-12 flex flex-col items-center justify-center text-slate-400 bg-white/40 rounded-2xl border border-dashed border-slate-300">
             <Users className="h-12 w-12 opacity-20 mb-3" />
             <p className="text-sm font-medium">No accepted friends yet.</p>
@@ -146,7 +154,7 @@ export function FriendsFeed({
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4">
-            {friends.map((friend) => {
+            {uniqueFriends.map((friend) => {
               const habits = friendHabits.filter((h) => h.userId === friend.id && h.isShared);
               const isExpanded = expandedFriendId === friend.id;
 
