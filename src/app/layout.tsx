@@ -9,8 +9,8 @@ import { DataStoreProvider } from '@/hooks/use-data-store';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 export const metadata: Metadata = {
-  title: 'HR Studio | Enterprise Management',
-  description: 'Advanced Key Result Areas and performance tracking for elite teams.',
+  title: 'Habit Share | Connect & Grow',
+  description: 'Track your daily habits and share progress with your friends.',
   manifest: '/manifest.json',
 };
 
@@ -36,8 +36,8 @@ export default function RootLayout({
                 </Sidebar>
                 <SidebarInset className="bg-transparent overflow-x-hidden">
                     <Navbar />
-                    <main className="p-4 sm:px-8 sm:py-8">
-                        <div className="max-w-7xl mx-auto">
+                    <main className="w-full p-4 sm:px-8 sm:py-8">
+                        <div className="w-full">
                           {children}
                         </div>
                     </main>

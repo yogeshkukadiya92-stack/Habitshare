@@ -1,3 +1,27 @@
+export interface HabitShareUser {
+  id: string;
+  email: string;
+  name: string;
+  avatarUrl: string;
+}
+
+export interface HabitShareHabit {
+  id: string;
+  userId: string;
+  name: string;
+  description?: string;
+  checkIns: string[]; 
+  cheers?: number;
+  isShared: boolean;
+  createdAt: string;
+}
+
+export interface FriendConnection {
+  id: string;
+  requesterId: string;
+  receiverId: string;
+  status: 'Pending' | 'Accepted';
+}
 
 export type KRAStatus = 'On Track' | 'At Risk' | 'Completed' | 'Pending';
 export type UserRole = 'Admin' | 'Manager' | 'Employee';

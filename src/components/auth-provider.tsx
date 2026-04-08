@@ -73,7 +73,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(firebaseUser);
       if (firebaseUser && firebaseUser.email) {
         const normalizedEmail = firebaseUser.email.toLowerCase().trim();
-        const isInitialAdmin = normalizedEmail === 'connect@luvfitnessworld.com';
+        const isInitialAdmin = normalizedEmail === 'connect@luvfitnessworld.com' || normalizedEmail === 'yogeshkukadiya92@gmail.com';
         
         // 1. Get UID-based reference
         const userRef = doc(db, 'users', firebaseUser.uid);

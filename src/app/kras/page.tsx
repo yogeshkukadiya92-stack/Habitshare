@@ -54,7 +54,7 @@ function KraManagementPage() {
   const [searchTerm, setSearchTerm] = React.useState('');
   
   const { currentUser, getPermission } = useAuth();
-  const pagePermission = getPermission('employees'); 
+  const pagePermission = getPermission('kras'); 
   const { toast } = useToast();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 

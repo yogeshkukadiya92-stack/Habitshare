@@ -1,29 +1,53 @@
 'use client';
 import {
-  Auth, // Import Auth type for type hinting
+  Auth,
   signInAnonymously,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  // Assume getAuth and app are initialized elsewhere
+  type UserCredential,
 } from 'firebase/auth';
 
 /** Initiate anonymous sign-in (non-blocking). */
-export function initiateAnonymousSignIn(authInstance: Auth): void {
-  // CRITICAL: Call signInAnonymously directly. Do NOT use 'await signInAnonymously(...)'.
-  signInAnonymously(authInstance);
-  // Code continues immediately. Auth state change is handled by onAuthStateChanged listener.
+export function initiateAnonymousSignIn(authInstance: Auth): Promise<UserCredential> {
+  return signInAnonymously(authInstance);
 }
 
 /** Initiate email/password sign-up (non-blocking). */
-export function initiateEmailSignUp(authInstance: Auth, email: string, password: string): void {
-  // CRITICAL: Call createUserWithEmailAndPassword directly. Do NOT use 'await createUserWithEmailAndPassword(...)'.
-  createUserWithEmailAndPassword(authInstance, email, password);
-  // Code continues immediately. Auth state change is handled by onAuthStateChanged listener.
+export function initiateEmailSignUp(authInstance: Auth, email: string, password: string): Promise<UserCredential> {
+  return createUserWithEmailAndPassword(authInstance, email, password);
 }
 
 /** Initiate email/password sign-in (non-blocking). */
-export function initiateEmailSignIn(authInstance: Auth, email: string, password: string): void {
-  // CRITICAL: Call signInWithEmailAndPassword directly. Do NOT use 'await signInWithEmailAndPassword(...)'.
-  signInWithEmailAndPassword(authInstance, email, password);
-  // Code continues immediately. Auth state change is handled by onAuthStateChanged listener.
+export function initiateEmailSignIn(authInstance: Auth, email: string, password: string): Promise<UserCredential> {
+  return signInWithEmailAndPassword(authInstance, email, password);
+}
+
+/**
+ * Signs in with the supplied credential, or creates the account on first use.
+ * This is intended for a starter credential on a fresh Firebase project.
+ */
+export async function ensureEmailAccount(authInstance: Auth, email: string, password: string): Promise<UserCredential> {
+  try {
+    return await signInWithEmailAndPassword(authInstance, email, password);
+  } catch (signInError: any) {
+    const signInCode = signInError?.code as string | undefined;
+    const canCreateAccount =
+      signInCode === 'auth/user-not-found' ||
+      signInCode === 'auth/invalid-credential' ||
+      signInCode === 'auth/invalid-login-credentials';
+
+    if (!canCreateAccount) {
+      throw signInError;
+    }
+
+    try {
+      return await createUserWithEmailAndPassword(authInstance, email, password);
+    } catch (signUpError: any) {
+      if (signUpError?.code === 'auth/email-already-in-use') {
+        throw new Error('Starter account already exists, but the saved password does not match.');
+      }
+
+      throw signUpError;
+    }
+  }
 }

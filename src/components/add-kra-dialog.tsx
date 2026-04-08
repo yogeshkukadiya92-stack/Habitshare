@@ -195,7 +195,9 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
   const [employeeComboboxOpen, setEmployeeComboboxOpen] = React.useState(false)
   
   const { getPermission, currentUser: loggedInUser } = useAuth();
-  const isAdmin = getPermission('employees') === 'download';
+  const kraPermission = getPermission('kras');
+  const canManageKra = kraPermission === 'edit' || kraPermission === 'download';
+  const isAdmin = kraPermission === 'download';
   const { toast } = useToast();
 
   const {
@@ -350,8 +352,21 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
   };
   
   const onSubmit = (data: KraFormValues) => {
-    const selectedEmployee = employees.find(e => e.id === data.employeeId);
-    if (!selectedEmployee) return;
+    const selectedEmployee =
+      employees.find(e => e.id === data.employeeId) ||
+      (kra?.employee && kra.employee.id === data.employeeId ? kra.employee : undefined) ||
+      (kra?.employee?.email ? employees.find(e => e.email?.toLowerCase() === kra.employee.email?.toLowerCase()) : undefined) ||
+      (loggedInUser?.email ? employees.find(e => e.email?.toLowerCase() === loggedInUser.email?.toLowerCase()) : undefined) ||
+      kra?.employee;
+
+    if (!selectedEmployee) {
+      toast({
+        title: 'Unable to save weekly update',
+        description: 'Employee profile could not be matched for this KRA. Please refresh once and try again.',
+        variant: 'destructive',
+      });
+      return;
+    }
     
     let totalWeeklyAchieved = 0;
     if (data.weeklyProgress) {
@@ -361,10 +376,18 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
     }
 
     let totalKpiAchieved = 0;
-    const updatedActions = data.actions?.map(action => {
+    const updatedActions: ActionItem[] | undefined = data.actions?.map((action) => {
         const achieved = action.achieved || action.updates?.reduce((sum, u) => sum + (u.value || 0), 0) || 0;
         totalKpiAchieved += achieved;
-        return {...action, achieved };
+        return {
+          ...action,
+          dueDate: action.dueDate,
+          achieved,
+          updates: action.updates?.map((update) => ({
+            ...update,
+            date: update.date ?? new Date(),
+          })),
+        };
     });
 
     const hasActions = updatedActions && updatedActions.length > 0;
@@ -431,14 +454,23 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
       activities: newActivities,
     };
     onSave?.(newKra);
+    toast({ title: 'Changes saved', description: 'KRA progress and weekly updates were updated successfully.' });
     setOpen(false);
+  };
+
+  const onInvalid = () => {
+    toast({
+      title: 'Please check required fields',
+      description: 'Some KRA fields are invalid, so the weekly update could not be saved yet.',
+      variant: 'destructive',
+    });
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-5xl max-h-[95vh] flex flex-col p-0">
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col h-full overflow-hidden">
+        <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="flex flex-col h-full overflow-hidden">
           <DialogHeader className="p-6 pb-2">
             <DialogTitle>{kra ? 'Update KRA & Progress' : 'Add New KRA'}</DialogTitle>
             <DialogDescription>
@@ -497,7 +529,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                         type="date" 
                                         value={format(field.value, 'yyyy-MM-dd')} 
                                         onChange={e => field.onChange(new Date(e.target.value))}
-                                        disabled={!isAdmin}
+                                        disabled={!canManageKra}
                                     />
                                 )}
                             />
@@ -512,7 +544,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                         type="date" 
                                         value={format(field.value, 'yyyy-MM-dd')} 
                                         onChange={e => field.onChange(new Date(e.target.value))}
-                                        disabled={!isAdmin}
+                                        disabled={!canManageKra}
                                     />
                                 )}
                             />
@@ -526,9 +558,9 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                     <Controller
                         name="taskDescription"
                         control={control}
-                        render={({ field }) => <Textarea {...field} rows={3} disabled={!isAdmin} className="bg-slate-50" />}
+                        render={({ field }) => <Textarea {...field} rows={3} disabled={!canManageKra} className="bg-slate-50" />}
                     />
-                    {isAdmin && (
+                    {canManageKra && (
                         <Button type="button" variant="outline" size="sm" className="mt-2 gap-2" onClick={handleRefine} disabled={isRefining}>
                             {isRefining ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 text-yellow-500" />}
                             Refine with AI
@@ -616,7 +648,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                             <Controller
                                 name="weightage"
                                 control={control}
-                                render={({ field }) => <Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} disabled={!isAdmin} />}
+                                render={({ field }) => <Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} disabled={!canManageKra} />}
                             />
                         </div>
                         <div className='space-y-1'>
@@ -659,7 +691,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                         <Controller
                                             name={`actions.${index}.name`}
                                             control={control}
-                                            render={({ field: f }) => <Input placeholder="KPI Action" {...f} disabled={!isAdmin} className="flex-1 font-semibold" />}
+                                            render={({ field: f }) => <Input placeholder="KPI Action" {...f} disabled={!canManageKra} className="flex-1 font-semibold" />}
                                         />
                                     </div>
                                     <div className='flex items-center gap-2 ml-4'>
@@ -674,12 +706,12 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                                         className='h-7 text-[10px] py-0 w-28' 
                                                         value={f.value ? format(new Date(f.value), 'yyyy-MM-dd') : ''}
                                                         onChange={e => f.onChange(new Date(e.target.value))}
-                                                        disabled={!isAdmin}
+                                                        disabled={!canManageKra}
                                                     />
                                                 )}
                                             />
                                         </div>
-                                        {isAdmin && (
+                                        {canManageKra && (
                                             <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className='text-rose-500 h-8 w-8'>
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
@@ -692,7 +724,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                         <Controller
                                             name={`actions.${index}.target`}
                                             control={control}
-                                            render={({ field: f }) => <Input type="number" {...f} value={field.value ?? ''} onChange={e => f.onChange(e.target.value === '' ? undefined : Number(e.target.value))} disabled={!isAdmin} />}
+                                            render={({ field: f }) => <Input type="number" {...f} value={f.value ?? ''} onChange={e => f.onChange(e.target.value === '' ? undefined : Number(e.target.value))} disabled={!canManageKra} />}
                                         />
                                     </div>
                                     <div className='w-20'>
@@ -713,7 +745,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                 </div>
                             </div>
                         ))}
-                        {isAdmin && (
+                        {canManageKra && (
                             <Button type="button" variant="outline" className="w-full border-dashed" onClick={() => append({ id: uuidv4(), name: '', dueDate: new Date(), isCompleted: false, weightage: 0, updates: [] })}>
                                 <PlusCircle className="h-4 w-4 mr-2" /> Add KPI Action
                             </Button>
@@ -737,32 +769,34 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                             </div>
                             <div className="space-y-1">
                                 <Label className="text-[10px] font-bold uppercase text-green-600">Bonus Marks</Label>
-                                <Controller
-                                    name="bonus"
-                                    control={control}
-                                    render={({ field }) => (
+                            <Controller
+                                name="bonus"
+                                control={control}
+                                render={({ field }) => (
                                         <Input 
                                             type="number" 
                                             {...field} 
                                             value={field.value ?? ''} 
                                             onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
                                             className="border-green-100 bg-green-50/20 font-bold text-green-700"
+                                            disabled={!canManageKra}
                                         />
                                     )}
                                 />
                             </div>
                             <div className="space-y-1">
                                 <Label className="text-[10px] font-bold uppercase text-rose-600">Penalty Marks</Label>
-                                <Controller
-                                    name="penalty"
-                                    control={control}
-                                    render={({ field }) => (
+                            <Controller
+                                name="penalty"
+                                control={control}
+                                render={({ field }) => (
                                         <Input 
                                             type="number" 
                                             {...field} 
                                             value={field.value ?? ''} 
                                             onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
                                             className="border-rose-100 bg-rose-50/20 font-bold text-rose-700"
+                                            disabled={!canManageKra}
                                         />
                                     )}
                                 />

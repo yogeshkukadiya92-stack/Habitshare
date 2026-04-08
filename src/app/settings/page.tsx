@@ -347,7 +347,7 @@ export default function SettingsPage() {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <p className="text-sm text-muted-foreground">
-                                You can sync your application data with **Google Sheets** using the **Import/Export** features available on all management pages (Employees, KRA, Tasks, Attendance, etc.).
+                                You can sync your application data with <strong>Google Sheets</strong> using the <strong>Import/Export</strong> features available on all management pages (Employees, KRA, Tasks, Attendance, etc.).
                             </p>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="p-4 border rounded-lg bg-muted/30">
@@ -357,8 +357,8 @@ export default function SettingsPage() {
                                     </div>
                                     <p className="text-xs text-muted-foreground">
                                         1. Go to any page (e.g., Attendance).<br/>
-                                        2. Click **Export**. An Excel (.xlsx) file will download.<br/>
-                                        3. Upload this file to **Google Drive** and open it with **Google Sheets**.
+                                        2. Click <strong>Export</strong>. An Excel (.xlsx) file will download.<br/>
+                                        3. Upload this file to <strong>Google Drive</strong> and open it with <strong>Google Sheets</strong>.
                                     </p>
                                 </div>
                                 <div className="p-4 border rounded-lg bg-muted/30">
@@ -367,8 +367,8 @@ export default function SettingsPage() {
                                         <h4 className="font-semibold">Step 2: Sync back from Sheets</h4>
                                     </div>
                                     <p className="text-xs text-muted-foreground">
-                                        1. In your Google Sheet, go to **File > Download > Microsoft Excel (.xlsx)**.<br/>
-                                        2. Go back to the application and click **Import**.<br/>
+                                        1. In your Google Sheet, go to <strong>File &gt; Download &gt; Microsoft Excel (.xlsx)</strong>.<br/>
+                                        2. Go back to the application and click <strong>Import</strong>.<br/>
                                         3. Select the downloaded file to sync all changes instantly.
                                     </p>
                                 </div>
