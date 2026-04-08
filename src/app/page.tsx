@@ -85,11 +85,18 @@ export default function Dashboard() {
     const allAccepted = [...(acceptedSentRaw || []), ...(acceptedReceivedRaw || [])];
     return allAccepted.map((request) => {
       const isRequester = request.requesterId === user?.uid;
+      const resolvedName = isRequester
+        ? request.receiverName || request.receiverEmail || 'Friend'
+        : request.requesterName || request.requesterEmail || 'Friend';
+      const resolvedEmail = isRequester
+        ? request.receiverEmail || ''
+        : request.requesterEmail || '';
+      const safeInitial = resolvedName.charAt(0).toUpperCase() || 'F';
       return {
         id: isRequester ? request.receiverId : request.requesterId,
-        name: isRequester ? request.receiverName : request.requesterName,
-        email: isRequester ? request.receiverEmail : request.requesterEmail,
-        avatarUrl: `https://placehold.co/100x100/e0e7ff/4f46e5?text=${(isRequester ? request.receiverName : request.requesterName).charAt(0).toUpperCase()}`,
+        name: resolvedName,
+        email: resolvedEmail,
+        avatarUrl: `https://placehold.co/100x100/e0e7ff/4f46e5?text=${safeInitial}`,
       } as HabitShareUser;
     });
   }, [acceptedSentRaw, acceptedReceivedRaw, user]);

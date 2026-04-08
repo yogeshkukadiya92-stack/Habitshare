@@ -9,8 +9,13 @@ import { Input } from '@/components/ui/input';
 import { UserPlus, Users, Search, QrCode, ScanLine, ChevronDown, CheckCircle2, Clock3, XCircle } from 'lucide-react';
 import { HabitCard } from './habit-card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import dynamic from 'next/dynamic';
 import QRCode from 'react-qr-code';
-import { Scanner } from '@yudiel/react-qr-scanner';
+
+const Scanner = dynamic(
+  () => import('@yudiel/react-qr-scanner').then((mod) => mod.Scanner),
+  { ssr: false },
+);
 
 interface FriendsFeedProps {
   friends: HabitShareUser[];
@@ -157,17 +162,19 @@ export function FriendsFeed({
             {uniqueFriends.map((friend) => {
               const habits = friendHabits.filter((h) => h.userId === friend.id && h.isShared);
               const isExpanded = expandedFriendId === friend.id;
+              const safeName = friend.name || friend.email || 'Friend';
+              const safeInitial = safeName.charAt(0).toUpperCase();
 
               return (
                 <div key={friend.id} className="flex flex-col bg-white/60 p-2 rounded-2xl border border-slate-100 shadow-sm transition-all hover:shadow-md">
                   <div className="flex items-center justify-between cursor-pointer p-3 rounded-xl hover:bg-slate-50 transition-colors" onClick={() => setExpandedFriendId(isExpanded ? null : friend.id)}>
                     <div className="flex items-center gap-4">
                       <Avatar className="h-12 w-12 ring-2 ring-indigo-100 shadow-sm">
-                        <AvatarImage src={friend.avatarUrl} alt={friend.name} />
-                        <AvatarFallback className="bg-indigo-100 text-indigo-700 font-bold">{friend.name.charAt(0)}</AvatarFallback>
+                        <AvatarImage src={friend.avatarUrl} alt={safeName} />
+                        <AvatarFallback className="bg-indigo-100 text-indigo-700 font-bold">{safeInitial}</AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col">
-                        <div className="text-base font-extrabold text-slate-800">{friend.name}</div>
+                        <div className="text-base font-extrabold text-slate-800">{safeName}</div>
                         <div className="text-xs font-medium text-slate-400">{habits.length} habits shared</div>
                       </div>
                     </div>

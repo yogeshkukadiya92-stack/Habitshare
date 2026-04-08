@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import QRCode from 'react-qr-code';
-import { Scanner } from '@yudiel/react-qr-scanner';
+import dynamic from 'next/dynamic';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -10,6 +10,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { QrCode, ScanText, UserPlus, CheckCircle2, XCircle } from 'lucide-react';
 import { useAuth } from '@/components/auth-provider';
 import { useToast } from '@/hooks/use-toast';
+
+const Scanner = dynamic(
+  () => import('@yudiel/react-qr-scanner').then((mod) => mod.Scanner),
+  { ssr: false },
+);
 
 export function QrSocial() {
   const { user, currentUser } = useAuth();
@@ -75,8 +80,8 @@ export function QrSocial() {
             </div>
 
             <div className="flex flex-col items-center gap-2">
-                <p className="text-lg font-bold text-slate-800">{currentUser.name}</p>
-                <p className="text-sm font-medium text-slate-400">{user.email}</p>
+                <p className="text-lg font-bold text-slate-800">{currentUser.name || user.email || 'Friend'}</p>
+                <p className="text-sm font-medium text-slate-400">{user.email || 'No email'}</p>
             </div>
           </div>
         </DialogContent>
