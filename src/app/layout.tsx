@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/components/auth-provider';
-import { Navbar } from '@/components/navbar';
 import { DataStoreProvider } from '@/hooks/use-data-store';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
+import { AppShell } from '@/components/app-shell';
 
 export const metadata: Metadata = {
   title: 'Habit Share | Connect & Grow',
@@ -28,15 +28,8 @@ export default function RootLayout({
         <FirebaseClientProvider>
           <AuthProvider>
             <DataStoreProvider>
-              <div className="min-h-screen bg-transparent overflow-x-hidden">
-                <Navbar />
-                <main className="w-full p-4 sm:px-8 sm:py-8">
-                  <div className="w-full">
-                    {children}
-                  </div>
-                </main>
-                <Toaster />
-              </div>
+              <AppShell>{children}</AppShell>
+              <Toaster />
             </DataStoreProvider>
           </AuthProvider>
         </FirebaseClientProvider>
