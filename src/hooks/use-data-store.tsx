@@ -83,19 +83,58 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   const { data: attendances, isLoading: attendancesLoading } = useCollection<Attendance>(attendancesQuery);
   const { data: activitiesData } = useCollection<ActivityLog>(activitiesQuery);
 
-  const employees = useMemo(() => users || [], [users]);
-  const deletedEmployees = useMemo(() => deletedUsers || [], [deletedUsers]);
-  const kras = useMemo(() => {
-    if (!krasData) return [];
-    return sortKras(krasData);
-  }, [krasData]);
-  const activities = useMemo(() => activitiesData || [], [activitiesData]);
+  const allEmployees = useMemo(() => users || [], [users]);
+  const currentEmployee = useMemo(
+    () => allEmployees.find((employee) => employee.id === user?.uid) || null,
+    [allEmployees, user]
+  );
+  const isAdmin = useMemo(
+    () =>
+      currentEmployee?.role === 'Admin' ||
+      user?.email?.toLowerCase() === 'connect@luvfitnessworld.com' ||
+      user?.email?.toLowerCase() === 'yogeshkukadiya92@gmail.com',
+    [currentEmployee, user]
+  );
+
+  const filterByEmployee = <T extends { employee?: { id?: string } }>(items: T[] | undefined): T[] => {
+    if (!items) return [];
+    if (isAdmin || !user?.uid) return items;
+    return items.filter((item) => item.employee?.id === user.uid);
+  };
+
+  const employees = useMemo(() => {
+    if (isAdmin) return allEmployees;
+    if (!currentEmployee) return [];
+    return [currentEmployee];
+  }, [allEmployees, currentEmployee, isAdmin]);
+
+  const deletedEmployees = useMemo(() => {
+    if (isAdmin) return deletedUsers || [];
+    return [];
+  }, [deletedUsers, isAdmin]);
+
+  const kras = useMemo(() => sortKras(filterByEmployee(krasData)), [krasData, isAdmin, user]);
+  const leavesData = useMemo(() => filterByEmployee(leaves), [leaves, isAdmin, user]);
+  const expensesData = useMemo(() => filterByEmployee(expenses), [expenses, isAdmin, user]);
+  const routineTasksData = useMemo(() => filterByEmployee(routineTasks), [routineTasks, isAdmin, user]);
+  const habitsData = useMemo(() => filterByEmployee(habits), [habits, isAdmin, user]);
+  const attendancesData = useMemo(() => filterByEmployee(attendances), [attendances, isAdmin, user]);
+  const recruitsData = useMemo(() => {
+    if (isAdmin) return recruits || [];
+    return [];
+  }, [recruits, isAdmin]);
+
+  const activities = useMemo(() => {
+    if (!activitiesData) return [];
+    if (isAdmin || !user?.uid) return activitiesData;
+    return activitiesData.filter((activity) => activity.employeeId === user.uid || activity.actorName === currentEmployee?.name);
+  }, [activitiesData, isAdmin, user, currentEmployee]);
 
   const loading = !user || usersLoading || krasLoading;
 
   const currentActorName = useMemo(() => {
-    return employees.find(e => e.id === user?.uid)?.name || user?.email || 'System';
-  }, [employees, user]);
+    return allEmployees.find(e => e.id === user?.uid)?.name || user?.email || 'System';
+  }, [allEmployees, user]);
 
   const logGlobalActivity = (action: string, employeeName: string, type: ActivityLog['type'], details?: string, relatedId?: string, employeeId?: string) => {
     const id = uuidv4();
@@ -338,7 +377,18 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   };
 
   const value = {
-    loading, kras, employees, deletedEmployees, branches: branches || [], leaves: leaves || [], expenses: expenses || [], routineTasks: routineTasks || [], habits: habits || [], holidays: holidays || [], recruits: recruits || [], attendances: attendances || [],
+    loading,
+    kras,
+    employees,
+    deletedEmployees,
+    branches: branches || [],
+    leaves: leavesData,
+    expenses: expensesData,
+    routineTasks: routineTasksData,
+    habits: habitsData,
+    holidays: holidays || [],
+    recruits: recruitsData,
+    attendances: attendancesData,
     activities,
     handleSaveKra, handleDeleteKra, handleDeleteMultipleKras, handleSaveEmployee, handleDeleteEmployee, handleDeleteMultipleEmployees, handleRestoreEmployee, handlePermanentDeleteEmployee, handleSaveLeave, handleDeleteLeave, handleDeleteMultipleLeaves, handleSaveExpense, handleDeleteExpense, handleDeleteMultipleExpenses,
     handleSaveRoutineTask, handleDeleteRoutineTask, handleDeleteMultipleRoutineTasks, handleSaveHabit, handleSaveHoliday, handleDeleteHoliday, handleDeleteMultipleHolidays, handleSaveRecruit, handleDeleteRecruit, handleDeleteMultipleRecruits, handleSaveAttendance,

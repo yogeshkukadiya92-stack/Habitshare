@@ -7,15 +7,12 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from './auth-provider';
 import { auth } from '@/lib/firebase';
 import { Button } from './ui/button';
-import { ShieldCheck, Edit } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { SidebarTrigger } from './ui/sidebar';
-import { EditEmployeeDialog } from './edit-employee-dialog';
-import { useDataStore } from '@/hooks/use-data-store';
 
 export const Navbar = () => {
   const { user, currentUser } = useAuth();
-  const { handleSaveEmployee } = useDataStore();
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -33,13 +30,6 @@ export const Navbar = () => {
         <div className="ml-auto flex items-center gap-4">
             <div className='flex items-center gap-2'>
               <span className="text-sm text-muted-foreground hidden sm:inline font-medium">Welcome, {currentUser?.name || user.email}</span>
-              {currentUser && (
-                <EditEmployeeDialog employee={currentUser} onSave={handleSaveEmployee}>
-                   <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-slate-100 shadow-none border-none">
-                      <Edit className="h-3.5 w-3.5 text-muted-foreground" />
-                   </Button>
-                </EditEmployeeDialog>
-              )}
               {isAdmin && (
                 <Badge variant="secondary" className="gap-1 bg-primary/10 text-primary border-none">
                   <ShieldCheck className="h-3.5 w-3.5" />
