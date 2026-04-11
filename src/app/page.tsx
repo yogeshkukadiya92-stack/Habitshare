@@ -122,7 +122,6 @@ export default function Dashboard() {
   const { user, currentUser, loading: authLoading, refreshProfile } = useAuth();
   const { toast } = useToast();
 
-  const [activeTab, setActiveTab] = React.useState('habits');
   const [currentDate, setCurrentDate] = React.useState<Date>(new Date());
   const [isAddOpen, setIsAddOpen] = React.useState(false);
   const [createHabitStep, setCreateHabitStep] = React.useState<0 | 1 | 2>(0);
@@ -756,6 +755,102 @@ export default function Dashboard() {
         </div>
       </section>
 
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-8 space-y-8">
+          {/* Habits Section */}
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-1">
+              <div className="flex items-center gap-4">
+                <h2 className="text-2xl font-black text-slate-800 tracking-tight">Active Habits</h2>
+                <div className="flex items-center gap-1 bg-white/90 backdrop-blur rounded-2xl p-1.5 border border-slate-200/80 shadow-sm">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl" onClick={() => setCurrentDate(subDays(currentDate, 1))}>
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-xs font-black min-w-[80px] text-center tracking-widest">{isSameDay(currentDate, new Date()) ? 'TODAY' : format(currentDate, 'MMM d').toUpperCase()}</span>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl" onClick={() => setCurrentDate(addDays(currentDate, 1))} disabled={isSameDay(currentDate, new Date())}>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <Button onClick={() => setIsShareReportOpen(true)} variant="outline" className="rounded-2xl bg-green-50/50 text-green-700 border-green-200/50 font-black h-11">
+                <MessageCircle className="h-4 w-4 mr-2" /> REPORTS
+              </Button>
+            </div>
+
+            {isDashboardLoading ? (
+              <div className="rounded-3xl border border-dashed border-slate-200 bg-white/40 p-10 text-center text-slate-500">
+                Loading your Supabase habits...
+              </div>
+            ) : myHabits.length === 0 ? (
+              <div className="rounded-[32px] border border-dashed border-slate-200 bg-white/70 p-6 shadow-sm sm:p-8">
+                <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="max-w-xl">
+                    <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.3em] text-primary">
+                      <Rocket className="h-3.5 w-3.5" />
+                      First habit launch
+                    </div>
+                    <h3 className="mt-4 text-2xl font-black tracking-tight text-slate-900">Your dashboard is ready for its first streak.</h3>
+                    <p className="mt-3 text-sm font-medium leading-6 text-slate-500">
+                      Start with one routine that feels lightweight enough to repeat daily. We&apos;ll turn it into momentum, analytics, and social accountability.
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-3 sm:min-w-[240px]">
+                    <Button onClick={() => openCreateHabitDialog()} className="h-12 rounded-2xl font-black">
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      Build first habit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => openCreateHabitDialog(quickTemplates[0])}
+                      className="h-12 rounded-2xl border-slate-200 bg-white/85 font-black"
+                    >
+                      Use starter template
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="-mx-2 flex snap-x snap-mandatory gap-4 overflow-x-auto px-2 pb-2 md:mx-0 md:grid md:grid-cols-2 md:gap-6 md:overflow-visible md:px-0">
+                {myHabits.map((habit) => (
+                  <div key={habit.id} className="min-w-[88%] snap-start md:min-w-0">
+                    <HabitCard habit={habit} onToggleCheckIn={toggleCheckIn} currentDate={currentDate} onViewDetails={setSelectedHabitId} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Gratitude Section */}
+          <div className="space-y-6">
+            <GratitudeStudio
+              entries={myGratitudeEntries}
+              currentDate={currentDate}
+              range={gratitudeRange}
+              friends={friends}
+              draft={gratitudeDraft}
+              isShared={isGratitudeShared}
+              sharedWithIds={gratitudeSharedWithIds}
+              isReportOpen={isGratitudeReportOpen}
+              isSaving={isSavingGratitude}
+              onDraftChange={setGratitudeDraft}
+              onToggleShared={setIsGratitudeShared}
+              onToggleFriend={toggleGratitudeFriend}
+              onToggleReportOpen={() => setIsGratitudeReportOpen((open) => !open)}
+              onRangeChange={setGratitudeRange}
+              onSave={saveGratitude}
+              onShareWhatsApp={shareGratitudeWhatsApp}
+            />
+          </div>
+        </div>
+
+        <div className="lg:col-span-4 space-y-8">
+          <MoodTracker />
+          <AiCoach habit={myHabits[0]} />
+          <Achievements habits={myHabits} />
+        </div>
+      </div>
+
+      {/* Additional sections moved below */}
       <section className="glass-panel rounded-[30px] border border-white/70 bg-gradient-to-br from-slate-950/5 via-white/70 to-slate-950/10 p-6 shadow-[0_20px_80px_rgba(15,23,42,0.08)]">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="max-w-2xl">
@@ -853,150 +948,56 @@ export default function Dashboard() {
         </section>
       ) : null}
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-8 space-y-8">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="mb-8 grid h-auto grid-cols-2 gap-2 rounded-[28px] border border-slate-200/60 bg-white/75 p-2 shadow-xl shadow-slate-100/50 backdrop-blur-xl">
-              <TabsTrigger value="habits" className="group rounded-[20px] px-4 py-4 text-sm font-black transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-violet-500 data-[state=active]:text-white data-[state=active]:shadow-[0_18px_40px_-18px_rgba(79,70,229,0.7)]">
-                <LayoutDashboard className="h-4 w-4 mr-2" /> DASHBOARD
-              </TabsTrigger>
-              <TabsTrigger value="friends" className="group rounded-[20px] px-4 py-4 text-sm font-black transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-sky-500 data-[state=active]:text-white data-[state=active]:shadow-[0_18px_40px_-18px_rgba(59,130,246,0.75)]">
-                <Users className="h-4 w-4 mr-2" /> FRIENDS
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="habits" className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-1">
-                <div className="flex items-center gap-4">
-                  <h2 className="text-2xl font-black text-slate-800 tracking-tight">Active Habits</h2>
-                  <div className="flex items-center gap-1 bg-white/90 backdrop-blur rounded-2xl p-1.5 border border-slate-200/80 shadow-sm">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl" onClick={() => setCurrentDate(subDays(currentDate, 1))}>
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <span className="text-xs font-black min-w-[80px] text-center tracking-widest">{isSameDay(currentDate, new Date()) ? 'TODAY' : format(currentDate, 'MMM d').toUpperCase()}</span>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl" onClick={() => setCurrentDate(addDays(currentDate, 1))} disabled={isSameDay(currentDate, new Date())}>
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                <Button onClick={() => setIsShareReportOpen(true)} variant="outline" className="rounded-2xl bg-green-50/50 text-green-700 border-green-200/50 font-black h-11">
-                  <MessageCircle className="h-4 w-4 mr-2" /> REPORTS
-                </Button>
-              </div>
-
-              {isDashboardLoading ? (
-                <div className="rounded-3xl border border-dashed border-slate-200 bg-white/40 p-10 text-center text-slate-500">
-                  Loading your Supabase habits...
-                </div>
-              ) : myHabits.length === 0 ? (
-                <div className="rounded-[32px] border border-dashed border-slate-200 bg-white/70 p-6 shadow-sm sm:p-8">
-                  <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="max-w-xl">
-                      <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.3em] text-primary">
-                        <Rocket className="h-3.5 w-3.5" />
-                        First habit launch
-                      </div>
-                      <h3 className="mt-4 text-2xl font-black tracking-tight text-slate-900">Your dashboard is ready for its first streak.</h3>
-                      <p className="mt-3 text-sm font-medium leading-6 text-slate-500">
-                        Start with one routine that feels lightweight enough to repeat daily. We&apos;ll turn it into momentum, analytics, and social accountability.
-                      </p>
-                    </div>
-                    <div className="flex flex-col gap-3 sm:min-w-[240px]">
-                      <Button onClick={() => openCreateHabitDialog()} className="h-12 rounded-2xl font-black">
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Build first habit
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => openCreateHabitDialog(quickTemplates[0])}
-                        className="h-12 rounded-2xl border-slate-200 bg-white/85 font-black"
-                      >
-                        Use starter template
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="-mx-2 flex snap-x snap-mandatory gap-4 overflow-x-auto px-2 pb-2 md:mx-0 md:grid md:grid-cols-2 md:gap-6 md:overflow-visible md:px-0">
-                  {myHabits.map((habit) => (
-                    <div key={habit.id} className="min-w-[88%] snap-start md:min-w-0">
-                      <HabitCard habit={habit} onToggleCheckIn={toggleCheckIn} currentDate={currentDate} onViewDetails={setSelectedHabitId} />
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="space-y-4">
-                <div className="flex flex-col gap-3 rounded-[28px] border border-white/70 bg-white/70 p-4 shadow-xl shadow-slate-100/60 backdrop-blur sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <h2 className="text-xl font-black tracking-tight text-slate-900">Insight Center</h2>
-                    <p className="text-sm font-medium text-slate-500">Review consistency after your habit list so action comes before analysis.</p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {reportOptions.map((option) => (
-                      <Button
-                        key={option.key}
-                        type="button"
-                        variant={reportRange === option.key ? 'default' : 'outline'}
-                        className="rounded-full px-4"
-                        onClick={() => setReportRange(option.key)}
-                      >
-                        {option.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-
-                <HabitAnalytics habits={myHabits} currentDate={currentDate} range={reportRange} />
-              </div>
-
-              <GratitudeStudio
-                entries={myGratitudeEntries}
-                currentDate={currentDate}
-                range={gratitudeRange}
-                friends={friends}
-                draft={gratitudeDraft}
-                isShared={isGratitudeShared}
-                sharedWithIds={gratitudeSharedWithIds}
-                isReportOpen={isGratitudeReportOpen}
-                isSaving={isSavingGratitude}
-                onDraftChange={setGratitudeDraft}
-                onToggleShared={setIsGratitudeShared}
-                onToggleFriend={toggleGratitudeFriend}
-                onToggleReportOpen={() => setIsGratitudeReportOpen((open) => !open)}
-                onRangeChange={setGratitudeRange}
-                onSave={saveGratitude}
-                onShareWhatsApp={shareGratitudeWhatsApp}
-              />
-            </TabsContent>
-
-            <TabsContent value="friends" className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-              <div className="space-y-6">
-                <FriendsFeed
-                  friends={friends}
-                  friendHabits={friendHabits}
-                  incomingRequests={incomingRequests}
-                  outgoingRequests={outgoingRequests}
-                  currentUserEmail={user?.email || ''}
-                  onAddFriend={handleAddFriend}
-                  onAcceptRequest={handleAcceptRequest}
-                  onRejectRequest={handleRejectRequest}
-                  onCheer={handleCheer}
-                  currentDate={currentDate}
-                  onViewDetails={setSelectedHabitId}
-                />
-                <GratitudeFeed entries={friendGratitudeEntries} />
-              </div>
-            </TabsContent>
-          </Tabs>
+      {/* Friends section moved below */}
+      <section className="glass-panel rounded-[30px] p-6">
+        <div className="flex items-center justify-between gap-4 mb-6">
+          <div>
+            <h2 className="text-2xl font-black text-slate-900">Friends & Community</h2>
+            <p className="mt-1 text-sm font-medium text-slate-500">Connect with friends and see their progress.</p>
+          </div>
+          <Users className="h-6 w-6 text-primary" />
         </div>
-
-        <div className="lg:col-span-4 space-y-8">
-          <MoodTracker />
-          <AiCoach habit={myHabits[0]} />
-          <Achievements habits={myHabits} />
+        <div className="space-y-6">
+          <FriendsFeed
+            friends={friends}
+            friendHabits={friendHabits}
+            incomingRequests={incomingRequests}
+            outgoingRequests={outgoingRequests}
+            currentUserEmail={user?.email || ''}
+            onAddFriend={handleAddFriend}
+            onAcceptRequest={handleAcceptRequest}
+            onRejectRequest={handleRejectRequest}
+            onCheer={handleCheer}
+            currentDate={currentDate}
+            onViewDetails={setSelectedHabitId}
+          />
+          <GratitudeFeed entries={friendGratitudeEntries} />
         </div>
-      </div>
+      </section>
+
+      {/* Analytics section moved below */}
+      <section className="glass-panel rounded-[30px] p-6">
+        <div className="flex items-center justify-between gap-4 mb-6">
+          <div>
+            <h2 className="text-2xl font-black text-slate-900">Analytics & Insights</h2>
+            <p className="mt-1 text-sm font-medium text-slate-500">Deep dive into your habit patterns and progress.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {reportOptions.map((option) => (
+              <Button
+                key={option.key}
+                type="button"
+                variant={reportRange === option.key ? 'default' : 'outline'}
+                className="rounded-full px-4"
+                onClick={() => setReportRange(option.key)}
+              >
+                {option.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+        <HabitAnalytics habits={myHabits} currentDate={currentDate} range={reportRange} />
+      </section>
 
       <Dialog open={isAddOpen} onOpenChange={closeCreateHabitDialog}>
         <DialogContent className="max-w-[96vw] overflow-hidden rounded-[34px] border-none p-0 shadow-[0_30px_120px_rgba(15,23,42,0.25)] sm:max-w-2xl">
