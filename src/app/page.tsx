@@ -19,6 +19,8 @@ import { MoodTracker } from '@/components/mood-tracker';
 import { GratitudeStudio } from '@/components/gratitude-studio';
 import { GratitudeFeed } from '@/components/gratitude-feed';
 import { Groups } from '@/components/groups';
+import { RankingBoard } from '@/components/ranking-board';
+import { PointsCelebration } from '@/components/points-celebration';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/auth-provider';
 import { supabase } from '@/lib/supabase';
@@ -147,6 +149,7 @@ export default function Dashboard() {
   const [gratitudeSharedWithGroups, setGratitudeSharedWithGroups] = React.useState<string[]>([]);
   const [isGratitudeReportOpen, setIsGratitudeReportOpen] = React.useState(false);
   const [isSavingGratitude, setIsSavingGratitude] = React.useState(false);
+  const [showPointsCelebration, setShowPointsCelebration] = React.useState(false);
   const [isDashboardLoading, setIsDashboardLoading] = React.useState(true);
   const [myHabits, setMyHabits] = React.useState<HabitShareHabit[]>([]);
   const [friendHabits, setFriendHabits] = React.useState<HabitShareHabit[]>([]);
@@ -677,6 +680,18 @@ export default function Dashboard() {
   const gratitudeTodayKey = format(currentDate, 'yyyy-MM-dd');
   const gratitudeEntryForDate = myGratitudeEntries.find((entry) => entry.entryDate === gratitudeTodayKey);
   const selectedShareFriends = friends.filter((friend) => sharedWithIds.includes(friend.id));
+
+  const rankingHabits = React.useMemo(() => {
+    const unique = new Map<string, HabitShareHabit>();
+    [...myHabits, ...friendHabits].forEach((habit) => unique.set(habit.id, habit));
+    return Array.from(unique.values());
+  }, [friendHabits, myHabits]);
+
+  const rankingGratitude = React.useMemo(() => {
+    const unique = new Map<string, GratitudeEntry>();
+    [...myGratitudeEntries, ...friendGratitudeEntries].forEach((entry) => unique.set(entry.id, entry));
+    return Array.from(unique.values());
+  }, [friendGratitudeEntries, myGratitudeEntries]);
   const shouldShowOnboarding =
     !isOnboardingDismissed &&
     !isDashboardLoading &&
@@ -684,6 +699,21 @@ export default function Dashboard() {
     friends.length === 0 &&
     incomingRequests.length === 0 &&
     outgoingRequests.length === 0;
+
+  const previousMyPointsRef = React.useRef<number | null>(null);
+
+  const handleMyPointsChange = React.useCallback((points: number) => {
+    const previous = previousMyPointsRef.current;
+    if (previous !== null && points > previous) {
+      const delta = points - previous;
+      setShowPointsCelebration(true);
+      toast({
+        title: `+${delta} points earned`,
+        description: 'Great momentum. Your rank is climbing.',
+      });
+    }
+    previousMyPointsRef.current = points;
+  }, [toast]);
 
   React.useEffect(() => {
     if (user) {
@@ -934,6 +964,18 @@ export default function Dashboard() {
 
         <div className="lg:col-span-4 space-y-8">
           <MoodTracker />
+          <RankingBoard
+            habits={rankingHabits}
+            gratitudeEntries={rankingGratitude}
+            friends={friends}
+            currentUser={{
+              id: user?.id || '',
+              name: currentUser?.name || user?.email?.split('@')[0] || 'You',
+              email: user?.email || '',
+            }}
+            currentDate={currentDate}
+            onMyPointsChange={handleMyPointsChange}
+          />
           <AiCoach habit={myHabits[0]} />
           <Achievements habits={myHabits} />
         </div>
@@ -1490,6 +1532,7 @@ export default function Dashboard() {
         <PlusCircle className="mr-2 h-5 w-5" />
         New Habit
       </Button>
+      <PointsCelebration show={showPointsCelebration} onComplete={() => setShowPointsCelebration(false)} />
     </div>
   );
 }
