@@ -18,10 +18,12 @@ interface GratitudeStudioProps {
   draft: string;
   isShared: boolean;
   sharedWithIds: string[];
+  isReportOpen: boolean;
   isSaving: boolean;
   onDraftChange: (value: string) => void;
   onToggleShared: (value: boolean) => void;
   onToggleFriend: (friendId: string) => void;
+  onToggleReportOpen: () => void;
   onRangeChange: (range: ReportRange) => void;
   onSave: () => Promise<void> | void;
   onShareWhatsApp: () => void;
@@ -37,10 +39,12 @@ export function GratitudeStudio({
   draft,
   isShared,
   sharedWithIds,
+  isReportOpen,
   isSaving,
   onDraftChange,
   onToggleShared,
   onToggleFriend,
+  onToggleReportOpen,
   onRangeChange,
   onSave,
   onShareWhatsApp,
@@ -50,9 +54,9 @@ export function GratitudeStudio({
   const todaysEntry = entries.find((entry) => entry.entryDate === todayKey);
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+    <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
       <Card className="creative-card border-none bg-[linear-gradient(145deg,rgba(255,255,255,0.96),rgba(255,244,248,0.86))]">
-        <CardHeader className="pb-4">
+        <CardHeader className="pb-3">
           <div className="flex items-start justify-between gap-4">
             <div>
               <CardTitle className="flex items-center gap-2 text-2xl font-black tracking-tight text-slate-950">
@@ -79,8 +83,18 @@ export function GratitudeStudio({
               value={draft}
               onChange={(event) => onDraftChange(event.target.value)}
               placeholder="What are you grateful for today? Keep it honest, specific, and meaningful."
-              className="mt-4 min-h-[180px] w-full rounded-[22px] border border-slate-100 bg-slate-50/90 px-4 py-4 text-sm font-medium leading-6 text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-rose-300 focus:ring-2 focus:ring-rose-200"
+              className="mt-4 min-h-[150px] w-full rounded-[22px] border border-slate-100 bg-slate-50/90 px-4 py-4 text-sm font-medium leading-6 text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-rose-300 focus:ring-2 focus:ring-rose-200"
             />
+            <div className="mt-4 flex items-center justify-between gap-3 text-sm">
+              <div className="rounded-full bg-slate-100 px-3 py-2 text-slate-600">Quick note: keep it short and real.</div>
+              <button
+                type="button"
+                onClick={onToggleReportOpen}
+                className="rounded-full border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-black text-rose-700 transition hover:bg-rose-100"
+              >
+                {isReportOpen ? 'Hide report' : 'Open report'}
+              </button>
+            </div>
           </div>
 
           <div className="rounded-[26px] border border-white/80 bg-white/85 p-4 shadow-sm">
@@ -134,8 +148,8 @@ export function GratitudeStudio({
         </CardContent>
       </Card>
 
-      <Card className="creative-card border-none bg-[linear-gradient(145deg,rgba(255,255,255,0.96),rgba(241,245,255,0.84))]">
-        <CardHeader className="pb-4">
+      <Card className={`creative-card border-none bg-[linear-gradient(145deg,rgba(255,255,255,0.96),rgba(241,245,255,0.84))] ${isReportOpen ? '' : 'hidden'}`}>
+        <CardHeader className="pb-3">
           <div className="flex items-start justify-between gap-4">
             <div>
               <CardTitle className="flex items-center gap-2 text-xl font-black text-slate-950">
@@ -148,7 +162,7 @@ export function GratitudeStudio({
             </div>
             <div className="rounded-2xl bg-primary/10 px-4 py-3 text-right shadow-sm">
               <div className="text-[11px] font-black uppercase tracking-[0.28em] text-primary/70">Consistency</div>
-              <div className="mt-1 text-2xl font-black text-primary">{report.consistencyRate}%</div>
+              <div className="mt-1 text-lg font-black text-primary">Hidden</div>
             </div>
           </div>
         </CardHeader>
@@ -175,11 +189,11 @@ export function GratitudeStudio({
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-[22px] border border-white/80 bg-white/85 p-4 shadow-sm">
               <div className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Written days</div>
-              <div className="mt-2 text-2xl font-black text-slate-900">{report.writtenDays}</div>
+              <div className="mt-2 text-lg font-black text-slate-900">Hidden</div>
             </div>
             <div className="rounded-[22px] border border-white/80 bg-white/85 p-4 shadow-sm">
               <div className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-400">Missed days</div>
-              <div className="mt-2 text-2xl font-black text-slate-900">{report.missedDays}</div>
+              <div className="mt-2 text-lg font-black text-slate-900">Hidden</div>
             </div>
           </div>
 

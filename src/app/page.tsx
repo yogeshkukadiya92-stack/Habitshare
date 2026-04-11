@@ -139,6 +139,7 @@ export default function Dashboard() {
   const [gratitudeRange, setGratitudeRange] = React.useState<ReportRange>('weekly');
   const [isGratitudeShared, setIsGratitudeShared] = React.useState(false);
   const [gratitudeSharedWithIds, setGratitudeSharedWithIds] = React.useState<string[]>([]);
+  const [isGratitudeReportOpen, setIsGratitudeReportOpen] = React.useState(false);
   const [isSavingGratitude, setIsSavingGratitude] = React.useState(false);
   const [isDashboardLoading, setIsDashboardLoading] = React.useState(true);
   const [myHabits, setMyHabits] = React.useState<HabitShareHabit[]>([]);
@@ -957,10 +958,12 @@ export default function Dashboard() {
                 draft={gratitudeDraft}
                 isShared={isGratitudeShared}
                 sharedWithIds={gratitudeSharedWithIds}
+                isReportOpen={isGratitudeReportOpen}
                 isSaving={isSavingGratitude}
                 onDraftChange={setGratitudeDraft}
                 onToggleShared={setIsGratitudeShared}
                 onToggleFriend={toggleGratitudeFriend}
+                onToggleReportOpen={() => setIsGratitudeReportOpen((open) => !open)}
                 onRangeChange={setGratitudeRange}
                 onSave={saveGratitude}
                 onShareWhatsApp={shareGratitudeWhatsApp}
