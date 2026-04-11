@@ -1,32 +1,95 @@
 'use client';
 
 import * as React from 'react';
-import { Button } from '@/components/ui/button';
-import { CheckCircle2, LayoutDashboard, PlusCircle, Users, ChevronLeft, ChevronRight, MessageCircle } from 'lucide-react';
-import { HabitShareHabit, HabitShareUser, HabitFriendRequest } from '@/lib/types';
-import { HabitCard } from '@/components/habit-card';
-import { FriendsFeed } from '@/components/friends-feed';
-import { HabitCalendarDialog } from '@/components/habit-calendar-dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format, subDays, addDays, isSameDay } from 'date-fns';
+import { CheckCircle2, LayoutDashboard, PlusCircle, Users, ChevronLeft, ChevronRight, MessageCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from '@/components/ui/dialog';
-import { useAuth } from '@/components/auth-provider';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { HabitCard } from '@/components/habit-card';
+import { FriendsFeed } from '@/components/friends-feed';
+import { HabitCalendarDialog } from '@/components/habit-calendar-dialog';
 import { AiCoach } from '@/components/ai-coach';
 import { Achievements } from '@/components/achievements';
 import { HabitAnalytics } from '@/components/habit-analytics';
 import { MoodTracker } from '@/components/mood-tracker';
 import { useToast } from '@/hooks/use-toast';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, doc, getDocs, increment, limit, query, setDoc, updateDoc, where } from 'firebase/firestore';
-import { buildShareReportText, ReportRange, getReportRangeLabel } from '@/lib/habit-reports';
+import { useAuth } from '@/components/auth-provider';
+import { supabase } from '@/lib/supabase';
+import { buildShareReportText, type ReportRange, getReportRangeLabel } from '@/lib/habit-reports';
+import type { HabitFriendRequest, HabitShareHabit, HabitShareUser } from '@/lib/types';
+
+type HabitRow = {
+  id: string;
+  user_id: string;
+  user_name: string | null;
+  user_email: string | null;
+  name: string;
+  description: string | null;
+  check_ins: string[] | null;
+  cheers: number | null;
+  is_shared: boolean | null;
+  shared_with_ids: string[] | null;
+  created_at: string;
+  updated_at: string | null;
+};
+
+type FriendRequestRow = {
+  id: string;
+  requester_id: string;
+  requester_name: string | null;
+  requester_email: string | null;
+  receiver_id: string;
+  receiver_name: string | null;
+  receiver_email: string | null;
+  status: 'pending' | 'accepted' | 'rejected';
+  created_at: string;
+};
+
+type ProfileRow = {
+  id: string;
+  name: string | null;
+  email: string | null;
+  avatar_url: string | null;
+};
+
+function mapHabit(row: HabitRow): HabitShareHabit {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    userName: row.user_name || '',
+    userEmail: row.user_email || '',
+    name: row.name,
+    description: row.description || '',
+    checkIns: row.check_ins || [],
+    cheers: row.cheers || 0,
+    isShared: Boolean(row.is_shared),
+    sharedWithIds: row.shared_with_ids || [],
+    createdAt: row.created_at,
+    updatedAt: row.updated_at || row.created_at,
+  };
+}
+
+function mapFriendRequest(row: FriendRequestRow): HabitFriendRequest {
+  return {
+    id: row.id,
+    requesterId: row.requester_id,
+    requesterName: row.requester_name || row.requester_email || 'User',
+    requesterEmail: row.requester_email || '',
+    receiverId: row.receiver_id,
+    receiverName: row.receiver_name || row.receiver_email || 'User',
+    receiverEmail: row.receiver_email || '',
+    status: row.status,
+    createdAt: row.created_at,
+  };
+}
 
 export default function Dashboard() {
-  const { user, currentUser } = useAuth();
+  const { user, currentUser, loading: authLoading, refreshProfile } = useAuth();
   const { toast } = useToast();
-  const db = useFirestore();
 
   const [activeTab, setActiveTab] = React.useState('habits');
   const [currentDate, setCurrentDate] = React.useState<Date>(new Date());
@@ -39,83 +102,150 @@ export default function Dashboard() {
   const [isNewShared, setIsNewShared] = React.useState(false);
   const [sharedWithIds, setSharedWithIds] = React.useState<string[]>([]);
   const [isSavingHabit, setIsSavingHabit] = React.useState(false);
+  const [isDashboardLoading, setIsDashboardLoading] = React.useState(true);
+  const [myHabits, setMyHabits] = React.useState<HabitShareHabit[]>([]);
+  const [friendHabits, setFriendHabits] = React.useState<HabitShareHabit[]>([]);
+  const [incomingRequests, setIncomingRequests] = React.useState<HabitFriendRequest[]>([]);
+  const [outgoingRequests, setOutgoingRequests] = React.useState<HabitFriendRequest[]>([]);
+  const [acceptedSent, setAcceptedSent] = React.useState<HabitFriendRequest[]>([]);
+  const [acceptedReceived, setAcceptedReceived] = React.useState<HabitFriendRequest[]>([]);
 
-  const myHabitsQuery = useMemoFirebase(
-    () => (user ? query(collection(db, 'habitShareHabits'), where('userId', '==', user.uid)) : null),
-    [db, user]
-  );
-  const habitsSharedWithMeQuery = useMemoFirebase(
-    () => (user ? query(collection(db, 'habitShareHabits'), where('isShared', '==', true), where('sharedWithIds', 'array-contains', user.uid)) : null),
-    [db, user]
-  );
-  const incomingRequestsQuery = useMemoFirebase(
-    () => (user ? query(collection(db, 'habitFriendRequests'), where('receiverId', '==', user.uid), where('status', '==', 'pending')) : null),
-    [db, user]
-  );
-  const outgoingRequestsQuery = useMemoFirebase(
-    () => (user ? query(collection(db, 'habitFriendRequests'), where('requesterId', '==', user.uid), where('status', '==', 'pending')) : null),
-    [db, user]
-  );
-  const acceptedAsRequesterQuery = useMemoFirebase(
-    () => (user ? query(collection(db, 'habitFriendRequests'), where('requesterId', '==', user.uid), where('status', '==', 'accepted')) : null),
-    [db, user]
-  );
-  const acceptedAsReceiverQuery = useMemoFirebase(
-    () => (user ? query(collection(db, 'habitFriendRequests'), where('receiverId', '==', user.uid), where('status', '==', 'accepted')) : null),
-    [db, user]
-  );
+  const loadDashboardData = React.useCallback(async () => {
+    if (!user) {
+      setMyHabits([]);
+      setFriendHabits([]);
+      setIncomingRequests([]);
+      setOutgoingRequests([]);
+      setAcceptedSent([]);
+      setAcceptedReceived([]);
+      setIsDashboardLoading(false);
+      return;
+    }
 
-  const { data: myHabitsRaw } = useCollection<HabitShareHabit>(myHabitsQuery);
-  const { data: sharedHabitsRaw } = useCollection<HabitShareHabit>(habitsSharedWithMeQuery);
-  const { data: incomingRequestsRaw } = useCollection<HabitFriendRequest>(incomingRequestsQuery);
-  const { data: outgoingRequestsRaw } = useCollection<HabitFriendRequest>(outgoingRequestsQuery);
-  const { data: acceptedSentRaw } = useCollection<HabitFriendRequest>(acceptedAsRequesterQuery);
-  const { data: acceptedReceivedRaw } = useCollection<HabitFriendRequest>(acceptedAsReceiverQuery);
+    setIsDashboardLoading(true);
 
-  const myHabits = React.useMemo(() => (myHabitsRaw || []).map((h) => ({ ...h, checkIns: h.checkIns || [] })), [myHabitsRaw]);
-  const friendHabits = React.useMemo(
-    () => (sharedHabitsRaw || []).filter((h) => h.userId !== user?.uid).map((h) => ({ ...h, checkIns: h.checkIns || [] })),
-    [sharedHabitsRaw, user]
-  );
-  const incomingRequests = React.useMemo(() => incomingRequestsRaw || [], [incomingRequestsRaw]);
-  const outgoingRequests = React.useMemo(() => outgoingRequestsRaw || [], [outgoingRequestsRaw]);
-  const acceptedSent = React.useMemo(() => acceptedSentRaw || [], [acceptedSentRaw]);
-  const acceptedReceived = React.useMemo(() => acceptedReceivedRaw || [], [acceptedReceivedRaw]);
+    try {
+      const [
+        myHabitsResult,
+        sharedHabitsResult,
+        incomingResult,
+        outgoingResult,
+        acceptedSentResult,
+        acceptedReceivedResult,
+      ] = await Promise.all([
+        supabase.from('habit_share_habits').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+        supabase.from('habit_share_habits').select('*').contains('shared_with_ids', [user.id]).eq('is_shared', true),
+        supabase.from('habit_friend_requests').select('*').eq('receiver_id', user.id).eq('status', 'pending').order('created_at', { ascending: false }),
+        supabase.from('habit_friend_requests').select('*').eq('requester_id', user.id).eq('status', 'pending').order('created_at', { ascending: false }),
+        supabase.from('habit_friend_requests').select('*').eq('requester_id', user.id).eq('status', 'accepted').order('created_at', { ascending: false }),
+        supabase.from('habit_friend_requests').select('*').eq('receiver_id', user.id).eq('status', 'accepted').order('created_at', { ascending: false }),
+      ]);
+
+      if (myHabitsResult.error) throw myHabitsResult.error;
+      if (sharedHabitsResult.error) throw sharedHabitsResult.error;
+      if (incomingResult.error) throw incomingResult.error;
+      if (outgoingResult.error) throw outgoingResult.error;
+      if (acceptedSentResult.error) throw acceptedSentResult.error;
+      if (acceptedReceivedResult.error) throw acceptedReceivedResult.error;
+
+      setMyHabits((myHabitsResult.data || []).map((row) => mapHabit(row as HabitRow)));
+      setFriendHabits(
+        (sharedHabitsResult.data || [])
+          .map((row) => mapHabit(row as HabitRow))
+          .filter((habit) => habit.userId !== user.id),
+      );
+      setIncomingRequests((incomingResult.data || []).map((row) => mapFriendRequest(row as FriendRequestRow)));
+      setOutgoingRequests((outgoingResult.data || []).map((row) => mapFriendRequest(row as FriendRequestRow)));
+      setAcceptedSent((acceptedSentResult.data || []).map((row) => mapFriendRequest(row as FriendRequestRow)));
+      setAcceptedReceived((acceptedReceivedResult.data || []).map((row) => mapFriendRequest(row as FriendRequestRow)));
+    } catch (error) {
+      console.error('Failed to load dashboard data:', error);
+      toast({
+        title: 'Load failed',
+        description: 'Could not load your habit dashboard from Supabase.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDashboardLoading(false);
+    }
+  }, [toast, user]);
+
+  React.useEffect(() => {
+    if (!authLoading) {
+      loadDashboardData();
+    }
+  }, [authLoading, loadDashboardData]);
 
   const friends = React.useMemo(() => {
-    const allAccepted = [...(acceptedSentRaw || []), ...(acceptedReceivedRaw || [])];
-    return allAccepted.map((request) => {
-      const isRequester = request.requesterId === user?.uid;
-      const resolvedName = isRequester
+    const allAccepted = [...acceptedSent, ...acceptedReceived];
+    const unique = new Map<string, HabitShareUser>();
+
+    allAccepted.forEach((request) => {
+      const isRequester = request.requesterId === user?.id;
+      const id = isRequester ? request.receiverId : request.requesterId;
+      const name = isRequester
         ? request.receiverName || request.receiverEmail || 'Friend'
         : request.requesterName || request.requesterEmail || 'Friend';
-      const resolvedEmail = isRequester
-        ? request.receiverEmail || ''
-        : request.requesterEmail || '';
-      const safeInitial = resolvedName.charAt(0).toUpperCase() || 'F';
-      return {
-        id: isRequester ? request.receiverId : request.requesterId,
-        name: resolvedName,
-        email: resolvedEmail,
-        avatarUrl: `https://placehold.co/100x100/e0e7ff/4f46e5?text=${safeInitial}`,
-      } as HabitShareUser;
+      const email = isRequester ? request.receiverEmail || '' : request.requesterEmail || '';
+      const avatarText = name.charAt(0).toUpperCase() || 'F';
+
+      unique.set(id, {
+        id,
+        name,
+        email,
+        avatarUrl: `https://placehold.co/100x100/e0e7ff/4f46e5?text=${avatarText}`,
+      });
     });
-  }, [acceptedSentRaw, acceptedReceivedRaw, user]);
+
+    return Array.from(unique.values());
+  }, [acceptedReceived, acceptedSent, user?.id]);
 
   const toggleCheckIn = async (habitId: string, dateStr: string) => {
-    const habit = myHabits.find((h) => h.id === habitId);
+    const habit = myHabits.find((item) => item.id === habitId);
     if (!habit) return;
-    const checked = habit.checkIns.includes(dateStr);
-    const nextCheckIns = checked ? habit.checkIns.filter((d) => d !== dateStr) : [...habit.checkIns, dateStr];
-    await updateDoc(doc(db, 'habitShareHabits', habitId), { checkIns: nextCheckIns, updatedAt: new Date().toISOString() });
+
+    const nextCheckIns = habit.checkIns.includes(dateStr)
+      ? habit.checkIns.filter((entry) => entry !== dateStr)
+      : [...habit.checkIns, dateStr];
+
+    const { error } = await supabase
+      .from('habit_share_habits')
+      .update({
+        check_ins: nextCheckIns,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', habitId);
+
+    if (error) {
+      toast({ title: 'Update failed', description: error.message, variant: 'destructive' });
+      return;
+    }
+
+    await loadDashboardData();
   };
 
   const handleCheer = async (habitId: string) => {
-    await updateDoc(doc(db, 'habitShareHabits', habitId), { cheers: increment(1) });
+    const habit = friendHabits.find((item) => item.id === habitId);
+    const currentCheers = habit?.cheers || 0;
+
+    const { error } = await supabase
+      .from('habit_share_habits')
+      .update({
+        cheers: currentCheers + 1,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', habitId);
+
+    if (error) {
+      toast({ title: 'Cheer failed', description: error.message, variant: 'destructive' });
+      return;
+    }
+
+    await loadDashboardData();
   };
 
   const handleAddFriend = async (rawEmail: string) => {
-    if (!user || !currentUser) return;
+    if (!user) return;
 
     const email = rawEmail.toLowerCase().trim();
     if (email === (user.email || '').toLowerCase()) {
@@ -123,21 +253,27 @@ export default function Dashboard() {
       return;
     }
 
-    const userLookup = query(collection(db, 'users'), where('email', '==', email), limit(1));
-    const userSnapshot = await getDocs(userLookup);
-    if (userSnapshot.empty) {
-      toast({ title: 'User Not Found', description: 'No user exists with this email.', variant: 'destructive' });
+    const { data: target, error: targetError } = await supabase
+      .from('profiles')
+      .select('id, name, email, avatar_url')
+      .eq('email', email)
+      .limit(1)
+      .maybeSingle();
+
+    if (targetError) {
+      toast({ title: 'Lookup Failed', description: targetError.message, variant: 'destructive' });
       return;
     }
 
-    const target = userSnapshot.docs[0];
-    const targetData = target.data() as { name?: string; email?: string };
-    const targetId = target.id;
+    if (!target) {
+      toast({ title: 'User Not Found', description: 'No Supabase user exists with this email.', variant: 'destructive' });
+      return;
+    }
 
     const alreadyConnectedOrRequested = [...incomingRequests, ...outgoingRequests, ...acceptedSent, ...acceptedReceived].some(
       (request) =>
-        (request.requesterId === user.uid && request.receiverId === targetId) ||
-        (request.requesterId === targetId && request.receiverId === user.uid)
+        (request.requesterId === user.id && request.receiverId === target.id) ||
+        (request.requesterId === target.id && request.receiverId === user.id),
     );
 
     if (alreadyConnectedOrRequested) {
@@ -145,30 +281,56 @@ export default function Dashboard() {
       return;
     }
 
-    const requestId = `${user.uid}_${targetId}_${Date.now()}`;
     const requestDoc = {
-      id: requestId,
-      requesterId: user.uid,
-      requesterName: currentUser.name || user.email || 'User',
-      requesterEmail: user.email || '',
-      receiverId: targetId,
-      receiverName: targetData.name || email.split('@')[0],
-      receiverEmail: targetData.email || email,
+      id: `${user.id}_${target.id}_${Date.now()}`,
+      requester_id: user.id,
+      requester_name: currentUser?.name || user.email || 'User',
+      requester_email: user.email || '',
+      receiver_id: target.id,
+      receiver_name: target.name || email.split('@')[0],
+      receiver_email: target.email || email,
       status: 'pending' as const,
-      createdAt: new Date().toISOString(),
+      created_at: new Date().toISOString(),
     };
-    await setDoc(doc(db, 'habitFriendRequests', requestId), requestDoc);
-    toast({ title: 'Request Sent', description: `Friend request sent to ${requestDoc.receiverName}.` });
+
+    const { error } = await supabase.from('habit_friend_requests').insert(requestDoc);
+    if (error) {
+      toast({ title: 'Request Failed', description: error.message, variant: 'destructive' });
+      return;
+    }
+
+    toast({ title: 'Request Sent', description: `Friend request sent to ${requestDoc.receiver_name}.` });
+    await loadDashboardData();
   };
 
   const handleAcceptRequest = async (requestId: string) => {
-    await updateDoc(doc(db, 'habitFriendRequests', requestId), { status: 'accepted' });
+    const { error } = await supabase
+      .from('habit_friend_requests')
+      .update({ status: 'accepted' })
+      .eq('id', requestId);
+
+    if (error) {
+      toast({ title: 'Accept failed', description: error.message, variant: 'destructive' });
+      return;
+    }
+
     toast({ title: 'Request Accepted', description: 'You are now friends.' });
+    await loadDashboardData();
   };
 
   const handleRejectRequest = async (requestId: string) => {
-    await updateDoc(doc(db, 'habitFriendRequests', requestId), { status: 'rejected' });
+    const { error } = await supabase
+      .from('habit_friend_requests')
+      .update({ status: 'rejected' })
+      .eq('id', requestId);
+
+    if (error) {
+      toast({ title: 'Reject failed', description: error.message, variant: 'destructive' });
+      return;
+    }
+
     toast({ title: 'Request Declined' });
+    await loadDashboardData();
   };
 
   const toggleSharedWithFriend = (friendId: string) => {
@@ -187,7 +349,7 @@ export default function Dashboard() {
 
     const ownerName =
       currentUser?.name?.trim() ||
-      user.displayName?.trim() ||
+      user.user_metadata?.name ||
       user.email?.split('@')[0] ||
       'User';
     const selectedFriendIds = isNewShared ? sharedWithIds.filter(Boolean) : [];
@@ -196,23 +358,23 @@ export default function Dashboard() {
     setIsSavingHabit(true);
 
     try {
-      const habitId = `habit_${Date.now()}`;
-      const habit: HabitShareHabit = {
-        id: habitId,
-        userId: user.uid,
-        userName: ownerName,
-        userEmail: user.email || '',
+      const habitDoc = {
+        id: `habit_${Date.now()}`,
+        user_id: user.id,
+        user_name: ownerName,
+        user_email: user.email || '',
         name: newHabitName.trim(),
         description: newHabitDesc.trim(),
-        checkIns: [],
-        isShared: shouldShare,
-        sharedWithIds: selectedFriendIds,
+        check_ins: [] as string[],
+        is_shared: shouldShare,
+        shared_with_ids: selectedFriendIds,
         cheers: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       };
 
-      await setDoc(doc(db, 'habitShareHabits', habitId), habit);
+      const { error } = await supabase.from('habit_share_habits').insert(habitDoc);
+      if (error) throw error;
 
       setNewHabitName('');
       setNewHabitDesc('');
@@ -221,15 +383,14 @@ export default function Dashboard() {
       setIsAddOpen(false);
       toast({
         title: 'Habit Added',
-        description: shouldShare
-          ? 'Your habit has been saved and shared with friends.'
-          : 'Your habit has been saved.',
+        description: shouldShare ? 'Your habit has been saved and shared with friends.' : 'Your habit has been saved.',
       });
+      await loadDashboardData();
     } catch (error) {
       console.error('Failed to save habit:', error);
       toast({
         title: 'Save failed',
-        description: 'We could not save this habit. Please try again.',
+        description: error instanceof Error ? error.message : 'We could not save this habit. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -261,7 +422,13 @@ export default function Dashboard() {
   ];
 
   const getCombinedHabits = () => [...myHabits, ...friendHabits];
-  const selectedHabit = selectedHabitId ? getCombinedHabits().find((h) => h.id === selectedHabitId) || null : null;
+  const selectedHabit = selectedHabitId ? getCombinedHabits().find((habit) => habit.id === selectedHabitId) || null : null;
+
+  React.useEffect(() => {
+    if (user) {
+      refreshProfile().catch((error) => console.error('Failed to refresh profile:', error));
+    }
+  }, [refreshProfile, user]);
 
   return (
     <div className="flex flex-col min-h-screen w-full p-2 sm:p-4 lg:p-6 space-y-8 animate-in fade-in duration-1000">
@@ -342,11 +509,17 @@ export default function Dashboard() {
                 </Button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {myHabits.map((habit) => (
-                  <HabitCard key={habit.id} habit={habit} onToggleCheckIn={toggleCheckIn} currentDate={currentDate} onViewDetails={setSelectedHabitId} />
-                ))}
-              </div>
+              {isDashboardLoading ? (
+                <div className="rounded-3xl border border-dashed border-slate-200 bg-white/40 p-10 text-center text-slate-500">
+                  Loading your Supabase habits...
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {myHabits.map((habit) => (
+                    <HabitCard key={habit.id} habit={habit} onToggleCheckIn={toggleCheckIn} currentDate={currentDate} onViewDetails={setSelectedHabitId} />
+                  ))}
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="friends">

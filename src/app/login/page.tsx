@@ -1,61 +1,59 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useAuth, useFirebase, ensureEmailAccount, initiateEmailSignIn, initiateEmailSignUp } from '@/firebase';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Eye, EyeOff } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/components/auth-provider';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const { user, isUserLoading } = useFirebase();
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    if (!isUserLoading && user) {
+    if (!authLoading && user) {
       router.push('/');
     }
-  }, [user, isUserLoading, router]);
+  }, [authLoading, router, user]);
 
-  const getAuthErrorMessage = (error: any) => {
-    const code = error?.code || '';
+  const getAuthErrorMessage = (error: unknown) => {
+    const message = error instanceof Error ? error.message : 'Authentication failed. Please try again.';
 
-    if (code === 'auth/operation-not-allowed') {
-      return 'Email/Password sign-in is disabled in Firebase. Please enable it in Firebase Console.';
+    if (message.toLowerCase().includes('invalid login credentials')) {
+      return 'Email or password is incorrect.';
     }
-    if (code === 'auth/invalid-email') {
-      return 'Please enter a valid email address.';
+    if (message.toLowerCase().includes('email not confirmed')) {
+      return 'Please confirm your email before signing in.';
     }
-    if (code === 'auth/weak-password') {
+    if (message.toLowerCase().includes('password should be at least')) {
       return 'Password must be at least 6 characters.';
     }
-    if (code === 'auth/too-many-requests') {
-      return 'Too many attempts. Please wait a moment and try again.';
-    }
-    if (code === 'auth/network-request-failed') {
-      return 'Network issue. Please check internet connection and retry.';
-    }
 
-    return error?.message || 'Authentication failed. Please try again.';
+    return message;
   };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await initiateEmailSignIn(auth, email.trim(), password);
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
+      if (error) throw error;
       toast({ title: 'Login Successful', description: 'Welcome back to Habit Share.' });
-    } catch (error: any) {
+    } catch (error) {
       toast({ title: 'Login Failed', description: getAuthErrorMessage(error), variant: 'destructive' });
     } finally {
       setLoading(false);
@@ -66,15 +64,23 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      await initiateEmailSignUp(auth, email.trim(), password);
-      toast({ title: 'Sign Up Successful', description: 'Your account has been created.' });
-    } catch (error: any) {
+      const { error } = await supabase.auth.signUp({
+        email: email.trim().toLowerCase(),
+        password,
+        options: {
+          data: {
+            name: email.trim().split('@')[0],
+          },
+        },
+      });
+      if (error) throw error;
+      toast({ title: 'Sign Up Successful', description: 'Your Supabase account has been created.' });
+    } catch (error) {
       toast({ title: 'Sign Up Failed', description: getAuthErrorMessage(error), variant: 'destructive' });
     } finally {
       setLoading(false);
     }
   };
-
 
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">

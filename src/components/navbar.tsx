@@ -2,29 +2,26 @@
 'use client';
 
 import React from 'react';
-import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useAuth } from './auth-provider';
-import { auth } from '@/lib/firebase';
 import { Button } from './ui/button';
 import { Check, ShieldCheck, Settings, UserRound } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
 import { Separator } from './ui/separator';
 import { Input } from './ui/input';
-import { useDataStore } from '@/hooks/use-data-store';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase';
 
 export const Navbar = () => {
-  const { user, currentUser } = useAuth();
-  const { handleSaveEmployee } = useDataStore();
+  const { user, currentUser, refreshProfile } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
   const [displayName, setDisplayName] = React.useState('');
   const [isSavingName, setIsSavingName] = React.useState(false);
 
   const handleLogout = async () => {
-    await signOut(auth);
+    await supabase.auth.signOut();
     router.push('/login');
   };
 
@@ -32,7 +29,7 @@ export const Navbar = () => {
     setDisplayName(currentUser?.name || '');
   }, [currentUser?.name]);
 
-  const handleSaveName = () => {
+  const handleSaveName = async () => {
     if (!currentUser) return;
     const trimmedName = displayName.trim();
     if (!trimmedName) {
@@ -43,11 +40,20 @@ export const Navbar = () => {
 
     setIsSavingName(true);
     try {
-      handleSaveEmployee({
-        ...currentUser,
-        name: trimmedName,
-      });
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          name: trimmedName,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', currentUser.id);
+
+      if (error) throw error;
+      await refreshProfile();
       toast({ title: 'Profile Updated', description: 'Your name has been updated.' });
+    } catch (error) {
+      console.error('Failed to update profile name:', error);
+      toast({ title: 'Update Failed', description: 'Could not save your name right now.', variant: 'destructive' });
     } finally {
       setIsSavingName(false);
     }
@@ -116,7 +122,7 @@ export const Navbar = () => {
                 <Separator />
                 <div className="rounded-lg border bg-slate-50/60 p-4">
                   <p className="text-xs uppercase tracking-wider text-slate-500">User ID</p>
-                  <p className="mt-1 break-all font-mono text-xs text-slate-700">{user.uid}</p>
+                  <p className="mt-1 break-all font-mono text-xs text-slate-700">{user.id}</p>
                 </div>
               </div>
             </SheetContent>
