@@ -49,6 +49,7 @@ export function FriendsFeed({
   const [isScanQROpen, setIsScanQROpen] = React.useState(false);
   const [expandedFriendId, setExpandedFriendId] = React.useState<string | null>(null);
   const [submitting, setSubmitting] = React.useState(false);
+  const [scanError, setScanError] = React.useState<string | null>(null);
 
   const handleAddFriend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,7 +97,13 @@ export function FriendsFeed({
               <Button type="button" variant="outline" onClick={() => setIsMyQROpen(true)} className="flex-1 sm:flex-none h-10 border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 shadow-sm">
                 <QrCode className="h-4 w-4 mr-2" /> QR
               </Button>
-              <Button type="button" variant="outline" onClick={() => setIsScanQROpen(true)} className="flex-1 sm:flex-none h-10 border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 shadow-sm">
+              <Button type="button" variant="outline" onClick={() => {
+                if (typeof window !== 'undefined' && window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+                  alert('Camera access requires HTTPS. Please use a secure connection (HTTPS) to scan QR codes.');
+                  return;
+                }
+                setIsScanQROpen(true);
+              }} className="flex-1 sm:flex-none h-10 border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 shadow-sm">
                 <ScanLine className="h-4 w-4 mr-2" /> Scan
               </Button>
             </div>
@@ -234,7 +241,12 @@ export function FriendsFeed({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isScanQROpen} onOpenChange={setIsScanQROpen}>
+      <Dialog open={isScanQROpen} onOpenChange={(open) => {
+        setIsScanQROpen(open);
+        if (!open) {
+          setScanError(null);
+        }
+      }}>
         <DialogContent className="sm:max-w-sm rounded-3xl overflow-hidden p-0 border-none shadow-2xl">
           <DialogHeader className="p-5 pb-2 bg-indigo-50 w-full text-center">
             <DialogTitle className="text-xl font-bold text-indigo-900 flex items-center justify-center gap-2">
@@ -243,33 +255,96 @@ export function FriendsFeed({
           </DialogHeader>
           <div className="h-72 w-full bg-black relative flex items-center justify-center">
             {isScanQROpen ? (
-              <Scanner
-                onScan={async (result) => {
-                  if (!result || result.length === 0) return;
-                  const text = result[0].rawValue || '';
-                  let email = text;
+              scanError ? (
+                <div className="flex flex-col items-center justify-center h-full text-white p-4 text-center">
+                  <div className="text-red-400 mb-2">
+                    <ScanLine className="h-8 w-8 mx-auto" />
+                  </div>
+                  <p className="text-sm font-medium mb-2">Camera Error</p>
+                  <p className="text-xs opacity-80">{scanError}</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setScanError(null);
+                      // Force re-render of scanner
+                      setIsScanQROpen(false);
+                      setTimeout(() => setIsScanQROpen(true), 100);
+                    }}
+                    className="mt-3 bg-white/10 border-white/20 text-white hover:bg-white/20"
+                  >
+                    Try Again
+                  </Button>
+                </div>
+              ) : (
+                <Scanner
+                  onScan={async (result) => {
+                    if (!result || result.length === 0) return;
+                    const text = result[0].rawValue || '';
+                    let email = text;
 
-                  if (text.startsWith('habitshare:addfriend:')) {
-                    email = text.replace('habitshare:addfriend:', '');
-                  } else {
-                    try {
-                      const parsed = JSON.parse(text);
-                      if (parsed?.email) {
-                        email = String(parsed.email);
+                    if (text.startsWith('habitshare:addfriend:')) {
+                      email = text.replace('habitshare:addfriend:', '');
+                    } else {
+                      try {
+                        const parsed = JSON.parse(text);
+                        if (parsed?.email) {
+                          email = String(parsed.email);
+                        }
+                      } catch {
+                        // keep raw text as fallback
                       }
-                    } catch {
-                      // keep raw text as fallback
                     }
-                  }
 
-                  await onAddFriend(email);
-                  setIsScanQROpen(false);
-                }}
-              />
+                    await onAddFriend(email);
+                    setIsScanQROpen(false);
+                    setScanError(null);
+                  }}
+                  onError={(error) => {
+                    console.error('QR Scanner error:', error);
+                    let errorMessage = 'Camera access failed';
+
+                    if (error?.message?.includes('Permission denied')) {
+                      errorMessage = 'Camera permission denied. Please allow camera access and try again.';
+                    } else if (error?.message?.includes('NotAllowedError')) {
+                      errorMessage = 'Camera access blocked. Please enable camera permissions in your browser.';
+                    } else if (error?.message?.includes('NotFoundError')) {
+                      errorMessage = 'No camera found on this device.';
+                    } else if (error?.message?.includes('NotReadableError')) {
+                      errorMessage = 'Camera is being used by another application.';
+                    } else if (error?.message?.includes('OverconstrainedError')) {
+                      errorMessage = 'Camera does not support required settings.';
+                    } else if (error?.message?.includes('SecurityError')) {
+                      errorMessage = 'Camera access requires HTTPS. Please use a secure connection.';
+                    }
+
+                    setScanError(errorMessage);
+                  }}
+                  constraints={{
+                    facingMode: 'environment',
+                    aspectRatio: 1,
+                    width: { ideal: 640 },
+                    height: { ideal: 640 }
+                  }}
+                  styles={{
+                    container: {
+                      width: '100%',
+                      height: '100%'
+                    },
+                    video: {
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover'
+                    }
+                  }}
+                />
+              )
             ) : null}
           </div>
           <div className="p-4 bg-white text-center">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Align QR code within the frame</p>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
+              {scanError ? 'Camera error occurred' : 'Align QR code within the frame'}
+            </p>
             <Button variant="outline" onClick={() => setIsScanQROpen(false)} className="rounded-xl w-full border-slate-200">Cancel</Button>
           </div>
         </DialogContent>
