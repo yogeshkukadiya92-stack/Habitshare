@@ -13,7 +13,7 @@ import {
   AreaChart,
   Area,
 } from 'recharts';
-import { CalendarDays, CheckCircle2, Flame, Target } from 'lucide-react';
+import { CalendarDays, CheckCircle2, Flame, Rocket, Target } from 'lucide-react';
 import { HabitShareHabit } from '@/lib/types';
 import { buildHabitReport, ReportRange } from '@/lib/habit-reports';
 
@@ -44,6 +44,34 @@ export function HabitAnalytics({ habits, currentDate = new Date(), range = 'week
 
   const useBarChart = range === 'daily' || range === 'yearly';
   const chartHeight = range === 'daily' ? 260 : 300;
+
+  if (habits.length === 0) {
+    return (
+      <Card className="overflow-hidden rounded-[32px] border-none bg-[linear-gradient(145deg,rgba(255,255,255,0.92),rgba(241,245,255,0.8))] shadow-2xl backdrop-blur">
+        <CardContent className="p-6 sm:p-8">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-xl">
+              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.3em] text-primary">
+                <Rocket className="h-3.5 w-3.5" />
+                Insight engine ready
+              </div>
+              <h3 className="mt-4 text-2xl font-black tracking-tight text-slate-950">Your analytics will feel alive once the first habit lands.</h3>
+              <p className="mt-3 text-sm font-medium leading-6 text-slate-500">
+                We&apos;ll transform check-ins into streak score, consistency views, and daily-to-yearly patterns as soon as your first routine starts.
+              </p>
+            </div>
+            <div className="grid gap-3 sm:min-w-[260px]">
+              {['Daily momentum snapshots', 'Monthly completion trends', 'Yearly consistency overview'].map((item) => (
+                <div key={item} className="rounded-[22px] border border-white/70 bg-white/80 px-4 py-3 text-sm font-bold text-slate-700 shadow-sm">
+                  {item}
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="overflow-hidden border-none bg-white/50 shadow-2xl backdrop-blur rounded-3xl animate-in fade-in zoom-in duration-700">

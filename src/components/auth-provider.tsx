@@ -1,185 +1,176 @@
-
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, type User } from 'firebase/auth';
-import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  collection, 
-  query, 
-  where, 
-  getDocs, 
-  writeBatch, 
-  deleteDoc, 
-  serverTimestamp 
-} from 'firebase/firestore';
-import { useAuth as useFirebaseInstance, useFirestore } from '@/firebase';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import type { Session, User } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 import { Skeleton } from './ui/skeleton';
 import type { Employee, EmployeePermissions, PermissionLevel } from '@/lib/types';
 
 interface AuthContextType {
   user: User | null;
+  session: Session | null;
   loading: boolean;
   currentUser: Employee | null;
   getPermission: (page: keyof EmployeePermissions) => PermissionLevel;
+  refreshProfile: () => Promise<void>;
 }
 
 const defaultPermissions: EmployeePermissions = {
-    employees: 'employee_only',
-    kras: 'employee_only',
-    routine_tasks: 'view',
-    leaves: 'employee_only',
-    attendance: 'view',
-    expenses: 'employee_only',
-    habit_tracker: 'view',
-    holidays: 'view',
-    recruitment: 'view',
-    hr_calendar: 'view',
-    settings: 'none',
+  habit_tracker: 'view',
+  settings: 'none',
 };
 
 const adminPermissions: EmployeePermissions = {
-    employees: 'download',
-    kras: 'download',
-    routine_tasks: 'download',
-    leaves: 'download',
-    attendance: 'download',
-    expenses: 'download',
-    habit_tracker: 'download',
-    holidays: 'download',
-    recruitment: 'download',
-    hr_calendar: 'download',
-    settings: 'download',
+  habit_tracker: 'download',
+  settings: 'download',
 };
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
+  session: null,
   loading: true,
   currentUser: null,
   getPermission: () => 'none',
+  refreshProfile: async () => {},
 });
 
+type ProfileRow = {
+  id: string;
+  name: string | null;
+  email: string | null;
+  avatar_url: string | null;
+  branch: string | null;
+  role: string | null;
+  permissions: EmployeePermissions | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+function mapProfile(row: ProfileRow): Employee {
+  return {
+    id: row.id,
+    name: row.name || 'New User',
+    email: row.email || '',
+    avatarUrl: row.avatar_url || `https://placehold.co/32x32.png?text=${(row.email || 'U').charAt(0).toUpperCase()}`,
+    branch: row.branch || undefined,
+    role: (row.role as Employee['role']) || 'Employee',
+    permissions: row.permissions || defaultPermissions,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<Employee | null>(null);
-  const auth = useFirebaseInstance();
-  const db = useFirestore();
+  const [loading, setLoading] = useState(true);
+
+  const ensureProfile = useCallback(async (authUser: User) => {
+    const normalizedEmail = authUser.email?.toLowerCase().trim() || '';
+    const isInitialAdmin =
+      normalizedEmail === 'connect@luvfitnessworld.com' ||
+      normalizedEmail === 'yogeshkukadiya92@gmail.com';
+
+    const payload = {
+      id: authUser.id,
+      name: authUser.user_metadata?.name || authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'New User',
+      email: normalizedEmail,
+      avatar_url:
+        authUser.user_metadata?.avatar_url ||
+        `https://placehold.co/32x32.png?text=${(normalizedEmail || 'U').charAt(0).toUpperCase()}`,
+      role: isInitialAdmin ? 'Admin' : 'Employee',
+      permissions: isInitialAdmin ? adminPermissions : defaultPermissions,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error } = await supabase.from('profiles').upsert(payload, { onConflict: 'id' });
+    if (error) throw error;
+  }, []);
+
+  const loadProfile = useCallback(async (authUser: User | null) => {
+    if (!authUser) {
+      setCurrentUser(null);
+      return;
+    }
+
+    await ensureProfile(authUser);
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, name, email, avatar_url, branch, role, permissions, created_at, updated_at')
+      .eq('id', authUser.id)
+      .single();
+
+    if (error) throw error;
+    setCurrentUser(mapProfile(data as ProfileRow));
+  }, [ensureProfile]);
+
+  const refreshProfile = useCallback(async () => {
+    await loadProfile(user);
+  }, [loadProfile, user]);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setUser(firebaseUser);
-      if (firebaseUser && firebaseUser.email) {
-        const normalizedEmail = firebaseUser.email.toLowerCase().trim();
-        const isInitialAdmin = normalizedEmail === 'connect@luvfitnessworld.com' || normalizedEmail === 'yogeshkukadiya92@gmail.com';
-        
-        // 1. Get UID-based reference
-        const userRef = doc(db, 'users', firebaseUser.uid);
-        let userDoc = await getDoc(userRef);
+    let cancelled = false;
 
-        // 2. Check for existing manual/duplicate profiles by normalized email
-        const usersRef = collection(db, 'users');
-        const q = query(usersRef, where('email', '==', normalizedEmail));
-        const querySnapshot = await getDocs(q);
-        
-        const otherProfiles = querySnapshot.docs.filter(d => d.id !== firebaseUser.uid);
+    const bootstrap = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (cancelled) return;
+      if (error) {
+        console.error('Failed to load Supabase session:', error);
+      }
 
-        // 3. Migration Logic: If we find profiles with same email but different ID
-        if (otherProfiles.length > 0) {
-          // Sort to find the most complete profile (usually the one created by Admin)
-          const sourceDoc = otherProfiles.sort((a, b) => {
-              const dataA = a.data() as Employee;
-              const dataB = b.data() as Employee;
-              return (dataB.name !== 'New User' ? 1 : 0) - (dataA.name !== 'New User' ? 1 : 0);
-          })[0];
-          
-          const sourceData = sourceDoc.data() as Employee;
-          
-          // Merge data into the permanent UID document
-          const mergedData: Employee = {
-            ...sourceData,
-            id: firebaseUser.uid, // Adopt the UID as the permanent ID
-            email: normalizedEmail,
-            permissions: sourceData.permissions || defaultPermissions, // Fix for missing permissions
-            updatedAt: serverTimestamp() as any,
-          };
-          
-          await setDoc(userRef, mergedData, { merge: true });
-          
-          // Move all related records from ALL other profile IDs to the permanent UID
-          for (const duplicateDoc of otherProfiles) {
-              const oldId = duplicateDoc.id;
-              if (oldId === firebaseUser.uid) continue;
+      setSession(data.session);
+      setUser(data.session?.user || null);
 
-              const collections = ['kras', 'leaves', 'expenses', 'routineTasks', 'habits', 'attendances', 'activities'];
-              for (const colName of collections) {
-                const colRef = collection(db, colName);
-                const relatedQ = query(colRef, where('employee.id', '==', oldId));
-                const relatedSnap = await getDocs(relatedQ);
-                
-                if (!relatedSnap.empty) {
-                  const batch = writeBatch(db);
-                  relatedSnap.docs.forEach(d => {
-                    batch.update(d.ref, { 
-                      'employee.id': firebaseUser.uid,
-                      'employee.email': normalizedEmail 
-                    });
-                  });
-                  await batch.commit();
-                }
-              }
-              // Delete the duplicate profile
-              await deleteDoc(duplicateDoc.ref);
-          }
-          
-          // Refresh local userDoc reference
-          userDoc = await getDoc(userRef);
-        } else if (!userDoc.exists()) {
-          // 4. Truly brand new user
-          const newUser: Employee = {
-            id: firebaseUser.uid,
-            name: firebaseUser.displayName || 'New User',
-            email: normalizedEmail,
-            avatarUrl: firebaseUser.photoURL || `https://placehold.co/32x32.png?text=${normalizedEmail[0].toUpperCase()}`,
-            role: isInitialAdmin ? 'Admin' : 'Employee',
-            permissions: isInitialAdmin ? adminPermissions : defaultPermissions,
-            createdAt: serverTimestamp() as any,
-            updatedAt: serverTimestamp() as any,
-          };
-          await setDoc(userRef, newUser);
-          userDoc = await getDoc(userRef);
-        }
-
-        // Finalize the current user state
-        if (userDoc.exists()) {
-          const finalData = userDoc.data() as Employee;
-          if (finalData.role === 'Admin' || isInitialAdmin) {
-            finalData.permissions = adminPermissions;
-            finalData.role = 'Admin';
-          } else if (!finalData.permissions) {
-            finalData.permissions = defaultPermissions;
-          }
-          setCurrentUser(finalData);
-        }
-
-        // Ensure roles_admin entry for the master admin
-        if (isInitialAdmin) {
-          const adminRoleRef = doc(db, 'roles_admin', firebaseUser.uid);
-          const adminRoleDoc = await getDoc(adminRoleRef);
-          if (!adminRoleDoc.exists()) {
-            await setDoc(adminRoleRef, { active: true });
-          }
+      if (data.session?.user) {
+        try {
+          await loadProfile(data.session.user);
+        } catch (profileError) {
+          console.error('Failed to prepare profile:', profileError);
         }
       } else {
         setCurrentUser(null);
       }
-      setLoading(false);
+
+      if (!cancelled) {
+        setLoading(false);
+      }
+    };
+
+    bootstrap();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession);
+      setUser(nextSession?.user || null);
+
+      if (!nextSession?.user) {
+        setCurrentUser(null);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      queueMicrotask(async () => {
+        try {
+          await loadProfile(nextSession.user);
+        } catch (profileError) {
+          console.error('Failed to sync auth profile:', profileError);
+        } finally {
+          if (!cancelled) {
+            setLoading(false);
+          }
+        }
+      });
     });
 
-    return () => unsubscribe();
-  }, [auth, db]);
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
+  }, [loadProfile]);
 
   const getPermission = (page: keyof EmployeePermissions): PermissionLevel => {
     if (loading || !currentUser) return 'none';
@@ -187,27 +178,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return currentUser.permissions?.[page] || 'none';
   };
 
+  const value = useMemo(
+    () => ({
+      user,
+      session,
+      loading,
+      currentUser,
+      getPermission,
+      refreshProfile,
+    }),
+    [user, session, loading, currentUser, refreshProfile],
+  );
+
   if (loading) {
     return (
-        <div className="flex flex-col h-screen">
-            <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-6">
-                 <Skeleton className="h-6 w-40" />
-                 <div className="ml-auto">
-                    <Skeleton className="h-8 w-20" />
-                 </div>
-            </header>
-            <div className="flex-1 p-6">
-                <Skeleton className="h-full w-full" />
-            </div>
+      <div className="flex flex-col h-screen">
+        <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-6">
+          <Skeleton className="h-6 w-40" />
+          <div className="ml-auto">
+            <Skeleton className="h-8 w-20" />
+          </div>
+        </header>
+        <div className="flex-1 p-6">
+          <Skeleton className="h-full w-full" />
         </div>
-    )
+      </div>
+    );
   }
 
-  return (
-    <AuthContext.Provider value={{ user, loading, currentUser, getPermission }}>
-        {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => useContext(AuthContext);

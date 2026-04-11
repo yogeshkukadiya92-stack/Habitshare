@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sparkles, Send, Bot, User, Loader2 } from 'lucide-react';
-import { getHabitCoachAdvice } from '@/ai/flows/habit-coach';
 import { HabitShareHabit } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -16,6 +15,32 @@ interface Message {
 
 interface AiCoachProps {
   habit?: HabitShareHabit;
+}
+
+function buildLocalAdvice(habit: HabitShareHabit | undefined, userMessage: string) {
+  const normalized = userMessage.toLowerCase();
+  const streak = habit?.checkIns.length || 0;
+  const habitName = habit?.name || 'your next habit';
+
+  if (normalized.includes('streak')) {
+    return `Your current streak for ${habitName} is ${streak} day${streak === 1 ? '' : 's'}. Protect it by keeping today's version small and easy.`;
+  }
+
+  if (normalized.includes('motivation') || normalized.includes('lazy') || normalized.includes('tired')) {
+    return `When motivation is low, shrink ${habitName} to a 2-minute version. Starting matters more than doing it perfectly.`;
+  }
+
+  if (normalized.includes('time') || normalized.includes('schedule')) {
+    return `Anchor ${habitName} to an existing routine like after tea, after breakfast, or before sleep. Same cue, same action, every day.`;
+  }
+
+  if (normalized.includes('miss') || normalized.includes('skip')) {
+    return `Missing one day does not break the habit. Your rule should be: never miss twice. Restart ${habitName} with the smallest possible action today.`;
+  }
+
+  return habit
+    ? `For ${habitName}, focus on consistency over intensity. A small repeatable action today will strengthen your ${streak}-day rhythm.`
+    : 'Pick one simple habit, attach it to a fixed daily cue, and make the first version easy enough to repeat every day.';
 }
 
 export function AiCoach({ habit }: AiCoachProps) {
@@ -38,24 +63,10 @@ export function AiCoach({ habit }: AiCoachProps) {
     setMessages((prev) => [...prev, { role: 'user', content: userMessage }]);
     setIsLoading(true);
 
-    try {
-      const response = await getHabitCoachAdvice({
-        habitName: habit?.name || 'General Habits',
-        description: habit?.description,
-        currentStreak: habit?.checkIns.length || 0,
-        userQuery: userMessage,
-      });
+    const advice = buildLocalAdvice(habit, userMessage);
 
-      setMessages((prev) => [...prev, { role: 'assistant', content: response.advice }]);
-    } catch (error) {
-      console.error('AI Coach Error:', error);
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: "Sorry, I'm having a little trouble connecting right now. Let's try again in a moment!" },
-      ]);
-    } finally {
-      setIsLoading(false);
-    }
+    setMessages((prev) => [...prev, { role: 'assistant', content: advice }]);
+    setIsLoading(false);
   };
 
   return (

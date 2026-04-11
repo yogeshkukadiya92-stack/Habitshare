@@ -1,8 +1,6 @@
 import type {NextConfig} from 'next';
-import withPWA from '@ducanh2912/next-pwa';
 
 const nextConfig: NextConfig = {
-  /* config options here */
   output: 'standalone',
   typescript: {
     ignoreBuildErrors: true,
@@ -30,6 +28,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withPWA({
-  dest: 'public',
-})(nextConfig);
+export default nextConfig;
