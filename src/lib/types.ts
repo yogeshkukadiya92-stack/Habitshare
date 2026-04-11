@@ -32,6 +32,19 @@ export interface HabitFriendRequest {
   createdAt: string;
 }
 
+export interface GratitudeEntry {
+  id: string;
+  userId: string;
+  userName?: string;
+  userEmail?: string;
+  content: string;
+  entryDate: string;
+  isShared: boolean;
+  sharedWithIds?: string[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export type UserRole = 'Admin' | 'Employee';
 export type PermissionLevel = 'none' | 'view' | 'edit' | 'download' | 'employee_only';
 

@@ -16,11 +16,14 @@ import { AiCoach } from '@/components/ai-coach';
 import { Achievements } from '@/components/achievements';
 import { HabitAnalytics } from '@/components/habit-analytics';
 import { MoodTracker } from '@/components/mood-tracker';
+import { GratitudeStudio } from '@/components/gratitude-studio';
+import { GratitudeFeed } from '@/components/gratitude-feed';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/auth-provider';
 import { supabase } from '@/lib/supabase';
 import { buildShareReportText, type ReportRange, getReportRangeLabel } from '@/lib/habit-reports';
-import type { HabitFriendRequest, HabitShareHabit, HabitShareUser } from '@/lib/types';
+import { buildGratitudeShareText } from '@/lib/gratitude-reports';
+import type { GratitudeEntry, HabitFriendRequest, HabitShareHabit, HabitShareUser } from '@/lib/types';
 
 type HabitRow = {
   id: string;
@@ -56,6 +59,19 @@ type ProfileRow = {
   avatar_url: string | null;
 };
 
+type GratitudeRow = {
+  id: string;
+  user_id: string;
+  user_name: string | null;
+  user_email: string | null;
+  content: string;
+  entry_date: string;
+  is_shared: boolean | null;
+  shared_with_ids: string[] | null;
+  created_at: string;
+  updated_at: string | null;
+};
+
 function mapHabit(row: HabitRow): HabitShareHabit {
   return {
     id: row.id,
@@ -87,6 +103,21 @@ function mapFriendRequest(row: FriendRequestRow): HabitFriendRequest {
   };
 }
 
+function mapGratitude(row: GratitudeRow): GratitudeEntry {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    userName: row.user_name || '',
+    userEmail: row.user_email || '',
+    content: row.content,
+    entryDate: row.entry_date,
+    isShared: Boolean(row.is_shared),
+    sharedWithIds: row.shared_with_ids || [],
+    createdAt: row.created_at,
+    updatedAt: row.updated_at || row.created_at,
+  };
+}
+
 export default function Dashboard() {
   const { user, currentUser, loading: authLoading, refreshProfile } = useAuth();
   const { toast } = useToast();
@@ -104,9 +135,16 @@ export default function Dashboard() {
   const [isNewShared, setIsNewShared] = React.useState(false);
   const [sharedWithIds, setSharedWithIds] = React.useState<string[]>([]);
   const [isSavingHabit, setIsSavingHabit] = React.useState(false);
+  const [gratitudeDraft, setGratitudeDraft] = React.useState('');
+  const [gratitudeRange, setGratitudeRange] = React.useState<ReportRange>('weekly');
+  const [isGratitudeShared, setIsGratitudeShared] = React.useState(false);
+  const [gratitudeSharedWithIds, setGratitudeSharedWithIds] = React.useState<string[]>([]);
+  const [isSavingGratitude, setIsSavingGratitude] = React.useState(false);
   const [isDashboardLoading, setIsDashboardLoading] = React.useState(true);
   const [myHabits, setMyHabits] = React.useState<HabitShareHabit[]>([]);
   const [friendHabits, setFriendHabits] = React.useState<HabitShareHabit[]>([]);
+  const [myGratitudeEntries, setMyGratitudeEntries] = React.useState<GratitudeEntry[]>([]);
+  const [friendGratitudeEntries, setFriendGratitudeEntries] = React.useState<GratitudeEntry[]>([]);
   const [incomingRequests, setIncomingRequests] = React.useState<HabitFriendRequest[]>([]);
   const [outgoingRequests, setOutgoingRequests] = React.useState<HabitFriendRequest[]>([]);
   const [acceptedSent, setAcceptedSent] = React.useState<HabitFriendRequest[]>([]);
@@ -146,6 +184,8 @@ export default function Dashboard() {
     if (!user) {
       setMyHabits([]);
       setFriendHabits([]);
+      setMyGratitudeEntries([]);
+      setFriendGratitudeEntries([]);
       setIncomingRequests([]);
       setOutgoingRequests([]);
       setAcceptedSent([]);
@@ -160,6 +200,8 @@ export default function Dashboard() {
       const [
         myHabitsResult,
         sharedHabitsResult,
+        myGratitudeResult,
+        sharedGratitudeResult,
         incomingResult,
         outgoingResult,
         acceptedSentResult,
@@ -167,6 +209,8 @@ export default function Dashboard() {
       ] = await Promise.all([
         supabase.from('habit_share_habits').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
         supabase.from('habit_share_habits').select('*').contains('shared_with_ids', [user.id]).eq('is_shared', true),
+        supabase.from('habit_gratitude_entries').select('*').eq('user_id', user.id).order('entry_date', { ascending: false }),
+        supabase.from('habit_gratitude_entries').select('*').contains('shared_with_ids', [user.id]).eq('is_shared', true).order('entry_date', { ascending: false }),
         supabase.from('habit_friend_requests').select('*').eq('receiver_id', user.id).eq('status', 'pending').order('created_at', { ascending: false }),
         supabase.from('habit_friend_requests').select('*').eq('requester_id', user.id).eq('status', 'pending').order('created_at', { ascending: false }),
         supabase.from('habit_friend_requests').select('*').eq('requester_id', user.id).eq('status', 'accepted').order('created_at', { ascending: false }),
@@ -175,6 +219,8 @@ export default function Dashboard() {
 
       if (myHabitsResult.error) throw myHabitsResult.error;
       if (sharedHabitsResult.error) throw sharedHabitsResult.error;
+      if (myGratitudeResult.error) throw myGratitudeResult.error;
+      if (sharedGratitudeResult.error) throw sharedGratitudeResult.error;
       if (incomingResult.error) throw incomingResult.error;
       if (outgoingResult.error) throw outgoingResult.error;
       if (acceptedSentResult.error) throw acceptedSentResult.error;
@@ -185,6 +231,12 @@ export default function Dashboard() {
         (sharedHabitsResult.data || [])
           .map((row) => mapHabit(row as HabitRow))
           .filter((habit) => habit.userId !== user.id),
+      );
+      setMyGratitudeEntries((myGratitudeResult.data || []).map((row) => mapGratitude(row as GratitudeRow)));
+      setFriendGratitudeEntries(
+        (sharedGratitudeResult.data || [])
+          .map((row) => mapGratitude(row as GratitudeRow))
+          .filter((entry) => entry.userId !== user.id),
       );
       setIncomingRequests((incomingResult.data || []).map((row) => mapFriendRequest(row as FriendRequestRow)));
       setOutgoingRequests((outgoingResult.data || []).map((row) => mapFriendRequest(row as FriendRequestRow)));
@@ -376,6 +428,10 @@ export default function Dashboard() {
     setSharedWithIds((prev) => (prev.includes(friendId) ? prev.filter((id) => id !== friendId) : [...prev, friendId]));
   };
 
+  const toggleGratitudeFriend = (friendId: string) => {
+    setGratitudeSharedWithIds((prev) => (prev.includes(friendId) ? prev.filter((id) => id !== friendId) : [...prev, friendId]));
+  };
+
   const resetCreateHabitFlow = React.useCallback(() => {
     setCreateHabitStep(0);
     setNewHabitName('');
@@ -507,6 +563,8 @@ export default function Dashboard() {
   const totalCheckIns = myHabits.reduce((sum, habit) => sum + habit.checkIns.length, 0);
   const longestStreak = myHabits.reduce((best, habit) => Math.max(best, habit.checkIns.length), 0);
   const sharedCount = myHabits.filter((habit) => habit.isShared).length;
+  const gratitudeTodayKey = format(currentDate, 'yyyy-MM-dd');
+  const gratitudeEntryForDate = myGratitudeEntries.find((entry) => entry.entryDate === gratitudeTodayKey);
   const selectedShareFriends = friends.filter((friend) => sharedWithIds.includes(friend.id));
   const shouldShowOnboarding =
     !isOnboardingDismissed &&
@@ -522,63 +580,139 @@ export default function Dashboard() {
     }
   }, [refreshProfile, user]);
 
+  React.useEffect(() => {
+    if (!gratitudeEntryForDate) {
+      setGratitudeDraft('');
+      setIsGratitudeShared(false);
+      setGratitudeSharedWithIds([]);
+      return;
+    }
+
+    setGratitudeDraft(gratitudeEntryForDate.content);
+    setIsGratitudeShared(gratitudeEntryForDate.isShared);
+    setGratitudeSharedWithIds(gratitudeEntryForDate.sharedWithIds || []);
+  }, [gratitudeEntryForDate]);
+
+  const saveGratitude = async () => {
+    if (!user || !gratitudeDraft.trim()) {
+      toast({
+        title: 'Write gratitude first',
+        description: 'Add a few lines before saving your gratitude entry.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSavingGratitude(true);
+    try {
+      const ownerName =
+        currentUser?.name?.trim() ||
+        user.user_metadata?.name ||
+        user.email?.split('@')[0] ||
+        'User';
+      const selectedFriendIds = isGratitudeShared ? gratitudeSharedWithIds.filter(Boolean) : [];
+      const payload = {
+        id: gratitudeEntryForDate?.id || `gratitude_${Date.now()}`,
+        user_id: user.id,
+        user_name: ownerName,
+        user_email: user.email || '',
+        content: gratitudeDraft.trim(),
+        entry_date: gratitudeTodayKey,
+        is_shared: selectedFriendIds.length > 0,
+        shared_with_ids: selectedFriendIds,
+        created_at: gratitudeEntryForDate?.createdAt || new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      if (gratitudeEntryForDate) {
+        const { error } = await supabase.from('habit_gratitude_entries').update(payload).eq('id', gratitudeEntryForDate.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('habit_gratitude_entries').insert(payload);
+        if (error) throw error;
+      }
+
+      toast({
+        title: gratitudeEntryForDate ? 'Gratitude updated' : 'Gratitude saved',
+        description: selectedFriendIds.length > 0 ? 'Your gratitude has been saved and shared.' : 'Your gratitude has been saved privately.',
+      });
+      await loadDashboardData();
+    } catch (error) {
+      console.error('Failed to save gratitude:', error);
+      toast({
+        title: 'Save failed',
+        description: error instanceof Error ? error.message : 'We could not save your gratitude right now.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSavingGratitude(false);
+    }
+  };
+
+  const shareGratitudeWhatsApp = () => {
+    const text = gratitudeDraft.trim()
+      ? `Today I'm grateful for:\n${gratitudeDraft.trim()}`
+      : buildGratitudeShareText(myGratitudeEntries, currentDate, gratitudeRange);
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+  };
+
   return (
-    <div className="relative flex flex-col min-h-screen w-full p-2 sm:p-4 lg:p-6 space-y-8 animate-in fade-in duration-1000">
+    <div className="relative flex min-h-screen w-full flex-col space-y-6 p-2 animate-in fade-in duration-1000 sm:p-4 lg:space-y-8 lg:p-6">
       <div className="hero-orb left-8 top-20 h-32 w-32 bg-violet-300/50" />
       <div className="hero-orb right-20 top-24 h-36 w-36 bg-sky-300/40" />
 
-      <header className="glass-panel relative overflow-hidden rounded-[34px] p-6 sm:p-8">
+      <header className="glass-panel relative overflow-hidden rounded-[30px] p-5 sm:p-6">
         <div className="absolute inset-y-0 right-0 w-[34%] bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.18),transparent_58%)]" />
-        <div className="relative flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
+        <div className="relative flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-3xl">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-slate-950/5 px-4 py-2 text-xs font-black uppercase tracking-[0.35em] text-slate-500">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-slate-950/5 px-4 py-2 text-[11px] font-black uppercase tracking-[0.35em] text-slate-500">
               <Sparkles className="h-3.5 w-3.5 text-primary" />
               Premium habit operating system
             </div>
             <div className="flex items-center gap-3">
-              <div className="bg-primary p-2.5 rounded-2xl shadow-xl shadow-primary/20 transform hover:rotate-12 transition-transform">
-                <CheckCircle2 className="h-8 w-8 text-white" />
+              <div className="rounded-2xl bg-primary p-2.5 shadow-xl shadow-primary/20 transition-transform hover:rotate-12">
+                <CheckCircle2 className="h-7 w-7 text-white" />
               </div>
-              <h1 className="text-4xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-primary to-sky-500 sm:text-5xl">
+              <h1 className="bg-gradient-to-r from-slate-900 via-primary to-sky-500 bg-clip-text text-3xl font-black tracking-tighter text-transparent sm:text-4xl">
                 Habit Share
               </h1>
             </div>
-            <p className="mt-4 max-w-2xl text-base font-medium leading-7 text-slate-600 sm:text-lg">
+            <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-slate-600 sm:text-base">
               Build disciplined routines, stay accountable with friends, and turn your daily consistency into something that feels premium.
             </p>
-            <p className="mt-3 text-sm font-bold text-slate-500">
+            <p className="mt-2 text-xs font-bold uppercase tracking-[0.22em] text-slate-500 sm:text-sm sm:tracking-normal">
               Welcome back, <span className="text-primary font-black uppercase tracking-tight">{currentUser?.name || 'Explorer'}</span>.
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:min-w-[460px]">
-            <div className="rounded-[24px] bg-white/80 p-4 shadow-sm">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:min-w-[430px]">
+            <div className="rounded-[22px] bg-white/80 p-3.5 shadow-sm">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Habits</span>
                 <Target className="h-4 w-4 text-primary" />
               </div>
-              <div className="mt-3 text-3xl font-black text-slate-900">{myHabits.length}</div>
+              <div className="mt-2 text-2xl font-black text-slate-900">{myHabits.length}</div>
             </div>
-            <div className="rounded-[24px] bg-white/80 p-4 shadow-sm">
+            <div className="rounded-[22px] bg-white/80 p-3.5 shadow-sm">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Check-ins</span>
                 <CheckCircle2 className="h-4 w-4 text-emerald-500" />
               </div>
-              <div className="mt-3 text-3xl font-black text-slate-900">{totalCheckIns}</div>
+              <div className="mt-2 text-2xl font-black text-slate-900">{totalCheckIns}</div>
             </div>
-            <div className="rounded-[24px] bg-white/80 p-4 shadow-sm">
+            <div className="rounded-[22px] bg-white/80 p-3.5 shadow-sm">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Best streak</span>
                 <Flame className="h-4 w-4 text-amber-500" />
               </div>
-              <div className="mt-3 text-3xl font-black text-slate-900">{longestStreak}</div>
+              <div className="mt-2 text-2xl font-black text-slate-900">{longestStreak}</div>
             </div>
-            <div className="rounded-[24px] bg-white/80 p-4 shadow-sm">
+            <div className="rounded-[22px] bg-white/80 p-3.5 shadow-sm">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Shared</span>
                 <Trophy className="h-4 w-4 text-sky-500" />
               </div>
-              <div className="mt-3 text-3xl font-black text-slate-900">{sharedCount}</div>
+              <div className="mt-2 text-2xl font-black text-slate-900">{sharedCount}</div>
             </div>
           </div>
         </div>
@@ -677,30 +811,6 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-8 space-y-8">
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-3 rounded-[28px] border border-white/70 bg-white/70 p-4 shadow-xl shadow-slate-100/60 backdrop-blur sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h2 className="text-xl font-black tracking-tight text-slate-900">Insight Center</h2>
-                <p className="text-sm font-medium text-slate-500">Switch the report scope to review daily, monthly, or yearly consistency.</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {reportOptions.map((option) => (
-                  <Button
-                    key={option.key}
-                    type="button"
-                    variant={reportRange === option.key ? 'default' : 'outline'}
-                    className="rounded-full px-4"
-                    onClick={() => setReportRange(option.key)}
-                  >
-                    {option.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            <HabitAnalytics habits={myHabits} currentDate={currentDate} range={reportRange} />
-          </div>
-
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="mb-8 grid h-auto grid-cols-2 gap-2 rounded-[28px] border border-slate-200/60 bg-white/75 p-2 shadow-xl shadow-slate-100/50 backdrop-blur-xl">
               <TabsTrigger value="habits" className="group rounded-[20px] px-4 py-4 text-sm font-black transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-violet-500 data-[state=active]:text-white data-[state=active]:shadow-[0_18px_40px_-18px_rgba(79,70,229,0.7)]">
@@ -711,7 +821,7 @@ export default function Dashboard() {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="habits" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+            <TabsContent value="habits" className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-1">
                 <div className="flex items-center gap-4">
                   <h2 className="text-2xl font-black text-slate-800 tracking-tight">Active Habits</h2>
@@ -763,28 +873,74 @@ export default function Dashboard() {
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="-mx-2 flex snap-x snap-mandatory gap-4 overflow-x-auto px-2 pb-2 md:mx-0 md:grid md:grid-cols-2 md:gap-6 md:overflow-visible md:px-0">
                   {myHabits.map((habit) => (
-                    <HabitCard key={habit.id} habit={habit} onToggleCheckIn={toggleCheckIn} currentDate={currentDate} onViewDetails={setSelectedHabitId} />
+                    <div key={habit.id} className="min-w-[88%] snap-start md:min-w-0">
+                      <HabitCard habit={habit} onToggleCheckIn={toggleCheckIn} currentDate={currentDate} onViewDetails={setSelectedHabitId} />
+                    </div>
                   ))}
                 </div>
               )}
+
+              <div className="space-y-4">
+                <div className="flex flex-col gap-3 rounded-[28px] border border-white/70 bg-white/70 p-4 shadow-xl shadow-slate-100/60 backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h2 className="text-xl font-black tracking-tight text-slate-900">Insight Center</h2>
+                    <p className="text-sm font-medium text-slate-500">Review consistency after your habit list so action comes before analysis.</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {reportOptions.map((option) => (
+                      <Button
+                        key={option.key}
+                        type="button"
+                        variant={reportRange === option.key ? 'default' : 'outline'}
+                        className="rounded-full px-4"
+                        onClick={() => setReportRange(option.key)}
+                      >
+                        {option.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                <HabitAnalytics habits={myHabits} currentDate={currentDate} range={reportRange} />
+              </div>
+
+              <GratitudeStudio
+                entries={myGratitudeEntries}
+                currentDate={currentDate}
+                range={gratitudeRange}
+                friends={friends}
+                draft={gratitudeDraft}
+                isShared={isGratitudeShared}
+                sharedWithIds={gratitudeSharedWithIds}
+                isSaving={isSavingGratitude}
+                onDraftChange={setGratitudeDraft}
+                onToggleShared={setIsGratitudeShared}
+                onToggleFriend={toggleGratitudeFriend}
+                onRangeChange={setGratitudeRange}
+                onSave={saveGratitude}
+                onShareWhatsApp={shareGratitudeWhatsApp}
+              />
             </TabsContent>
 
             <TabsContent value="friends" className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-              <FriendsFeed
-                friends={friends}
-                friendHabits={friendHabits}
-                incomingRequests={incomingRequests}
-                outgoingRequests={outgoingRequests}
-                currentUserEmail={user?.email || ''}
-                onAddFriend={handleAddFriend}
-                onAcceptRequest={handleAcceptRequest}
-                onRejectRequest={handleRejectRequest}
-                onCheer={handleCheer}
-                currentDate={currentDate}
-                onViewDetails={setSelectedHabitId}
-              />
+              <div className="space-y-6">
+                <FriendsFeed
+                  friends={friends}
+                  friendHabits={friendHabits}
+                  incomingRequests={incomingRequests}
+                  outgoingRequests={outgoingRequests}
+                  currentUserEmail={user?.email || ''}
+                  onAddFriend={handleAddFriend}
+                  onAcceptRequest={handleAcceptRequest}
+                  onRejectRequest={handleRejectRequest}
+                  onCheer={handleCheer}
+                  currentDate={currentDate}
+                  onViewDetails={setSelectedHabitId}
+                />
+                <GratitudeFeed entries={friendGratitudeEntries} />
+              </div>
             </TabsContent>
           </Tabs>
         </div>
@@ -1104,6 +1260,14 @@ export default function Dashboard() {
       </Dialog>
 
       <HabitCalendarDialog isOpen={!!selectedHabitId} onClose={() => setSelectedHabitId(null)} habit={selectedHabit} />
+
+      <Button
+        onClick={() => openCreateHabitDialog()}
+        className="fixed bottom-5 right-4 z-30 h-14 rounded-full px-5 font-black shadow-[0_20px_50px_-18px_rgba(79,70,229,0.9)] sm:hidden"
+      >
+        <PlusCircle className="mr-2 h-5 w-5" />
+        New Habit
+      </Button>
     </div>
   );
 }
