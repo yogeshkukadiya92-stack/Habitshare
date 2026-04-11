@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { format, subDays, addDays, isSameDay } from 'date-fns';
-import { CheckCircle2, LayoutDashboard, PlusCircle, Users, ChevronLeft, ChevronRight, MessageCircle } from 'lucide-react';
+import { CheckCircle2, LayoutDashboard, PlusCircle, Users, ChevronLeft, ChevronRight, MessageCircle, Sparkles, Flame, Target, Trophy, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -109,6 +109,12 @@ export default function Dashboard() {
   const [outgoingRequests, setOutgoingRequests] = React.useState<HabitFriendRequest[]>([]);
   const [acceptedSent, setAcceptedSent] = React.useState<HabitFriendRequest[]>([]);
   const [acceptedReceived, setAcceptedReceived] = React.useState<HabitFriendRequest[]>([]);
+
+  const quickTemplates = [
+    { name: 'Morning Walk', description: '20-minute outdoor reset' },
+    { name: 'Deep Focus', description: '25 minutes distraction free' },
+    { name: 'Reading Sprint', description: '10 pages before bed' },
+  ];
 
   const loadDashboardData = React.useCallback(async () => {
     if (!user) {
@@ -423,6 +429,9 @@ export default function Dashboard() {
 
   const getCombinedHabits = () => [...myHabits, ...friendHabits];
   const selectedHabit = selectedHabitId ? getCombinedHabits().find((habit) => habit.id === selectedHabitId) || null : null;
+  const totalCheckIns = myHabits.reduce((sum, habit) => sum + habit.checkIns.length, 0);
+  const longestStreak = myHabits.reduce((best, habit) => Math.max(best, habit.checkIns.length), 0);
+  const sharedCount = myHabits.filter((habit) => habit.isShared).length;
 
   React.useEffect(() => {
     if (user) {
@@ -431,28 +440,107 @@ export default function Dashboard() {
   }, [refreshProfile, user]);
 
   return (
-    <div className="flex flex-col min-h-screen w-full p-2 sm:p-4 lg:p-6 space-y-8 animate-in fade-in duration-1000">
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="bg-primary p-2.5 rounded-2xl shadow-xl shadow-primary/20 transform hover:rotate-12 transition-transform">
-              <CheckCircle2 className="h-8 w-8 text-white" />
-            </div>
-            <h1 className="text-4xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-primary via-indigo-500 to-purple-600">
-              Habit Share
-            </h1>
-          </div>
-          <p className="text-sm font-bold text-slate-500 mt-2">
-            Welcome back, <span className="text-primary font-black uppercase tracking-tight">{currentUser?.name || 'Explorer'}</span>!
-          </p>
-        </div>
+    <div className="relative flex flex-col min-h-screen w-full p-2 sm:p-4 lg:p-6 space-y-8 animate-in fade-in duration-1000">
+      <div className="hero-orb left-8 top-20 h-32 w-32 bg-violet-300/50" />
+      <div className="hero-orb right-20 top-24 h-36 w-36 bg-sky-300/40" />
 
-        <div className="flex items-center gap-4">
-          <Button onClick={() => setIsAddOpen(true)} className="rounded-2xl h-14 shadow-2xl shadow-primary/30 hover:shadow-primary/40 hover:-translate-y-1 transition-all bg-primary px-8 font-black text-lg">
-            <PlusCircle className="h-6 w-6 mr-2" /> New Habit
-          </Button>
+      <header className="glass-panel relative overflow-hidden rounded-[34px] p-6 sm:p-8">
+        <div className="absolute inset-y-0 right-0 w-[34%] bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.18),transparent_58%)]" />
+        <div className="relative flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
+          <div className="max-w-3xl">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-slate-950/5 px-4 py-2 text-xs font-black uppercase tracking-[0.35em] text-slate-500">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              Premium habit operating system
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="bg-primary p-2.5 rounded-2xl shadow-xl shadow-primary/20 transform hover:rotate-12 transition-transform">
+                <CheckCircle2 className="h-8 w-8 text-white" />
+              </div>
+              <h1 className="text-4xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-primary to-sky-500 sm:text-5xl">
+                Habit Share
+              </h1>
+            </div>
+            <p className="mt-4 max-w-2xl text-base font-medium leading-7 text-slate-600 sm:text-lg">
+              Build disciplined routines, stay accountable with friends, and turn your daily consistency into something that feels premium.
+            </p>
+            <p className="mt-3 text-sm font-bold text-slate-500">
+              Welcome back, <span className="text-primary font-black uppercase tracking-tight">{currentUser?.name || 'Explorer'}</span>.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:min-w-[460px]">
+            <div className="rounded-[24px] bg-white/80 p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Habits</span>
+                <Target className="h-4 w-4 text-primary" />
+              </div>
+              <div className="mt-3 text-3xl font-black text-slate-900">{myHabits.length}</div>
+            </div>
+            <div className="rounded-[24px] bg-white/80 p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Check-ins</span>
+                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+              </div>
+              <div className="mt-3 text-3xl font-black text-slate-900">{totalCheckIns}</div>
+            </div>
+            <div className="rounded-[24px] bg-white/80 p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Best streak</span>
+                <Flame className="h-4 w-4 text-amber-500" />
+              </div>
+              <div className="mt-3 text-3xl font-black text-slate-900">{longestStreak}</div>
+            </div>
+            <div className="rounded-[24px] bg-white/80 p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Shared</span>
+                <Trophy className="h-4 w-4 text-sky-500" />
+              </div>
+              <div className="mt-3 text-3xl font-black text-slate-900">{sharedCount}</div>
+            </div>
+          </div>
         </div>
       </header>
+
+      <section className="grid gap-4 lg:grid-cols-[1.4fr_0.9fr]">
+        <div className="glass-panel rounded-[30px] p-5">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-black text-slate-900">Quick Start Templates</h2>
+              <p className="mt-1 text-sm font-medium text-slate-500">Launch a polished routine in one tap and customize it later.</p>
+            </div>
+            <Wand2 className="h-5 w-5 text-primary" />
+          </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            {quickTemplates.map((template) => (
+              <button
+                key={template.name}
+                type="button"
+                onClick={() => {
+                  setNewHabitName(template.name);
+                  setNewHabitDesc(template.description);
+                  setIsAddOpen(true);
+                }}
+                className="rounded-[24px] border border-white/70 bg-white/85 p-4 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+              >
+                <div className="text-sm font-black text-slate-900">{template.name}</div>
+                <div className="mt-2 text-sm font-medium text-slate-500">{template.description}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="glass-panel rounded-[30px] p-5">
+          <div className="text-[11px] font-black uppercase tracking-[0.35em] text-slate-400">Focus prompt</div>
+          <h3 className="mt-3 text-2xl font-black text-slate-900">Protect your streak with a habit that feels too easy to skip.</h3>
+          <p className="mt-3 text-sm font-medium leading-6 text-slate-600">
+            High-growth users keep one minimum version for every routine. On low-energy days, do that version and keep the chain alive.
+          </p>
+          <Button onClick={() => setIsAddOpen(true)} className="mt-5 h-12 rounded-2xl bg-slate-900 px-5 font-black text-white hover:bg-slate-800">
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Start a fresh habit
+          </Button>
+        </div>
+      </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-8 space-y-8">
