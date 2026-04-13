@@ -87,6 +87,7 @@ export function Groups({
   const [groups, setGroups] = React.useState<HabitShareGroup[]>([]);
   const [groupMembers, setGroupMembers] = React.useState<Record<string, GroupMember[]>>({});
   const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
+  const [isJoinDialogOpen, setIsJoinDialogOpen] = React.useState(false);
   const [isActivityOpen, setIsActivityOpen] = React.useState(false);
   const [activeGroupId, setActiveGroupId] = React.useState<string | null>(null);
   const [groupName, setGroupName] = React.useState('');
@@ -94,8 +95,10 @@ export function Groups({
   const [isPublic, setIsPublic] = React.useState(false);
   const [selectedFriends, setSelectedFriends] = React.useState<string[]>([]);
   const [searchQuery, setSearchQuery] = React.useState('');
+  const [joinGroupId, setJoinGroupId] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const [actionLoadingGroupId, setActionLoadingGroupId] = React.useState<string | null>(null);
+  const [publicGroups, setPublicGroups] = React.useState<HabitShareGroup[]>([]);
 
   const currentUserId = currentUser?.id || '';
 
@@ -112,6 +115,19 @@ export function Groups({
 
       const mappedGroups = (userGroups || []).map((row) => mapGroupRow(row as HabitGroupRow));
       setGroups(mappedGroups);
+
+      const { data: allPublicGroups, error: publicGroupsError } = await supabase
+        .from('habit_groups')
+        .select('*')
+        .eq('is_public', true);
+      if (!publicGroupsError) {
+        const mine = new Set(mappedGroups.map((group) => group.id));
+        setPublicGroups(
+          (allPublicGroups || [])
+            .map((row) => mapGroupRow(row as HabitGroupRow))
+            .filter((group) => !mine.has(group.id)),
+        );
+      }
 
       const membersMap: Record<string, GroupMember[]> = {};
       for (const group of mappedGroups) {
@@ -200,6 +216,77 @@ export function Groups({
     }
   };
 
+  const joinGroup = async (targetGroupId?: string) => {
+    if (!currentUserId) return;
+    const groupId = (targetGroupId || joinGroupId).trim();
+    if (!groupId) {
+      toast({ title: 'Group ID required', description: 'Enter a group ID or choose a public group.', variant: 'destructive' });
+      return;
+    }
+
+    setActionLoadingGroupId(groupId);
+    try {
+      const { data: groupData, error: groupError } = await supabase
+        .from('habit_groups')
+        .select('*')
+        .eq('id', groupId)
+        .maybeSingle();
+      if (groupError) throw groupError;
+      if (!groupData) {
+        toast({ title: 'Group not found', description: 'No group exists with this ID.', variant: 'destructive' });
+        return;
+      }
+
+      const group = mapGroupRow(groupData as HabitGroupRow);
+      if (!group.isPublic && group.createdBy !== currentUserId) {
+        toast({ title: 'Private group', description: 'You can only join private groups if creator adds you.', variant: 'destructive' });
+        return;
+      }
+
+      if ((group.memberIds || []).includes(currentUserId)) {
+        toast({ title: 'Already joined', description: `You are already part of "${group.name}".` });
+        return;
+      }
+
+      const nextMemberIds = [...(group.memberIds || []), currentUserId];
+
+      const { error: addMemberError } = await supabase.from('habit_group_members').insert({
+        id: `member_${Date.now()}_${currentUserId}`,
+        group_id: group.id,
+        user_id: currentUserId,
+        user_name: currentUser?.name || 'Member',
+        user_email: currentUser?.email || '',
+        role: 'member',
+      });
+      if (addMemberError) {
+        console.warn('Could not insert group member row:', addMemberError);
+      }
+
+      const { error: updateGroupError } = await supabase
+        .from('habit_groups')
+        .update({
+          member_ids: nextMemberIds,
+          member_count: nextMemberIds.length,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', group.id);
+      if (updateGroupError) {
+        console.warn('Could not update group member_ids/member_count:', updateGroupError);
+      }
+
+      setJoinGroupId('');
+      setIsJoinDialogOpen(false);
+      await loadGroups();
+      await onGroupChanged?.();
+      toast({ title: 'Group joined', description: `You joined "${group.name}".` });
+    } catch (error) {
+      console.error('Failed to join group:', error);
+      toast({ title: 'Join failed', description: 'Could not join this group right now.', variant: 'destructive' });
+    } finally {
+      setActionLoadingGroupId(null);
+    }
+  };
+
   const leaveGroup = async (group: HabitShareGroup) => {
     if (!currentUserId) return;
     setActionLoadingGroupId(group.id);
@@ -276,17 +363,78 @@ export function Groups({
               </CardTitle>
               <CardDescription>Create groups to share habits and gratitude with multiple friends.</CardDescription>
             </div>
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Group
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Create New Group</DialogTitle>
-                </DialogHeader>
+            <div className="flex gap-2">
+              <Dialog open={isJoinDialogOpen} onOpenChange={setIsJoinDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100">
+                    <Users className="h-4 w-4 mr-2" />
+                    Join Group
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-lg">
+                  <DialogHeader>
+                    <DialogTitle>Join Group</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium">Group ID</label>
+                      <div className="mt-2 flex gap-2">
+                        <Input
+                          value={joinGroupId}
+                          onChange={(e) => setJoinGroupId(e.target.value)}
+                          placeholder="Paste group ID..."
+                        />
+                        <Button
+                          onClick={() => joinGroup()}
+                          disabled={!joinGroupId.trim() || actionLoadingGroupId === joinGroupId.trim()}
+                        >
+                          Join
+                        </Button>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium mb-2">Public Groups</div>
+                      <div className="max-h-64 overflow-y-auto space-y-2">
+                        {publicGroups.length === 0 ? (
+                          <div className="rounded-lg border border-dashed p-4 text-sm text-slate-500">
+                            No public groups available right now.
+                          </div>
+                        ) : (
+                          publicGroups.map((group) => (
+                            <div key={group.id} className="rounded-xl border bg-white p-3">
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <div className="font-semibold text-slate-900">{group.name}</div>
+                                  {group.description ? <div className="text-xs text-slate-500 mt-1">{group.description}</div> : null}
+                                  <div className="text-[11px] text-slate-400 mt-1">{group.memberCount} members</div>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  onClick={() => joinGroup(group.id)}
+                                  disabled={actionLoadingGroupId === group.id}
+                                >
+                                  {actionLoadingGroupId === group.id ? 'Joining...' : 'Join'}
+                                </Button>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-md">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Group
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Create New Group</DialogTitle>
+                  </DialogHeader>
                 <div className="space-y-4">
                   <div>
                     <label className="text-sm font-medium">Group Name</label>
@@ -346,8 +494,9 @@ export function Groups({
                     </Button>
                   </div>
                 </div>
-              </DialogContent>
-            </Dialog>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
         </CardHeader>
       </Card>

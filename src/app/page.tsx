@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { format, subDays, addDays, isSameDay } from 'date-fns';
-import { CheckCircle2, LayoutDashboard, PlusCircle, Users, ChevronLeft, ChevronRight, MessageCircle, Sparkles, Flame, Target, Trophy, Wand2, ArrowRight, Lock, Share2, Rocket, Check, Compass, ShieldCheck, PlayCircle } from 'lucide-react';
+import { CheckCircle2, LayoutDashboard, PlusCircle, Users, ChevronLeft, ChevronRight, MessageCircle, Sparkles, Flame, Target, Trophy, Wand2, Rocket, Check, Compass, ShieldCheck, PlayCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -130,7 +130,6 @@ export default function Dashboard() {
 
   const [currentDate, setCurrentDate] = React.useState<Date>(new Date());
   const [isAddOpen, setIsAddOpen] = React.useState(false);
-  const [createHabitStep, setCreateHabitStep] = React.useState<0 | 1 | 2>(0);
   const [isShareReportOpen, setIsShareReportOpen] = React.useState(false);
   const [reportRange, setReportRange] = React.useState<ReportRange>('weekly');
   const [selectedHabitId, setSelectedHabitId] = React.useState<string | null>(null);
@@ -182,12 +181,6 @@ export default function Dashboard() {
       description: 'Use daily, monthly, and yearly trends to keep the streak real.',
       icon: ShieldCheck,
     },
-  ] as const;
-
-  const createHabitSteps = [
-    { title: 'Identity', caption: 'Name the routine' },
-    { title: 'Sharing', caption: 'Choose accountability' },
-    { title: 'Review', caption: 'Launch your streak' },
   ] as const;
 
   const loadDashboardData = React.useCallback(async () => {
@@ -535,7 +528,6 @@ export default function Dashboard() {
   };
 
   const resetCreateHabitFlow = React.useCallback(() => {
-    setCreateHabitStep(0);
     setNewHabitName('');
     setNewHabitDesc('');
     setIsNewShared(false);
@@ -554,9 +546,7 @@ export default function Dashboard() {
     if (template) {
       setNewHabitName(template.name);
       setNewHabitDesc(template.description);
-      setCreateHabitStep(1);
     } else {
-      setCreateHabitStep(0);
       setNewHabitName('');
       setNewHabitDesc('');
       setIsNewShared(false);
@@ -565,22 +555,6 @@ export default function Dashboard() {
     }
     setIsAddOpen(true);
   }, []);
-
-  const handleCreateNext = () => {
-    if (createHabitStep === 0 && !newHabitName.trim()) {
-      toast({
-        title: 'Name your habit',
-        description: 'Give this routine a clear name so we can build the plan around it.',
-        variant: 'destructive',
-      });
-      return;
-    }
-    setCreateHabitStep((prev) => Math.min(prev + 1, 2) as 0 | 1 | 2);
-  };
-
-  const handleCreateBack = () => {
-    setCreateHabitStep((prev) => Math.max(prev - 1, 0) as 0 | 1 | 2);
-  };
 
   const saveHabit = async () => {
     if (!user || !newHabitName.trim()) {
@@ -678,8 +652,6 @@ export default function Dashboard() {
   const sharedCount = myHabits.filter((habit) => habit.isShared).length;
   const gratitudeTodayKey = format(currentDate, 'yyyy-MM-dd');
   const gratitudeEntryForDate = myGratitudeEntries.find((entry) => entry.entryDate === gratitudeTodayKey);
-  const selectedShareFriends = friends.filter((friend) => sharedWithIds.includes(friend.id));
-
   const rankingHabits = React.useMemo(() => {
     const unique = new Map<string, HabitShareHabit>();
     [...myHabits, ...friendHabits].forEach((habit) => unique.set(habit.id, habit));
@@ -869,20 +841,6 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* Groups section moved up for faster access */}
-      <section className="glass-panel rounded-[30px] p-6">
-        <Groups
-          currentUser={currentUser}
-          friends={friends}
-          habits={[...myHabits, ...friendHabits]}
-          gratitudeEntries={[...myGratitudeEntries, ...friendGratitudeEntries]}
-          currentDate={currentDate}
-          onGroupChanged={loadDashboardData}
-          onCheer={handleCheer}
-          onViewDetails={setSelectedHabitId}
-        />
-      </section>
-
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-8 space-y-8">
           {/* Habits Section */}
@@ -979,6 +937,88 @@ export default function Dashboard() {
           <Achievements habits={myHabits} />
         </div>
       </div>
+
+      {/* 2) Groups & Community */}
+      <section className="glass-panel rounded-[30px] p-6">
+        <div className="flex items-center justify-between gap-4 mb-6">
+          <div>
+            <h2 className="text-2xl font-black text-slate-900">Groups & community</h2>
+            <p className="mt-1 text-sm font-medium text-slate-500">Create or join groups, connect with friends, and see shared activity.</p>
+          </div>
+          <Users className="h-6 w-6 text-primary" />
+        </div>
+        <div className="space-y-6">
+          <Groups
+            currentUser={currentUser}
+            friends={friends}
+            habits={[...myHabits, ...friendHabits]}
+            gratitudeEntries={[...myGratitudeEntries, ...friendGratitudeEntries]}
+            currentDate={currentDate}
+            onGroupChanged={loadDashboardData}
+            onCheer={handleCheer}
+            onViewDetails={setSelectedHabitId}
+          />
+          <FriendsFeed
+            friends={friends}
+            friendHabits={friendHabits}
+            incomingRequests={incomingRequests}
+            outgoingRequests={outgoingRequests}
+            currentUserEmail={user?.email || ''}
+            onAddFriend={handleAddFriend}
+            onAcceptRequest={handleAcceptRequest}
+            onRejectRequest={handleRejectRequest}
+            onCheer={handleCheer}
+            currentDate={currentDate}
+            onViewDetails={setSelectedHabitId}
+          />
+          <GratitudeFeed entries={friendGratitudeEntries} />
+        </div>
+      </section>
+
+      {/* 3) Analytics */}
+      <section className="glass-panel rounded-[30px] p-6">
+        <div className="flex items-center justify-between gap-4 mb-6">
+          <div>
+            <h2 className="text-2xl font-black text-slate-900">Analytics & insights</h2>
+            <p className="mt-1 text-sm font-medium text-slate-500">Deep dive into your habit patterns and progress.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {reportOptions.map((option) => (
+              <Button
+                key={option.key}
+                type="button"
+                variant={reportRange === option.key ? 'default' : 'outline'}
+                className="rounded-full px-4"
+                onClick={() => setReportRange(option.key)}
+              >
+                {option.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+        <HabitAnalytics habits={myHabits} currentDate={currentDate} range={reportRange} />
+      </section>
+
+      {/* 4) Leaderboard */}
+      <section className="glass-panel rounded-[30px] p-6">
+        <RankingBoard
+          habits={rankingHabits}
+          gratitudeEntries={rankingGratitude}
+          friends={friends}
+          currentUser={{
+            id: user?.id || '',
+            name: currentUser?.name || user?.email?.split('@')[0] || 'You',
+            email: user?.email || '',
+          }}
+          currentDate={currentDate}
+          onMyPointsChange={handleMyPointsChange}
+          friendIds={friends.map((friend) => friend.id)}
+          pendingFriendEmails={[...incomingRequests, ...outgoingRequests].map((request) =>
+            request.requesterId === user?.id ? request.receiverEmail : request.requesterEmail,
+          )}
+          onSendFriendRequest={handleAddFriend}
+        />
+      </section>
 
       <section className="grid gap-6 lg:grid-cols-[1.4fr_0.9fr]">
         <div className="glass-panel rounded-[30px] p-6">
@@ -1112,382 +1152,120 @@ export default function Dashboard() {
         </section>
       ) : null}
 
-      {/* Friends section moved below */}
-      <section className="glass-panel rounded-[30px] p-6">
-        <div className="flex items-center justify-between gap-4 mb-6">
-          <div>
-            <h2 className="text-2xl font-black text-slate-900">Friends & community</h2>
-            <p className="mt-1 text-sm font-medium text-slate-500">Connect with friends and see their progress.</p>
-          </div>
-          <Users className="h-6 w-6 text-primary" />
-        </div>
-        <div className="space-y-6">
-          <FriendsFeed
-            friends={friends}
-            friendHabits={friendHabits}
-            incomingRequests={incomingRequests}
-            outgoingRequests={outgoingRequests}
-            currentUserEmail={user?.email || ''}
-            onAddFriend={handleAddFriend}
-            onAcceptRequest={handleAcceptRequest}
-            onRejectRequest={handleRejectRequest}
-            onCheer={handleCheer}
-            currentDate={currentDate}
-            onViewDetails={setSelectedHabitId}
-          />
-          <GratitudeFeed entries={friendGratitudeEntries} />
-        </div>
-      </section>
-
-      {/* Analytics section moved below */}
-      <section className="glass-panel rounded-[30px] p-6">
-        <div className="flex items-center justify-between gap-4 mb-6">
-          <div>
-            <h2 className="text-2xl font-black text-slate-900">Analytics & insights</h2>
-            <p className="mt-1 text-sm font-medium text-slate-500">Deep dive into your habit patterns and progress.</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {reportOptions.map((option) => (
-              <Button
-                key={option.key}
-                type="button"
-                variant={reportRange === option.key ? 'default' : 'outline'}
-                className="rounded-full px-4"
-                onClick={() => setReportRange(option.key)}
-              >
-                {option.label}
-              </Button>
-            ))}
-          </div>
-        </div>
-        <HabitAnalytics habits={myHabits} currentDate={currentDate} range={reportRange} />
-      </section>
-
-      {/* Leaderboard moved to bottom */}
-      <section className="glass-panel rounded-[30px] p-6">
-        <RankingBoard
-          habits={rankingHabits}
-          gratitudeEntries={rankingGratitude}
-          friends={friends}
-          currentUser={{
-            id: user?.id || '',
-            name: currentUser?.name || user?.email?.split('@')[0] || 'You',
-            email: user?.email || '',
-          }}
-          currentDate={currentDate}
-          onMyPointsChange={handleMyPointsChange}
-          friendIds={friends.map((friend) => friend.id)}
-          pendingFriendEmails={[...incomingRequests, ...outgoingRequests].map((request) =>
-            request.requesterId === user?.id ? request.receiverEmail : request.requesterEmail,
-          )}
-          onSendFriendRequest={handleAddFriend}
-        />
-      </section>
-
       <Dialog open={isAddOpen} onOpenChange={closeCreateHabitDialog}>
-        <DialogContent className="max-w-[96vw] overflow-hidden rounded-[34px] border-none p-0 shadow-[0_30px_120px_rgba(15,23,42,0.25)] sm:max-w-2xl">
-          <div className="relative bg-[linear-gradient(180deg,rgba(244,247,255,0.98),rgba(255,255,255,0.98))]">
-            <div className="absolute inset-x-0 top-0 h-40 bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.22),transparent_72%)]" />
-            <div className="relative flex max-h-[90vh] flex-col">
-              <div className="border-b border-white/70 px-5 pb-5 pt-6 sm:px-8">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className="inline-flex items-center gap-2 rounded-full bg-slate-950/5 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.3em] text-slate-500">
-                      <Sparkles className="h-3.5 w-3.5 text-primary" />
-                      Guided builder
-                    </div>
-                    <DialogTitle className="mt-4 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Create Habit</DialogTitle>
-                    <p className="mt-2 max-w-lg text-sm font-medium leading-6 text-slate-500">
-                      Build a habit that feels premium from day one, then decide if it stays private or becomes a shared accountability ritual.
-                    </p>
-                  </div>
-                  <div className="rounded-2xl bg-white/75 px-4 py-3 shadow-sm">
-                    <div className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Step</div>
-                    <div className="mt-1 text-lg font-black text-slate-900">{createHabitStep + 1}/3</div>
-                  </div>
-                </div>
-
-                <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                  {createHabitSteps.map((step, index) => {
-                    const isActive = createHabitStep === index;
-                    const isDone = createHabitStep > index;
-                    return (
-                      <button
-                        key={step.title}
-                        type="button"
-                        onClick={() => {
-                          if (index <= createHabitStep || newHabitName.trim()) {
-                            setCreateHabitStep(index as 0 | 1 | 2);
-                          }
-                        }}
-                        className={`rounded-[24px] border px-4 py-4 text-left transition-all ${
-                          isActive
-                            ? 'border-primary bg-white shadow-lg shadow-primary/10'
-                            : isDone
-                              ? 'border-emerald-200 bg-emerald-50/80'
-                              : 'border-white/70 bg-white/60'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-black ${isDone ? 'bg-emerald-500 text-white' : isActive ? 'bg-primary text-white' : 'bg-slate-100 text-slate-500'}`}>
-                            {isDone ? <Check className="h-4 w-4" /> : index + 1}
-                          </span>
-                          <span className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-400">{step.caption}</span>
-                        </div>
-                        <div className="mt-4 text-base font-black text-slate-900">{step.title}</div>
-                      </button>
-                    );
-                  })}
-                </div>
+        <DialogContent className="max-w-[96vw] max-h-[90vh] overflow-hidden rounded-[28px] border-none p-0 shadow-[0_30px_120px_rgba(15,23,42,0.2)] sm:max-w-xl">
+          <div className="flex h-full max-h-[90vh] flex-col bg-[linear-gradient(180deg,rgba(244,247,255,0.98),rgba(255,255,255,0.98))]">
+            <div className="border-b border-white/70 px-5 py-5 sm:px-6">
+              <div className="inline-flex items-center gap-2 rounded-full bg-slate-950/5 px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">
+                <Sparkles className="h-3.5 w-3.5 text-primary" />
+                Quick add
               </div>
-
-              <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-8 sm:py-6">
-                {createHabitStep === 0 ? (
-                  <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
-                    <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                      <div className="space-y-2">
-                        <Label className="ml-1 text-xs font-black uppercase tracking-widest text-slate-400">Habit name</Label>
-                        <Input
-                          value={newHabitName}
-                          onChange={(e) => setNewHabitName(e.target.value)}
-                          placeholder="Morning walk, reading sprint, deep work..."
-                          className="h-14 rounded-2xl border-white/70 bg-white/85 text-base font-black shadow-sm"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="ml-1 text-xs font-black uppercase tracking-widest text-slate-400">Small promise</Label>
-                        <textarea
-                          value={newHabitDesc}
-                          onChange={(e) => setNewHabitDesc(e.target.value)}
-                          placeholder="Describe the smallest successful version of this habit."
-                          className="min-h-[150px] w-full rounded-[24px] border border-white/70 bg-white/85 px-4 py-4 text-sm font-medium text-slate-700 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="rounded-[28px] border border-white/80 bg-slate-950 p-5 text-white shadow-2xl shadow-slate-900/20 animate-in fade-in zoom-in-95 duration-500">
-                      <div className="text-[11px] font-black uppercase tracking-[0.3em] text-white/45">Preview</div>
-                      <div className="mt-5 rounded-[24px] bg-white/10 p-5 backdrop-blur">
-                        <div className="text-2xl font-black">{newHabitName.trim() || 'Your next great habit'}</div>
-                        <p className="mt-3 text-sm leading-6 text-white/70">
-                          {newHabitDesc.trim() || 'Keep the first version light, repeatable, and easy to keep alive even on busy days.'}
-                        </p>
-                      </div>
-                      <div className="mt-5 space-y-3 text-sm text-white/70">
-                        <div className="flex items-center gap-3 rounded-2xl bg-white/5 px-4 py-3">
-                          <Target className="h-4 w-4 text-violet-300" />
-                          Easy habits scale faster than intense habits.
-                        </div>
-                        <div className="flex items-center gap-3 rounded-2xl bg-white/5 px-4 py-3">
-                          <Flame className="h-4 w-4 text-amber-300" />
-                          We&apos;re optimizing for streak stability first.
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
-
-                {createHabitStep === 1 ? (
-                  <div className="grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
-                    <div className="rounded-[28px] border border-white/80 bg-white/80 p-5 shadow-sm animate-in fade-in slide-in-from-left-3 duration-500">
-                      <div className="flex items-center gap-3">
-                        <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${isNewShared ? 'bg-primary text-white' : 'bg-slate-100 text-slate-500'}`}>
-                          {isNewShared ? <Share2 className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
-                        </div>
-                        <div>
-                          <div className="text-lg font-black text-slate-900">{isNewShared ? 'Shared accountability' : 'Private launch'}</div>
-                          <p className="text-sm font-medium text-slate-500">
-                            {isNewShared ? 'Let friends see progress and cheer you on.' : 'Start privately and share later anytime.'}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="mt-5 rounded-[24px] border border-slate-200/80 bg-slate-50/70 p-4">
-                        <div className="flex items-center gap-3">
-                          <Checkbox id="share-habit" checked={isNewShared} onCheckedChange={(value) => setIsNewShared(Boolean(value))} />
-                          <Label htmlFor="share-habit" className="text-sm font-bold text-slate-800">
-                            Share this habit with selected friends
-                          </Label>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="animate-in fade-in slide-in-from-right-3 duration-500">
-                      {isNewShared ? (
-                        <div className="rounded-[28px] border border-white/80 bg-white/85 p-5 shadow-sm">
-                          <div className="flex items-center justify-between gap-3">
-                            <div>
-                              <div className="text-lg font-black text-slate-900">Choose your circle</div>
-                              <p className="mt-1 text-sm font-medium text-slate-500">Pick the people who should see this streak.</p>
-                            </div>
-                            <div className="rounded-full bg-primary/10 px-3 py-1 text-xs font-black text-primary">
-                              {selectedShareFriends.length} selected
-                            </div>
-                          </div>
-
-                          {friends.length === 0 && groups.length === 0 ? (
-                            <div className="mt-5 rounded-[24px] border border-dashed border-slate-200 bg-slate-50/80 p-6 text-center">
-                              <Users className="mx-auto h-10 w-10 text-slate-300" />
-                              <div className="mt-4 text-base font-black text-slate-900">No friends or groups yet</div>
-                              <p className="mt-2 text-sm font-medium text-slate-500">
-                                You can still save this habit now and connect your accountability circle later from the Friends tab.
-                              </p>
-                            </div>
-                          ) : (
-                            <div className="mt-5 space-y-4">
-                              {friends.length > 0 && (
-                                <div>
-                                  <div className="text-sm font-bold text-slate-700 mb-3">Share with friends</div>
-                                  <div className="grid gap-3 sm:grid-cols-2">
-                                    {friends.map((friend) => {
-                                      const selected = sharedWithIds.includes(friend.id);
-                                      return (
-                                        <button
-                                          key={friend.id}
-                                          type="button"
-                                          onClick={() => toggleSharedWithFriend(friend.id)}
-                                          className={`rounded-[24px] border p-4 text-left transition-all ${
-                                            selected ? 'border-primary bg-primary/5 shadow-md shadow-primary/10' : 'border-slate-200 bg-slate-50/70 hover:border-slate-300'
-                                          }`}
-                                        >
-                                          <div className="flex items-start justify-between gap-3">
-                                            <div>
-                                              <div className="text-sm font-black text-slate-900">{friend.name}</div>
-                                              <div className="mt-1 text-xs font-medium text-slate-500">{friend.email}</div>
-                                            </div>
-                                            <div className={`flex h-6 w-6 items-center justify-center rounded-full border ${selected ? 'border-primary bg-primary text-white' : 'border-slate-300 text-transparent'}`}>
-                                              <Check className="h-3.5 w-3.5" />
-                                            </div>
-                                          </div>
-                                        </button>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              )}
-
-                              {groups.length > 0 && (
-                                <div>
-                                  <div className="text-sm font-bold text-slate-700 mb-3">Share with groups</div>
-                                  <div className="grid gap-3 sm:grid-cols-2">
-                                    {groups.map((group) => {
-                                      const selected = sharedWithGroups.includes(group.id);
-                                      return (
-                                        <button
-                                          key={group.id}
-                                          type="button"
-                                          onClick={() => setSharedWithGroups(prev => prev.includes(group.id) ? prev.filter(id => id !== group.id) : [...prev, group.id])}
-                                          className={`rounded-[24px] border p-4 text-left transition-all ${
-                                            selected ? 'border-indigo-500 bg-indigo-50 shadow-md shadow-indigo-100' : 'border-slate-200 bg-slate-50/70 hover:border-slate-300'
-                                          }`}
-                                        >
-                                          <div className="flex items-start justify-between gap-3">
-                                            <div>
-                                              <div className="text-sm font-black text-slate-900">{group.name}</div>
-                                              <div className="mt-1 text-xs font-medium text-slate-500">{group.memberCount} members</div>
-                                            </div>
-                                            <div className={`flex h-6 w-6 items-center justify-center rounded-full border ${selected ? 'border-indigo-500 bg-indigo-500 text-white' : 'border-slate-300 text-transparent'}`}>
-                                              <Check className="h-3.5 w-3.5" />
-                                            </div>
-                                          </div>
-                                        </button>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="rounded-[28px] border border-white/80 bg-[linear-gradient(145deg,rgba(255,255,255,0.92),rgba(241,245,255,0.82))] p-6 shadow-sm">
-                          <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-white">
-                            <Lock className="h-5 w-5" />
-                          </div>
-                          <h3 className="mt-4 text-xl font-black text-slate-900">Quiet start, strong foundation.</h3>
-                          <p className="mt-3 text-sm font-medium leading-6 text-slate-500">
-                            Private habits are perfect when you want to build confidence first. Once it becomes natural, you can share it with friends in one tap.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ) : null}
-
-                {createHabitStep === 2 ? (
-                  <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
-                    <div className="rounded-[30px] border border-slate-200/80 bg-white/90 p-6 shadow-sm animate-in fade-in slide-in-from-bottom-3 duration-500">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/20">
-                          <Rocket className="h-5 w-5" />
-                        </div>
-                        <div>
-                          <div className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Ready to launch</div>
-                          <div className="text-2xl font-black tracking-tight text-slate-950">{newHabitName.trim() || 'Untitled habit'}</div>
-                        </div>
-                      </div>
-                      <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                        <div className="rounded-[24px] bg-slate-50 p-4">
-                          <div className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-400">Description</div>
-                          <p className="mt-3 text-sm font-medium leading-6 text-slate-600">
-                            {newHabitDesc.trim() || 'No description yet. This habit will still be saved cleanly and can be refined later.'}
-                          </p>
-                        </div>
-                        <div className="rounded-[24px] bg-slate-50 p-4">
-                          <div className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-400">Visibility</div>
-                          <div className="mt-3 text-base font-black text-slate-900">{isNewShared && selectedShareFriends.length > 0 ? 'Shared with friends' : 'Private to you'}</div>
-                          <p className="mt-2 text-sm font-medium text-slate-500">
-                            {isNewShared && selectedShareFriends.length > 0
-                              ? `${selectedShareFriends.length} friend${selectedShareFriends.length > 1 ? 's' : ''} will be able to follow along.`
-                              : 'Only you will see this habit until you decide to share it.'}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="rounded-[30px] bg-slate-950 p-6 text-white shadow-2xl shadow-slate-900/25 animate-in fade-in zoom-in-95 duration-500">
-                      <div className="text-[11px] font-black uppercase tracking-[0.3em] text-white/45">Launch checklist</div>
-                      <div className="mt-5 space-y-3">
-                        {[
-                          `Habit is clearly named${newHabitName.trim() ? '' : ' - add a better title if you want a cleaner dashboard.'}`,
-                          newHabitDesc.trim() ? 'Description gives this habit a practical floor.' : 'Description is optional, but adding one helps on low-motivation days.',
-                          isNewShared && selectedShareFriends.length > 0 ? 'Accountability circle selected.' : 'Private mode keeps the first version simple.',
-                        ].map((item) => (
-                          <div key={item} className="flex items-start gap-3 rounded-[22px] bg-white/10 px-4 py-3">
-                            <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-300" />
-                            <span className="text-sm font-medium leading-6 text-white/75">{item}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-
-              <DialogFooter className="border-t border-white/70 bg-white/80 px-5 py-4 backdrop-blur sm:px-8">
-                <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <Button
-                    variant="ghost"
-                    onClick={createHabitStep === 0 ? () => closeCreateHabitDialog(false) : handleCreateBack}
-                    className="h-12 rounded-2xl font-black text-slate-500"
-                  >
-                    {createHabitStep === 0 ? 'Cancel' : 'Back'}
-                  </Button>
-                  <div className="flex flex-col-reverse gap-3 sm:flex-row">
-                    {createHabitStep < 2 ? (
-                      <Button onClick={handleCreateNext} className="h-12 rounded-2xl px-6 font-black shadow-xl shadow-primary/20">
-                        Continue
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    ) : (
-                      <Button onClick={saveHabit} disabled={isSavingHabit} className="h-12 rounded-2xl px-6 font-black shadow-xl shadow-primary/20 disabled:opacity-70">
-                        {isSavingHabit ? 'Saving...' : 'Launch habit'}
-                        {!isSavingHabit ? <Rocket className="ml-2 h-4 w-4" /> : null}
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </DialogFooter>
+              <DialogTitle className="mt-3 text-3xl font-black tracking-tight text-slate-950">Create Habit</DialogTitle>
+              <p className="mt-1 text-sm font-medium text-slate-500">Simple setup, mobile-friendly, ready in one step.</p>
             </div>
+
+            <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+              <div className="space-y-5">
+                <div className="space-y-2">
+                  <Label className="ml-1 text-xs font-black uppercase tracking-widest text-slate-400">Habit name</Label>
+                  <Input
+                    value={newHabitName}
+                    onChange={(e) => setNewHabitName(e.target.value)}
+                    placeholder="Morning walk, reading sprint..."
+                    className="h-12 rounded-2xl border-white/70 bg-white/85 text-base font-black shadow-sm"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="ml-1 text-xs font-black uppercase tracking-widest text-slate-400">Description</Label>
+                  <textarea
+                    value={newHabitDesc}
+                    onChange={(e) => setNewHabitDesc(e.target.value)}
+                    placeholder="Keep it short and practical."
+                    className="min-h-[110px] w-full rounded-2xl border border-white/70 bg-white/85 px-4 py-3 text-sm font-medium text-slate-700 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+
+                <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
+                  <div className="flex items-center gap-3">
+                    <Checkbox id="share-habit" checked={isNewShared} onCheckedChange={(value) => setIsNewShared(Boolean(value))} />
+                    <Label htmlFor="share-habit" className="text-sm font-bold text-slate-800">
+                      Share this habit with friends/groups
+                    </Label>
+                  </div>
+                </div>
+
+                {isNewShared ? (
+                  <div className="space-y-4">
+                    {friends.length > 0 ? (
+                      <div>
+                        <div className="mb-2 text-xs font-black uppercase tracking-[0.2em] text-slate-400">Friends</div>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          {friends.map((friend) => {
+                            const selected = sharedWithIds.includes(friend.id);
+                            return (
+                              <button
+                                key={friend.id}
+                                type="button"
+                                onClick={() => toggleSharedWithFriend(friend.id)}
+                                className={`rounded-xl border p-3 text-left transition ${
+                                  selected ? 'border-primary bg-primary/5' : 'border-slate-200 bg-white/80'
+                                }`}
+                              >
+                                <div className="text-sm font-black text-slate-900">{friend.name}</div>
+                                <div className="text-xs text-slate-500">{friend.email}</div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {groups.length > 0 ? (
+                      <div>
+                        <div className="mb-2 text-xs font-black uppercase tracking-[0.2em] text-slate-400">Groups</div>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          {groups.map((group) => {
+                            const selected = sharedWithGroups.includes(group.id);
+                            return (
+                              <button
+                                key={group.id}
+                                type="button"
+                                onClick={() => setSharedWithGroups((prev) => prev.includes(group.id) ? prev.filter((id) => id !== group.id) : [...prev, group.id])}
+                                className={`rounded-xl border p-3 text-left transition ${
+                                  selected ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200 bg-white/80'
+                                }`}
+                              >
+                                <div className="text-sm font-black text-slate-900">{group.name}</div>
+                                <div className="text-xs text-slate-500">{group.memberCount} members</div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {friends.length === 0 && groups.length === 0 ? (
+                      <div className="rounded-2xl border border-dashed border-slate-200 bg-white/70 p-4 text-sm font-medium text-slate-500">
+                        No friends/groups yet. You can still save this habit now.
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            <DialogFooter className="border-t border-white/70 bg-white/85 px-5 py-4 sm:px-6">
+              <div className="flex w-full gap-3">
+                <Button variant="ghost" onClick={() => closeCreateHabitDialog(false)} className="h-12 flex-1 rounded-2xl font-black text-slate-500">
+                  Cancel
+                </Button>
+                <Button onClick={saveHabit} disabled={isSavingHabit} className="h-12 flex-1 rounded-2xl font-black shadow-xl shadow-primary/20 disabled:opacity-70">
+                  {isSavingHabit ? 'Saving...' : 'Save habit'}
+                  {!isSavingHabit ? <Rocket className="ml-2 h-4 w-4" /> : null}
+                </Button>
+              </div>
+            </DialogFooter>
           </div>
         </DialogContent>
       </Dialog>
