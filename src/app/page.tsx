@@ -1,348 +1,186 @@
 'use client';
-
 import * as React from 'react';
-import { addDays, format, subDays } from 'date-fns';
-import { ChevronLeft, ChevronRight, LogOut, PlusCircle, Target } from 'lucide-react';
+import { addDays, addMonths, eachDayOfInterval, endOfMonth, format, startOfMonth, subDays, subMonths } from 'date-fns';
+import { Check, ChevronLeft, ChevronRight, LogOut, PlusCircle, Target, UserPlus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { HabitCard } from '@/components/habit-card';
 import { HabitCalendarDialog } from '@/components/habit-calendar-dialog';
 import { useAuth } from '@/components/auth-provider';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
-import type { HabitShareHabit } from '@/lib/types';
+import type { HabitFriendRequest, HabitShareHabit, HabitShareUser } from '@/lib/types';
 
-type HabitRow = {
-  id: string;
-  user_id: string;
-  user_name: string | null;
-  user_email: string | null;
-  name: string;
-  description: string | null;
-  check_ins: string[] | null;
-  cheers: number | null;
-  is_shared: boolean | null;
-  created_at: string;
-  updated_at: string | null;
-};
+type HabitRow = { id: string; user_id: string; user_name: string | null; user_email: string | null; name: string; description: string | null; check_ins: string[] | null; cheers: number | null; is_shared: boolean | null; shared_with_ids: string[] | null; created_at: string; updated_at: string | null; };
+type FriendRequestRow = { id: string; requester_id: string; requester_name: string | null; requester_email: string | null; receiver_id: string; receiver_name: string | null; receiver_email: string | null; status: 'pending' | 'accepted' | 'rejected'; created_at: string; };
+type ProfileRow = { id: string; email: string | null; name: string | null; };
 
-function mapHabit(row: HabitRow): HabitShareHabit {
-  return {
-    id: row.id,
-    userId: row.user_id,
-    userName: row.user_name || '',
-    userEmail: row.user_email || '',
-    name: row.name,
-    description: row.description || '',
-    checkIns: row.check_ins || [],
-    cheers: row.cheers || 0,
-    isShared: Boolean(row.is_shared),
-    createdAt: row.created_at,
-    updatedAt: row.updated_at || row.created_at,
-  };
-}
+const mapHabit = (r: HabitRow): HabitShareHabit => ({ id: r.id, userId: r.user_id, userName: r.user_name || '', userEmail: r.user_email || '', name: r.name, description: r.description || '', checkIns: r.check_ins || [], cheers: r.cheers || 0, isShared: Boolean(r.is_shared), sharedWithIds: r.shared_with_ids || [], createdAt: r.created_at, updatedAt: r.updated_at || r.created_at });
+const mapReq = (r: FriendRequestRow): HabitFriendRequest => ({ id: r.id, requesterId: r.requester_id, requesterName: r.requester_name || r.requester_email || 'User', requesterEmail: r.requester_email || '', receiverId: r.receiver_id, receiverName: r.receiver_name || r.receiver_email || 'User', receiverEmail: r.receiver_email || '', status: r.status, createdAt: r.created_at });
 
 export default function Dashboard() {
   const { user, currentUser, loading: authLoading } = useAuth();
   const { toast } = useToast();
-
-  const [currentDate, setCurrentDate] = React.useState<Date>(new Date());
+  const [currentDate, setCurrentDate] = React.useState(new Date());
+  const [chartMonth, setChartMonth] = React.useState(startOfMonth(new Date()));
   const [myHabits, setMyHabits] = React.useState<HabitShareHabit[]>([]);
-  const [isDashboardLoading, setIsDashboardLoading] = React.useState(true);
+  const [friendHabits, setFriendHabits] = React.useState<HabitShareHabit[]>([]);
+  const [friends, setFriends] = React.useState<HabitShareUser[]>([]);
+  const [incoming, setIncoming] = React.useState<HabitFriendRequest[]>([]);
+  const [outgoing, setOutgoing] = React.useState<HabitFriendRequest[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  const [friendEmail, setFriendEmail] = React.useState('');
+  const [sending, setSending] = React.useState(false);
+  const [reqActionId, setReqActionId] = React.useState<string | null>(null);
 
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
   const [newHabitName, setNewHabitName] = React.useState('');
   const [newHabitDesc, setNewHabitDesc] = React.useState('');
+  const [isNewShared, setIsNewShared] = React.useState(false);
+  const [sharedWithIds, setSharedWithIds] = React.useState<string[]>([]);
   const [isSavingHabit, setIsSavingHabit] = React.useState(false);
-
   const [selectedHabitId, setSelectedHabitId] = React.useState<string | null>(null);
 
-  const loadMyHabits = React.useCallback(async () => {
-    if (!user) {
-      setMyHabits([]);
-      setIsDashboardLoading(false);
-      return;
-    }
-
-    setIsDashboardLoading(true);
+  const loadData = React.useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('habit_share_habits')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+      const [mine, shared, inc, out, accSent, accReceived] = await Promise.all([
+        supabase.from('habit_share_habits').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+        supabase.from('habit_share_habits').select('*').eq('is_shared', true).contains('shared_with_ids', [user.id]).order('created_at', { ascending: false }),
+        supabase.from('habit_friend_requests').select('*').eq('receiver_id', user.id).eq('status', 'pending'),
+        supabase.from('habit_friend_requests').select('*').eq('requester_id', user.id).eq('status', 'pending'),
+        supabase.from('habit_friend_requests').select('*').eq('requester_id', user.id).eq('status', 'accepted'),
+        supabase.from('habit_friend_requests').select('*').eq('receiver_id', user.id).eq('status', 'accepted'),
+      ]);
+      if (mine.error || shared.error || inc.error || out.error || accSent.error || accReceived.error) throw new Error('Load failed');
+      setMyHabits((mine.data || []).map((r) => mapHabit(r as HabitRow)));
+      setFriendHabits((shared.data || []).map((r) => mapHabit(r as HabitRow)).filter((h) => h.userId !== user.id));
+      setIncoming((inc.data || []).map((r) => mapReq(r as FriendRequestRow)));
+      setOutgoing((out.data || []).map((r) => mapReq(r as FriendRequestRow)));
 
-      if (error) throw error;
-      setMyHabits((data || []).map((row) => mapHabit(row as HabitRow)));
-    } catch (error) {
-      console.error('Failed to load habits:', error);
-      toast({
-        title: 'Load failed',
-        description: 'Could not load your habits from Supabase.',
-        variant: 'destructive',
-      });
+      const f = new Map<string, HabitShareUser>();
+      (accSent.data || []).forEach((r) => { const x = r as FriendRequestRow; f.set(x.receiver_id, { id: x.receiver_id, name: x.receiver_name || x.receiver_email || 'Friend', email: x.receiver_email || '', avatarUrl: '' }); });
+      (accReceived.data || []).forEach((r) => { const x = r as FriendRequestRow; f.set(x.requester_id, { id: x.requester_id, name: x.requester_name || x.requester_email || 'Friend', email: x.requester_email || '', avatarUrl: '' }); });
+      setFriends(Array.from(f.values()));
+    } catch {
+      toast({ title: 'Load failed', description: 'Could not load habits/friends.', variant: 'destructive' });
     } finally {
-      setIsDashboardLoading(false);
+      setLoading(false);
     }
   }, [toast, user]);
 
-  React.useEffect(() => {
-    void loadMyHabits();
-  }, [loadMyHabits]);
+  React.useEffect(() => { void loadData(); }, [loadData]);
+  if (authLoading) return <main className="p-6 text-sm text-slate-500">Loading...</main>;
+  if (!user) return <main className="p-6 text-sm text-slate-500">Please login to continue.</main>;
 
-  const selectedHabit = selectedHabitId
-    ? myHabits.find((habit) => habit.id === selectedHabitId) || null
-    : null;
-
+  const selectedHabit = selectedHabitId ? [...myHabits, ...friendHabits].find((h) => h.id === selectedHabitId) || null : null;
+  const monthDays = eachDayOfInterval({ start: startOfMonth(chartMonth), end: endOfMonth(chartMonth) });
   const currentDateStr = format(currentDate, 'yyyy-MM-dd');
-  const totalCheckIns = myHabits.reduce((sum, habit) => sum + habit.checkIns.length, 0);
-  const longestStreak = myHabits.reduce((best, habit) => Math.max(best, habit.checkIns.length), 0);
-  const doneTodayCount = myHabits.filter((habit) => habit.checkIns.includes(currentDateStr)).length;
+  const doneTodayCount = myHabits.filter((h) => h.checkIns.includes(currentDateStr)).length;
 
-  const resetCreateForm = () => {
-    setNewHabitName('');
-    setNewHabitDesc('');
+  const toggleHabitCheckIn = async (habitId: string, dateStr: string) => {
+    const oldHabit = myHabits.find((h) => h.id === habitId); if (!oldHabit) return;
+    const next = oldHabit.checkIns.includes(dateStr) ? oldHabit.checkIns.filter((d) => d !== dateStr) : [...oldHabit.checkIns, dateStr];
+    setMyHabits((prev) => prev.map((h) => (h.id === habitId ? { ...h, checkIns: next } : h)));
+    const { error } = await supabase.from('habit_share_habits').update({ check_ins: next, updated_at: new Date().toISOString() }).eq('id', habitId);
+    if (error) { setMyHabits((prev) => prev.map((h) => (h.id === habitId ? oldHabit : h))); toast({ title: 'Update failed', description: 'Try again.', variant: 'destructive' }); }
   };
 
-  const closeCreateDialog = (open: boolean) => {
-    setIsCreateOpen(open);
-    if (!open) {
-      resetCreateForm();
-    }
+  const sendFriendRequest = async () => {
+    if (!friendEmail.trim()) return;
+    setSending(true);
+    try {
+      const email = friendEmail.trim().toLowerCase();
+      if (email === (user.email || '').toLowerCase()) { toast({ title: 'Invalid', description: 'Cannot add yourself.', variant: 'destructive' }); return; }
+      const { data: target } = await supabase.from('profiles').select('id,email,name').eq('email', email).maybeSingle();
+      if (!target) { toast({ title: 'User not found', description: 'No account with this email.', variant: 'destructive' }); return; }
+      const p = target as ProfileRow;
+      const { data: existing } = await supabase.from('habit_friend_requests').select('id').or(`and(requester_id.eq.${user.id},receiver_id.eq.${p.id}),and(requester_id.eq.${p.id},receiver_id.eq.${user.id})`).limit(1);
+      if (existing && existing.length > 0) { toast({ title: 'Exists', description: 'Already requested/connected.' }); return; }
+      const payload = { id: `friend_${Date.now()}`, requester_id: user.id, requester_name: currentUser?.name || user.email?.split('@')[0] || 'User', requester_email: user.email || '', receiver_id: p.id, receiver_name: p.name || p.email || 'User', receiver_email: p.email || '', status: 'pending' };
+      const { error } = await supabase.from('habit_friend_requests').insert(payload); if (error) throw error;
+      setFriendEmail(''); toast({ title: 'Request sent' }); await loadData();
+    } catch {
+      toast({ title: 'Send failed', description: 'Could not send request.', variant: 'destructive' });
+    } finally { setSending(false); }
+  };
+
+  const updateRequest = async (id: string, status: 'accepted' | 'rejected') => {
+    setReqActionId(id);
+    try {
+      const { error } = await supabase.from('habit_friend_requests').update({ status }).eq('id', id);
+      if (error) throw error;
+      await loadData();
+    } catch { toast({ title: 'Failed', description: 'Could not update request.', variant: 'destructive' }); }
+    finally { setReqActionId(null); }
   };
 
   const saveHabit = async () => {
-    if (!user || !newHabitName.trim()) {
-      toast({
-        title: 'Habit name required',
-        description: 'Please enter a habit name before saving.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
+    if (!newHabitName.trim()) { toast({ title: 'Habit name required', variant: 'destructive' }); return; }
+    const selected = isNewShared ? sharedWithIds.filter(Boolean) : [];
     setIsSavingHabit(true);
     try {
-      const payload = {
-        id: `habit_${Date.now()}`,
-        user_id: user.id,
-        user_name: currentUser?.name || user.email?.split('@')[0] || 'User',
-        user_email: user.email || '',
-        name: newHabitName.trim(),
-        description: newHabitDesc.trim(),
-        check_ins: [] as string[],
-        cheers: 0,
-        is_shared: false,
-        shared_with_ids: [] as string[],
-        shared_with_groups: [] as string[],
-      };
-
-      const { error } = await supabase.from('habit_share_habits').insert(payload);
-      if (error) throw error;
-
-      toast({ title: 'Habit created', description: 'Your habit has been added.' });
-      closeCreateDialog(false);
-      await loadMyHabits();
-    } catch (error) {
-      console.error('Failed to save habit:', error);
-      toast({
-        title: 'Save failed',
-        description: 'Could not save this habit right now.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSavingHabit(false);
-    }
+      const payload = { id: `habit_${Date.now()}`, user_id: user.id, user_name: currentUser?.name || user.email?.split('@')[0] || 'User', user_email: user.email || '', name: newHabitName.trim(), description: newHabitDesc.trim(), check_ins: [] as string[], cheers: 0, is_shared: selected.length > 0, shared_with_ids: selected };
+      const { error } = await supabase.from('habit_share_habits').insert(payload); if (error) throw error;
+      setIsCreateOpen(false); setNewHabitName(''); setNewHabitDesc(''); setIsNewShared(false); setSharedWithIds([]); await loadData();
+    } catch { toast({ title: 'Save failed', description: 'Could not save habit.', variant: 'destructive' }); }
+    finally { setIsSavingHabit(false); }
   };
-
-  const toggleHabitCheckIn = async (habitId: string, dateStr: string) => {
-    const habit = myHabits.find((item) => item.id === habitId);
-    if (!habit) return;
-
-    const nextCheckIns = habit.checkIns.includes(dateStr)
-      ? habit.checkIns.filter((value) => value !== dateStr)
-      : [...habit.checkIns, dateStr];
-
-    setMyHabits((prev) =>
-      prev.map((item) =>
-        item.id === habitId
-          ? {
-              ...item,
-              checkIns: nextCheckIns,
-            }
-          : item,
-      ),
-    );
-
-    const { error } = await supabase
-      .from('habit_share_habits')
-      .update({
-        check_ins: nextCheckIns,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', habitId);
-
-    if (error) {
-      console.error('Failed to update check-in:', error);
-      setMyHabits((prev) => prev.map((item) => (item.id === habitId ? habit : item)));
-      toast({
-        title: 'Update failed',
-        description: 'Could not update your check-in right now.',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-  };
-
-  if (authLoading) {
-    return <main className="p-6 text-sm text-slate-500">Loading...</main>;
-  }
-
-  if (!user) {
-    return <main className="p-6 text-sm text-slate-500">Please login to continue.</main>;
-  }
 
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,#f3f6ff_0%,#ffffff_100%)] p-4 md:p-6">
       <div className="mx-auto max-w-6xl space-y-6">
         <section className="rounded-3xl border border-white/70 bg-white/90 p-5 shadow-sm md:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.22em] text-indigo-500">
-                <Target className="h-3.5 w-3.5" />
-                Habit tracker
-              </div>
-              <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900 md:text-4xl">Habit Share</h1>
-              <p className="mt-1 text-sm font-medium text-slate-500">
-                Welcome back, {currentUser?.name || user.email?.split('@')[0] || 'User'}.
-              </p>
-            </div>
+            <div><div className="inline-flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.22em] text-indigo-500"><Target className="h-3.5 w-3.5" />Habit tracker</div><h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900 md:text-4xl">Habit Share</h1></div>
             <div className="flex gap-2">
-              <Button onClick={() => setIsCreateOpen(true)} className="rounded-2xl font-bold">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                New Habit
-              </Button>
-              <Button variant="outline" onClick={handleLogout} className="rounded-2xl font-bold">
-                <LogOut className="mr-2 h-4 w-4" />
-                Logout
-              </Button>
+              <Button onClick={() => setIsCreateOpen(true)} className="rounded-2xl font-bold"><PlusCircle className="mr-2 h-4 w-4" />New Habit</Button>
+              <Button variant="outline" onClick={async () => supabase.auth.signOut()} className="rounded-2xl font-bold"><LogOut className="mr-2 h-4 w-4" />Logout</Button>
             </div>
           </div>
-
-          <div className="mt-5 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl bg-slate-50 p-4">
-              <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Habits</div>
-              <div className="mt-2 text-3xl font-black text-slate-900">{myHabits.length}</div>
-            </div>
-            <div className="rounded-2xl bg-slate-50 p-4">
-              <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Done today</div>
-              <div className="mt-2 text-3xl font-black text-slate-900">{doneTodayCount}</div>
-            </div>
-            <div className="rounded-2xl bg-slate-50 p-4">
-              <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Best streak</div>
-              <div className="mt-2 text-3xl font-black text-slate-900">{longestStreak}</div>
-            </div>
-          </div>
+          <div className="mt-4 text-sm font-medium text-slate-600">Done today: {doneTodayCount}</div>
         </section>
 
         <section className="rounded-3xl border border-white/70 bg-white/90 p-5 shadow-sm md:p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-2xl font-black text-slate-900">Active habits</h2>
-            <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-2 py-1">
-              <Button size="icon" variant="ghost" className="h-9 w-9 rounded-xl" onClick={() => setCurrentDate((d) => subDays(d, 1))}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" className="rounded-xl px-3 font-black text-slate-700" onClick={() => setCurrentDate(new Date())}>
-                {format(currentDate, 'MMM d, yyyy')}
-              </Button>
-              <Button size="icon" variant="ghost" className="h-9 w-9 rounded-xl" onClick={() => setCurrentDate((d) => addDays(d, 1))}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+          <h2 className="text-2xl font-black text-slate-900">Friends</h2>
+          <div className="mt-3 flex flex-col gap-3 sm:flex-row"><Input value={friendEmail} onChange={(e) => setFriendEmail(e.target.value)} placeholder="Friend email" className="h-11 rounded-2xl" /><Button onClick={sendFriendRequest} disabled={sending || !friendEmail.trim()} className="h-11 rounded-2xl"><UserPlus className="mr-2 h-4 w-4" />{sending ? 'Sending...' : 'Add Friend'}</Button></div>
+          {incoming.length > 0 ? <div className="mt-4 space-y-2">{incoming.map((r) => <div key={r.id} className="rounded-xl border p-3"><div className="flex items-center justify-between gap-2"><span className="text-sm font-semibold">{r.requesterName} ({r.requesterEmail})</span><div className="flex gap-2"><Button size="sm" onClick={() => updateRequest(r.id, 'accepted')} disabled={reqActionId === r.id}>Accept</Button><Button size="sm" variant="outline" onClick={() => updateRequest(r.id, 'rejected')} disabled={reqActionId === r.id}>Reject</Button></div></div></div>)}</div> : null}
+          {outgoing.length > 0 ? <div className="mt-4 space-y-2">{outgoing.map((r) => <div key={r.id} className="rounded-xl border p-3 text-sm text-slate-600">Pending: {r.receiverName} ({r.receiverEmail})</div>)}</div> : null}
+        </section>
 
-          <p className="mt-2 text-sm font-medium text-slate-500">
-            Total check-ins: {totalCheckIns}
-          </p>
+        <section className="rounded-3xl border border-white/70 bg-white/90 p-5 shadow-sm md:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-2xl font-black text-slate-900">Habits</h2><div className="flex items-center gap-2 rounded-2xl border px-2 py-1"><Button size="icon" variant="ghost" className="h-9 w-9 rounded-xl" onClick={() => setCurrentDate((d) => subDays(d, 1))}><ChevronLeft className="h-4 w-4" /></Button><Button variant="ghost" className="rounded-xl px-3 font-black" onClick={() => setCurrentDate(new Date())}>{format(currentDate, 'MMM d, yyyy')}</Button><Button size="icon" variant="ghost" className="h-9 w-9 rounded-xl" onClick={() => setCurrentDate((d) => addDays(d, 1))}><ChevronRight className="h-4 w-4" /></Button></div></div>
+          <Tabs defaultValue="mine" className="mt-4"><TabsList className="grid w-full grid-cols-2 rounded-2xl"><TabsTrigger value="mine">My Habits</TabsTrigger><TabsTrigger value="shared">Shared With Me</TabsTrigger></TabsList>
+            <TabsContent value="mine" className="mt-4">{loading ? <div className="text-sm text-slate-500">Loading...</div> : myHabits.length === 0 ? <div className="rounded-2xl border border-dashed p-6 text-sm text-slate-500">No habits yet.</div> : <div className="grid gap-4 lg:grid-cols-2">{myHabits.map((h) => <HabitCard key={h.id} habit={h} onToggleCheckIn={toggleHabitCheckIn} onViewDetails={(id) => setSelectedHabitId(id)} currentDate={currentDate} />)}</div>}</TabsContent>
+            <TabsContent value="shared" className="mt-4">{friendHabits.length === 0 ? <div className="rounded-2xl border border-dashed p-6 text-sm text-slate-500">No shared habits yet.</div> : <div className="grid gap-4 lg:grid-cols-2">{friendHabits.map((h) => <HabitCard key={h.id} habit={h} isFriendView showMemberName memberName={h.userName || h.userEmail || 'Friend'} onViewDetails={(id) => setSelectedHabitId(id)} currentDate={currentDate} />)}</div>}</TabsContent>
+          </Tabs>
+        </section>
 
-          {isDashboardLoading ? (
-            <div className="mt-6 text-sm text-slate-500">Loading your habits...</div>
-          ) : myHabits.length === 0 ? (
-            <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
-              <div className="text-base font-black text-slate-900">No habits yet</div>
-              <p className="mt-1 text-sm text-slate-500">Create your first habit and start your streak today.</p>
-              <Button className="mt-4 rounded-2xl font-bold" onClick={() => setIsCreateOpen(true)}>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Add First Habit
-              </Button>
-            </div>
-          ) : (
-            <div className="mt-6 grid gap-4 lg:grid-cols-2">
-              {myHabits.map((habit) => (
-                <HabitCard
-                  key={habit.id}
-                  habit={habit}
-                  onToggleCheckIn={toggleHabitCheckIn}
-                  onViewDetails={(habitId) => setSelectedHabitId(habitId)}
-                  currentDate={currentDate}
-                />
-              ))}
-            </div>
-          )}
+        <section className="rounded-3xl border border-white/70 bg-white/90 p-5 shadow-sm md:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-2xl font-black text-slate-900">Monthly Habit Chart</h2><div className="flex items-center gap-2 rounded-2xl border px-2 py-1"><Button size="icon" variant="ghost" className="h-9 w-9 rounded-xl" onClick={() => setChartMonth((d) => startOfMonth(subMonths(d, 1)))}><ChevronLeft className="h-4 w-4" /></Button><div className="min-w-[130px] text-center text-sm font-black">{format(chartMonth, 'MMMM yyyy')}</div><Button size="icon" variant="ghost" className="h-9 w-9 rounded-xl" onClick={() => setChartMonth((d) => startOfMonth(addMonths(d, 1)))}><ChevronRight className="h-4 w-4" /></Button></div></div>
+          {myHabits.length === 0 ? <div className="mt-4 text-sm text-slate-500">Chart appears after habits are created.</div> : <div className="mt-4 overflow-x-auto rounded-2xl border"><table className="min-w-[1000px] border-collapse text-sm"><thead><tr><th className="sticky left-0 z-10 min-w-[220px] border bg-slate-100 px-3 py-2 text-left text-xs font-black uppercase tracking-[0.2em] text-slate-600">Habit</th>{monthDays.map((d) => <th key={format(d, 'yyyy-MM-dd')} className="min-w-[34px] border bg-slate-50 px-1 py-2 text-center text-[11px] font-black text-slate-500">{format(d, 'd')}</th>)}<th className="min-w-[88px] border bg-slate-100 px-2 py-2 text-center text-xs font-black text-slate-700">Total</th></tr></thead><tbody>{myHabits.map((h) => { const set = new Set(h.checkIns); const c = monthDays.filter((d) => set.has(format(d, 'yyyy-MM-dd'))).length; return <tr key={h.id}><td className="sticky left-0 z-10 border bg-white px-3 py-2"><div className="font-semibold">{h.name}</div><div className="text-[11px] text-slate-500">{h.description || 'No description'}</div></td>{monthDays.map((d) => { const k = format(d, 'yyyy-MM-dd'); const ok = set.has(k); return <td key={`${h.id}_${k}`} className={`border px-1 py-1 text-center ${ok ? 'bg-emerald-50' : 'bg-rose-50'}`}>{ok ? <Check className="mx-auto h-3.5 w-3.5 text-emerald-600" /> : <X className="mx-auto h-3.5 w-3.5 text-rose-500" />}</td>; })}<td className="border bg-slate-50 px-2 py-1 text-center font-black text-slate-800">{c}/{monthDays.length}</td></tr>; })}</tbody></table></div>}
         </section>
       </div>
 
-      <Dialog open={isCreateOpen} onOpenChange={closeCreateDialog}>
+      <Dialog open={isCreateOpen} onOpenChange={(open) => { setIsCreateOpen(open); if (!open) { setNewHabitName(''); setNewHabitDesc(''); setIsNewShared(false); setSharedWithIds([]); } }}>
         <DialogContent className="max-w-[95vw] rounded-[26px] border-none p-0 sm:max-w-lg">
-          <div className="border-b border-slate-100 px-5 py-5">
-            <DialogTitle className="text-3xl font-black tracking-tight text-slate-950">Create Habit</DialogTitle>
-            <p className="mt-1 text-sm text-slate-500">Simple and fast. Name it and start tracking.</p>
-          </div>
-
+          <div className="border-b border-slate-100 px-5 py-5"><DialogTitle className="text-3xl font-black tracking-tight text-slate-950">Create Habit</DialogTitle></div>
           <div className="space-y-4 px-5 py-5">
-            <div className="space-y-2">
-              <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Habit name</Label>
-              <Input
-                value={newHabitName}
-                onChange={(event) => setNewHabitName(event.target.value)}
-                placeholder="Morning walk"
-                className="h-12 rounded-2xl"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs font-black uppercase tracking-widest text-slate-400">Description</Label>
-              <textarea
-                value={newHabitDesc}
-                onChange={(event) => setNewHabitDesc(event.target.value)}
-                placeholder="Keep it simple..."
-                className="min-h-[110px] w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-              />
-            </div>
+            <div className="space-y-2"><Label className="text-xs font-black uppercase tracking-widest text-slate-400">Habit name</Label><Input value={newHabitName} onChange={(e) => setNewHabitName(e.target.value)} placeholder="Morning walk" className="h-12 rounded-2xl" /></div>
+            <div className="space-y-2"><Label className="text-xs font-black uppercase tracking-widest text-slate-400">Description</Label><textarea value={newHabitDesc} onChange={(e) => setNewHabitDesc(e.target.value)} placeholder="Keep it simple..." className="min-h-[110px] w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" /></div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-3"><div className="flex items-center gap-3"><Checkbox id="share-habit-with-friends" checked={isNewShared} onCheckedChange={(v) => setIsNewShared(Boolean(v))} /><Label htmlFor="share-habit-with-friends" className="text-sm font-semibold">Share with selected friends</Label></div>{isNewShared ? (friends.length === 0 ? <div className="mt-2 text-sm text-slate-500">No accepted friends yet.</div> : <div className="mt-3 grid gap-2 sm:grid-cols-2">{friends.map((f) => { const sel = sharedWithIds.includes(f.id); return <button key={f.id} type="button" onClick={() => setSharedWithIds((p) => p.includes(f.id) ? p.filter((x) => x !== f.id) : [...p, f.id])} className={`rounded-xl border p-3 text-left ${sel ? 'border-primary bg-primary/5' : 'border-slate-200 bg-white'}`}><div className="text-sm font-black text-slate-900">{f.name}</div><div className="text-xs text-slate-500">{f.email}</div></button>; })}</div>) : null}</div>
           </div>
-
-          <DialogFooter className="border-t border-slate-100 px-5 py-4">
-            <div className="flex w-full gap-3">
-              <Button variant="ghost" className="h-11 flex-1 rounded-2xl" onClick={() => closeCreateDialog(false)}>
-                Cancel
-              </Button>
-              <Button className="h-11 flex-1 rounded-2xl font-bold" onClick={saveHabit} disabled={isSavingHabit}>
-                {isSavingHabit ? 'Saving...' : 'Save Habit'}
-              </Button>
-            </div>
-          </DialogFooter>
+          <DialogFooter className="border-t border-slate-100 px-5 py-4"><div className="flex w-full gap-3"><Button variant="ghost" className="h-11 flex-1 rounded-2xl" onClick={() => setIsCreateOpen(false)}>Cancel</Button><Button className="h-11 flex-1 rounded-2xl font-bold" onClick={saveHabit} disabled={isSavingHabit}>{isSavingHabit ? 'Saving...' : 'Save Habit'}</Button></div></DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <HabitCalendarDialog
-        habit={selectedHabit}
-        isOpen={Boolean(selectedHabit)}
-        onClose={() => setSelectedHabitId(null)}
-      />
+      <HabitCalendarDialog habit={selectedHabit} isOpen={Boolean(selectedHabit)} onClose={() => setSelectedHabitId(null)} />
     </main>
   );
 }
