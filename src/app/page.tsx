@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { addDays, addMonths, eachDayOfInterval, endOfMonth, format, startOfMonth, subDays, subMonths } from 'date-fns';
-import { Check, ChevronLeft, ChevronRight, LogOut, PlusCircle, Share2, Target, UserPlus, X } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, LogOut, Pencil, PlusCircle, Share2, Target, Trash2, UserPlus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from '@/components/ui/dialog';
@@ -101,6 +101,7 @@ export default function Dashboard() {
   const [isNewShared, setIsNewShared] = React.useState(false);
   const [sharedWithIds, setSharedWithIds] = React.useState<string[]>([]);
   const [isSavingHabit, setIsSavingHabit] = React.useState(false);
+  const [editingHabitId, setEditingHabitId] = React.useState<string | null>(null);
   const [selectedHabitId, setSelectedHabitId] = React.useState<string | null>(null);
 
   const loadData = React.useCallback(async () => {
@@ -418,29 +419,70 @@ export default function Dashboard() {
     setIsSavingHabit(true);
     try {
       const payload = {
-        id: `habit_${Date.now()}`,
-        user_id: user.id,
-        user_name: ownerName,
-        user_email: user.email || '',
         name: newHabitName.trim(),
         description: newHabitDesc.trim(),
-        check_ins: [] as string[],
-        cheers: 0,
         is_shared: selected.length > 0,
         shared_with_ids: selected,
+        updated_at: new Date().toISOString(),
       };
-      const { error } = await supabase.from('habit_share_habits').insert(payload);
+
+      const { error } = editingHabitId
+        ? await supabase
+            .from('habit_share_habits')
+            .update(payload)
+            .eq('id', editingHabitId)
+            .eq('user_id', user.id)
+        : await supabase.from('habit_share_habits').insert({
+            id: `habit_${Date.now()}`,
+            user_id: user.id,
+            user_name: ownerName,
+            user_email: user.email || '',
+            name: payload.name,
+            description: payload.description,
+            check_ins: [] as string[],
+            cheers: 0,
+            is_shared: payload.is_shared,
+            shared_with_ids: payload.shared_with_ids,
+          });
       if (error) throw error;
       setIsCreateOpen(false);
       setNewHabitName('');
       setNewHabitDesc('');
       setIsNewShared(false);
       setSharedWithIds([]);
+      setEditingHabitId(null);
       await loadData();
     } catch {
       toast({ title: 'Save failed', description: 'Could not save habit.', variant: 'destructive' });
     } finally {
       setIsSavingHabit(false);
+    }
+  };
+
+  const openEditHabit = (habit: HabitShareHabit) => {
+    setEditingHabitId(habit.id);
+    setNewHabitName(habit.name);
+    setNewHabitDesc(habit.description || '');
+    const currentSharedIds = habit.sharedWithIds || [];
+    setIsNewShared(currentSharedIds.length > 0);
+    setSharedWithIds(currentSharedIds);
+    setIsCreateOpen(true);
+  };
+
+  const deleteHabit = async (habit: HabitShareHabit) => {
+    const ok = window.confirm(`Delete "${habit.name}"?`);
+    if (!ok) return;
+    try {
+      const { error } = await supabase
+        .from('habit_share_habits')
+        .delete()
+        .eq('id', habit.id)
+        .eq('user_id', user.id);
+      if (error) throw error;
+      toast({ title: 'Habit deleted' });
+      await loadData();
+    } catch {
+      toast({ title: 'Delete failed', description: 'Could not delete habit.', variant: 'destructive' });
     }
   };
 
@@ -457,7 +499,17 @@ export default function Dashboard() {
               <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900 md:text-4xl">Habit Share</h1>
             </div>
             <div className="flex gap-2">
-              <Button onClick={() => setIsCreateOpen(true)} className="rounded-2xl font-bold">
+              <Button
+                onClick={() => {
+                  setEditingHabitId(null);
+                  setNewHabitName('');
+                  setNewHabitDesc('');
+                  setIsNewShared(false);
+                  setSharedWithIds([]);
+                  setIsCreateOpen(true);
+                }}
+                className="rounded-2xl font-bold"
+              >
                 <PlusCircle className="mr-2 h-4 w-4" />
                 New Habit
               </Button>
@@ -535,7 +587,19 @@ export default function Dashboard() {
               ) : (
                 <div className="grid gap-4 lg:grid-cols-2">
                   {myHabits.map((h) => (
-                    <HabitCard key={h.id} habit={h} onToggleCheckIn={toggleHabitCheckIn} onViewDetails={(id) => setSelectedHabitId(id)} currentDate={currentDate} />
+                    <div key={h.id} className="space-y-2">
+                      <HabitCard habit={h} onToggleCheckIn={toggleHabitCheckIn} onViewDetails={(id) => setSelectedHabitId(id)} currentDate={currentDate} />
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" className="rounded-xl" onClick={() => openEditHabit(h)}>
+                          <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                          Edit
+                        </Button>
+                        <Button variant="outline" size="sm" className="rounded-xl border-rose-200 text-rose-600 hover:bg-rose-50" onClick={() => deleteHabit(h)}>
+                          <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}
@@ -635,12 +699,13 @@ export default function Dashboard() {
             setNewHabitDesc('');
             setIsNewShared(false);
             setSharedWithIds([]);
+            setEditingHabitId(null);
           }
         }}
       >
         <DialogContent className="max-w-[95vw] rounded-[26px] border-none p-0 sm:max-w-lg">
           <div className="border-b border-slate-100 px-5 py-5">
-            <DialogTitle className="text-3xl font-black tracking-tight text-slate-950">Create Habit</DialogTitle>
+            <DialogTitle className="text-3xl font-black tracking-tight text-slate-950">{editingHabitId ? 'Edit Habit' : 'Create Habit'}</DialogTitle>
           </div>
           <div className="space-y-4 px-5 py-5">
             <div className="space-y-2">
@@ -683,7 +748,9 @@ export default function Dashboard() {
           <DialogFooter className="border-t border-slate-100 px-5 py-4">
             <div className="flex w-full gap-3">
               <Button variant="ghost" className="h-11 flex-1 rounded-2xl" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-              <Button className="h-11 flex-1 rounded-2xl font-bold" onClick={saveHabit} disabled={isSavingHabit}>{isSavingHabit ? 'Saving...' : 'Save Habit'}</Button>
+              <Button className="h-11 flex-1 rounded-2xl font-bold" onClick={saveHabit} disabled={isSavingHabit}>
+                {isSavingHabit ? 'Saving...' : editingHabitId ? 'Update Habit' : 'Save Habit'}
+              </Button>
             </div>
           </DialogFooter>
         </DialogContent>
@@ -693,4 +760,3 @@ export default function Dashboard() {
     </main>
   );
 }
-
