@@ -631,13 +631,13 @@ export default function Dashboard() {
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
-              <Button variant="outline" className="rounded-2xl border-green-200 text-green-700 hover:bg-green-50" onClick={() => openWhatsAppShare(chartShareText)} disabled={myHabits.length === 0}>
-                <Share2 className="mr-2 h-4 w-4" />
-                Share Text
-              </Button>
               <Button variant="outline" className="rounded-2xl border-indigo-200 text-indigo-700 hover:bg-indigo-50" onClick={shareChartAsJpeg} disabled={myHabits.length === 0}>
                 <Share2 className="mr-2 h-4 w-4" />
                 Share JPEG
+              </Button>
+              <Button variant="outline" className="rounded-2xl border-green-200 text-green-700 hover:bg-green-50" onClick={() => openWhatsAppShare(chartShareText)} disabled={myHabits.length === 0}>
+                <Share2 className="mr-2 h-4 w-4" />
+                Share Text
               </Button>
             </div>
           </div>
