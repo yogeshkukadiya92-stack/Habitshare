@@ -368,9 +368,12 @@ export default function Dashboard() {
   const toggleHabitCheckIn = async (habitId: string, dateStr: string) => {
     const oldHabit = myHabits.find((h) => h.id === habitId);
     if (!oldHabit) return;
-    const next = oldHabit.checkIns.includes(dateStr)
-      ? oldHabit.checkIns.filter((d) => d !== dateStr)
-      : [...oldHabit.checkIns, dateStr];
+
+    const normalized = oldHabit.checkIns.map((d) => d.slice(0, 10));
+    const hasDate = normalized.includes(dateStr);
+    const next = hasDate
+      ? normalized.filter((d) => d !== dateStr)
+      : [...normalized, dateStr];
     setMyHabits((prev) => prev.map((h) => (h.id === habitId ? { ...h, checkIns: next } : h)));
     const { error } = await supabase
       .from('habit_share_habits')
@@ -621,13 +624,17 @@ export default function Dashboard() {
                     <div key={h.id} className="space-y-2">
                       <HabitCard habit={h} onToggleCheckIn={toggleHabitCheckIn} onViewDetails={(id) => setSelectedHabitId(id)} currentDate={currentDate} />
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="rounded-xl" onClick={() => openEditHabit(h)}>
-                          <Pencil className="mr-1.5 h-3.5 w-3.5" />
-                          Edit
+                        <Button variant="outline" size="icon" className="h-8 w-8 rounded-xl" onClick={() => openEditHabit(h)} title="Edit habit">
+                          <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                        <Button variant="outline" size="sm" className="rounded-xl border-rose-200 text-rose-600 hover:bg-rose-50" onClick={() => deleteHabit(h)}>
-                          <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                          Delete
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 rounded-xl border-rose-200 text-rose-600 hover:bg-rose-50"
+                          onClick={() => deleteHabit(h)}
+                          title="Delete habit"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
                     </div>
