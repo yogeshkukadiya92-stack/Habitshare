@@ -85,6 +85,7 @@ export default function Dashboard() {
   const [currentDate, setCurrentDate] = React.useState(new Date());
   const [chartMonth, setChartMonth] = React.useState(startOfMonth(new Date()));
   const [chartRange, setChartRange] = React.useState<'weekly' | 'fifteen' | 'monthly' | 'custom'>('monthly');
+  const [chartOwnerFilter, setChartOwnerFilter] = React.useState<'me' | 'friends_all' | string>('me');
   const [customStartDate, setCustomStartDate] = React.useState(format(subDays(new Date(), 6), 'yyyy-MM-dd'));
   const [customEndDate, setCustomEndDate] = React.useState(format(new Date(), 'yyyy-MM-dd'));
 
@@ -226,11 +227,30 @@ export default function Dashboard() {
   const currentDateStr = format(currentDate, 'yyyy-MM-dd');
   const todayKey = format(new Date(), 'yyyy-MM-dd');
   const ownerName = currentUser?.name || user.email?.split('@')[0] || 'User';
+  const friendChartOptions = React.useMemo(() => {
+    const map = new Map<string, string>();
+    friendHabits.forEach((habit) => {
+      if (!habit.userId) return;
+      map.set(habit.userId, habit.userName || habit.userEmail || 'Friend');
+    });
+    return Array.from(map.entries()).map(([id, label]) => ({ id, label }));
+  }, [friendHabits]);
+  const chartHabits = React.useMemo(() => {
+    if (chartOwnerFilter === 'me') return myHabits;
+    if (chartOwnerFilter === 'friends_all') return friendHabits;
+    return friendHabits.filter((habit) => habit.userId === chartOwnerFilter);
+  }, [chartOwnerFilter, friendHabits, myHabits]);
+  const chartOwnerLabel = chartOwnerFilter === 'me'
+    ? ownerName
+    : chartOwnerFilter === 'friends_all'
+      ? 'All Friends'
+      : friendChartOptions.find((option) => option.id === chartOwnerFilter)?.label || 'Friend';
   const doneTodayCount = myHabits.filter((h) => getHabitDayStatus(h.checkIns, currentDateStr) === 'done').length;
 
   const chartShareText = React.useMemo(() => {
     const datesRow = chartDays.map((d) => format(d, 'dd')).join(' ');
-    const lines = myHabits.map((habit) => {
+    const lines = chartHabits.map((habit) => {
+      const rowName = chartOwnerFilter === 'me' ? habit.name : `${habit.name} (${habit.userName || habit.userEmail || 'Friend'})`;
       const marks = chartDays
         .map((d) => {
           const dateKey = format(d, 'yyyy-MM-dd');
@@ -245,17 +265,17 @@ export default function Dashboard() {
         const dateKey = format(d, 'yyyy-MM-dd');
         return dateKey <= todayKey && getHabitDayStatus(habit.checkIns, dateKey) === 'done';
       }).length;
-      return `${habit.name} (${total}/${chartDays.length}): ${marks}`;
+      return `${rowName} (${total}/${chartDays.length}): ${marks}`;
     });
     return [
       'Habit Share - Habit Chart',
-      `User: ${ownerName}`,
+      `User: ${chartOwnerLabel}`,
       `Range: ${chartRangeLabel}`,
       `Dates: ${datesRow}`,
       '',
       ...lines,
     ].join('\n');
-  }, [chartDays, chartRangeLabel, myHabits, ownerName, todayKey]);
+  }, [chartDays, chartHabits, chartOwnerFilter, chartOwnerLabel, chartRangeLabel, todayKey]);
 
   const buildChartJpeg = async () => {
     const firstColWidth = 220;
@@ -266,7 +286,7 @@ export default function Dashboard() {
     const topArea = 78;
     const padding = 16;
     const width = firstColWidth + chartDays.length * dayColWidth + totalColWidth + padding * 2;
-    const height = topArea + headerHeight + myHabits.length * rowHeight + padding * 2;
+    const height = topArea + headerHeight + chartHabits.length * rowHeight + padding * 2;
 
     const canvas = document.createElement('canvas');
     canvas.width = width;
@@ -282,7 +302,7 @@ export default function Dashboard() {
     ctx.fillText('Habit Share - Habit Chart', padding, 30);
     ctx.fillStyle = '#475569';
     ctx.font = 'bold 14px Arial';
-    ctx.fillText(`User: ${ownerName}`, padding, 50);
+    ctx.fillText(`User: ${chartOwnerLabel}`, padding, 50);
     ctx.fillText(`Range: ${chartRangeLabel}`, padding, 68);
 
     const drawCell = (
@@ -318,13 +338,14 @@ export default function Dashboard() {
     drawCell(startX + firstColWidth + chartDays.length * dayColWidth, y, totalColWidth, headerHeight, '#f1f5f9', 'Total', '#334155');
     y += headerHeight;
 
-    myHabits.forEach((habit) => {
+    chartHabits.forEach((habit) => {
       const total = chartDays.filter((d) => {
         const dateKey = format(d, 'yyyy-MM-dd');
         return dateKey <= todayKey && getHabitDayStatus(habit.checkIns, dateKey) === 'done';
       }).length;
 
-      drawCell(startX, y, firstColWidth, rowHeight, '#ffffff', habit.name.slice(0, 28), '#0f172a', false);
+      const rowName = chartOwnerFilter === 'me' ? habit.name : `${habit.name} (${habit.userName || habit.userEmail || 'Friend'})`;
+      drawCell(startX, y, firstColWidth, rowHeight, '#ffffff', rowName.slice(0, 28), '#0f172a', false);
       chartDays.forEach((d, i) => {
         const dateKey = format(d, 'yyyy-MM-dd');
         const isFuture = dateKey > todayKey;
@@ -359,13 +380,13 @@ export default function Dashboard() {
 
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.95));
     if (!blob) throw new Error('Could not export JPEG');
-    const fileName = `habit-chart-${chartRange}-${format(new Date(), 'yyyyMMdd')}.jpg`;
+    const fileName = `habit-chart-${chartRange}-${chartOwnerFilter}-${format(new Date(), 'yyyyMMdd')}.jpg`;
     const previewUrl = canvas.toDataURL('image/jpeg', 0.95);
     return { blob, fileName, previewUrl };
   };
 
   const openChartPreview = async () => {
-    if (myHabits.length === 0) return;
+    if (chartHabits.length === 0) return;
     setChartPreviewLoading(true);
     try {
       const { blob, fileName, previewUrl } = await buildChartJpeg();
@@ -729,19 +750,36 @@ export default function Dashboard() {
                   variant="outline"
                   className="rounded-2xl border-indigo-200 text-indigo-700 hover:bg-indigo-50"
                   onClick={openChartPreview}
-                  disabled={myHabits.length === 0 || chartPreviewLoading}
+                  disabled={chartHabits.length === 0 || chartPreviewLoading}
                 >
                   <Share2 className="mr-2 h-4 w-4" />
                   {chartPreviewLoading ? 'Preparing...' : 'Share JPEG'}
                 </Button>
-                <Button variant="outline" className="rounded-2xl border-green-200 text-green-700 hover:bg-green-50" onClick={() => openWhatsAppShare(chartShareText)} disabled={myHabits.length === 0}>
+                <Button variant="outline" className="rounded-2xl border-green-200 text-green-700 hover:bg-green-50" onClick={() => openWhatsAppShare(chartShareText)} disabled={chartHabits.length === 0}>
                   <Share2 className="mr-2 h-4 w-4" />
                   Share Text
                 </Button>
               </div>
             </div>
 
-            {myHabits.length === 0 ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <Label className="text-xs font-black uppercase tracking-widest text-slate-500">View</Label>
+              <select
+                value={chartOwnerFilter}
+                onChange={(e) => setChartOwnerFilter(e.target.value)}
+                className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700"
+              >
+                <option value="me">My Habits</option>
+                <option value="friends_all">All Friends</option>
+                {friendChartOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {chartHabits.length === 0 ? (
               <div className="text-sm text-slate-500">Chart appears after habits are created.</div>
             ) : (
               <div className="overflow-x-auto rounded-2xl border">
@@ -756,7 +794,7 @@ export default function Dashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {myHabits.map((h) => {
+                    {chartHabits.map((h) => {
                       const c = chartDays.filter((d) => {
                         const key = format(d, 'yyyy-MM-dd');
                         return key <= todayKey && getHabitDayStatus(h.checkIns, key) === 'done';
@@ -765,6 +803,7 @@ export default function Dashboard() {
                         <tr key={h.id}>
                           <td className="sticky left-0 z-10 border bg-white px-3 py-2">
                             <div className="font-semibold">{h.name}</div>
+                            {chartOwnerFilter !== 'me' ? <div className="text-[11px] text-slate-500">{h.userName || h.userEmail || 'Friend'}</div> : null}
                             <div className="text-[11px] text-slate-500">{h.description || 'No description'}</div>
                           </td>
                           {chartDays.map((d) => {

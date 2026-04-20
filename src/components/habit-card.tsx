@@ -125,8 +125,8 @@ export function HabitCard({
         </div>
       </div>
 
-      <div className="mt-3 flex items-center justify-between gap-2">
-        <div className="flex gap-1.5 overflow-x-auto">
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="grid min-w-0 flex-1 grid-cols-7 gap-1.5 sm:flex sm:overflow-x-auto">
           {last7Days.map((date) => {
             const status = getDayStatus(date);
             const dateKey = format(date, 'yyyy-MM-dd');
@@ -143,7 +143,7 @@ export function HabitCard({
                   if (selectedDate > todayKey) return;
                   setQuickPickDate(selectedDate);
                 }}
-                className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold sm:h-9 sm:w-9 sm:text-sm ${
                   status === 'done' ? 'bg-emerald-500 text-white' : status === 'skipped' ? 'bg-slate-300 text-slate-700' : isFuture ? 'border border-slate-200 bg-white text-slate-400' : 'bg-rose-100 text-rose-500'
                 } ${isFriendView ? 'pointer-events-none' : ''}`}
               >
@@ -153,7 +153,7 @@ export function HabitCard({
           })}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="hidden items-center gap-2 sm:flex">
           {!isFriendView ? (
             <Button
               size="icon"

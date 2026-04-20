@@ -35,7 +35,7 @@ export function HabitCalendarDialog({ habit, isOpen, onClose, canEdit = false, o
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="sm:max-w-md rounded-3xl border-none shadow-2xl p-0 overflow-hidden outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]">
+      <DialogContent className="max-h-[88dvh] w-[95vw] overflow-y-auto rounded-3xl border-none p-0 pb-[max(env(safe-area-inset-bottom),12px)] shadow-2xl sm:max-w-md outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]">
         {!habit ? (
           <DialogHeader><DialogTitle className="sr-only">Loading habit details</DialogTitle><DialogDescription className="sr-only">Please wait while the habit loads.</DialogDescription></DialogHeader>
         ) : (
@@ -117,7 +117,7 @@ export function HabitCalendarDialog({ habit, isOpen, onClose, canEdit = false, o
 
                 <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end">
                   <Button variant="ghost" onClick={onClose} className="rounded-xl font-bold bg-slate-50 hover:bg-slate-100 w-full hover:text-slate-800">
-                    {canEdit ? 'Close Calendar (Tap date, then choose Green/Red/Gray)' : 'Close Calendar'}
+                    Close Calendar
                   </Button>
                 </div>
              </div>
