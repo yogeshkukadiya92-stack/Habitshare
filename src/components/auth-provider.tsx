@@ -3,7 +3,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
-import { Skeleton } from './ui/skeleton';
 import type { Employee, EmployeePermissions, PermissionLevel } from '@/lib/types';
 
 interface AuthContextType {
@@ -28,7 +27,7 @@ const adminPermissions: EmployeePermissions = {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
-  loading: true,
+  loading: false,
   currentUser: null,
   getPermission: () => 'none',
   refreshProfile: async () => {},
@@ -64,7 +63,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [currentUser, setCurrentUser] = useState<Employee | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+
+  const withTimeout = useCallback(async <T,>(promise: Promise<T>, ms: number, label: string): Promise<T> => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    try {
+      return await Promise.race([
+        promise,
+        new Promise<T>((_, reject) => {
+          timeoutId = setTimeout(() => reject(new Error(`${label} timed out`)), ms);
+        }),
+      ]);
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+    }
+  }, []);
 
   const ensureProfile = useCallback(async (authUser: User) => {
     const normalizedEmail = authUser.email?.toLowerCase().trim() || '';
@@ -114,27 +127,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     let cancelled = false;
 
     const bootstrap = async () => {
-      const { data, error } = await supabase.auth.getSession();
-      if (cancelled) return;
-      if (error) {
-        console.error('Failed to load Supabase session:', error);
-      }
-
-      setSession(data.session);
-      setUser(data.session?.user || null);
-
-      if (data.session?.user) {
-        try {
-          await loadProfile(data.session.user);
-        } catch (profileError) {
-          console.error('Failed to prepare profile:', profileError);
+      try {
+        const { data, error } = await withTimeout(supabase.auth.getSession(), 3000, 'auth.getSession');
+        if (cancelled) return;
+        if (error) {
+          console.error('Failed to load Supabase session:', error);
         }
-      } else {
-        setCurrentUser(null);
-      }
 
-      if (!cancelled) {
+        setSession(data.session);
+        setUser(data.session?.user || null);
         setLoading(false);
+
+        if (data.session?.user) {
+          queueMicrotask(async () => {
+            try {
+              await withTimeout(loadProfile(data.session!.user), 7000, 'loadProfile');
+            } catch (profileError) {
+              console.error('Failed to prepare profile:', profileError);
+            }
+          });
+        } else {
+          setCurrentUser(null);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Auth bootstrap timeout/failure:', error);
+          setSession(null);
+          setUser(null);
+          setCurrentUser(null);
+          setLoading(false);
+        }
       }
     };
 
@@ -152,16 +174,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
 
-      setLoading(true);
       queueMicrotask(async () => {
         try {
-          await loadProfile(nextSession.user);
+          await withTimeout(loadProfile(nextSession.user), 7000, 'authState.loadProfile');
         } catch (profileError) {
           console.error('Failed to sync auth profile:', profileError);
-        } finally {
-          if (!cancelled) {
-            setLoading(false);
-          }
         }
       });
     });
@@ -170,7 +187,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       cancelled = true;
       subscription.unsubscribe();
     };
-  }, [loadProfile]);
+  }, [loadProfile, withTimeout]);
 
   const getPermission = (page: keyof EmployeePermissions): PermissionLevel => {
     if (loading || !currentUser) return 'none';
@@ -189,22 +206,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }),
     [user, session, loading, currentUser, refreshProfile],
   );
-
-  if (loading) {
-    return (
-      <div className="flex flex-col h-screen">
-        <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-6">
-          <Skeleton className="h-6 w-40" />
-          <div className="ml-auto">
-            <Skeleton className="h-8 w-20" />
-          </div>
-        </header>
-        <div className="flex-1 p-6">
-          <Skeleton className="h-full w-full" />
-        </div>
-      </div>
-    );
-  }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

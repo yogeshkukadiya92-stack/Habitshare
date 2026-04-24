@@ -10,8 +10,13 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "cap:sync": "npm run build:mobile && npx cap sync",
+    "android:sync": "npm run build:mobile && npx cap sync android",
+    "ios:sync": "npm run build:mobile && npx cap sync ios",
     "cap:android": "npm run cap:sync && npx cap open android",
-    "cap:ios": "npm run cap:sync && npx cap open ios"
+    "cap:ios": "npm run cap:sync && npx cap open ios",
+    "apk:debug": "npm run android:sync && cd android && gradlew.bat assembleDebug",
+    "apk:release": "npm run android:sync && cd android && gradlew.bat assembleRelease",
+    "apk:path": "powershell -NoProfile -Command \"Get-ChildItem -Path 'android\\\\app\\\\build\\\\outputs\\\\apk' -Recurse -Filter *.apk | Select-Object -ExpandProperty FullName\""
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.3",

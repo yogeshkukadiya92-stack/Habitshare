@@ -49,6 +49,11 @@
 }
 
 @layer base {
+  html {
+    min-height: 100%;
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+  }
   * {
     @apply border-border;
   }
@@ -60,6 +65,8 @@
       radial-gradient(circle at top right, rgba(14, 165, 233, 0.12), transparent 24%),
       linear-gradient(180deg, #fffdf8 0%, #fff8ef 46%, #fffaf4 100%);
     min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
   }
 }
 

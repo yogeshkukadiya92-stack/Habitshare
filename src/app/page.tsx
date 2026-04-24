@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useRouter } from 'next/navigation';
 import { addDays, addMonths, eachDayOfInterval, endOfMonth, format, startOfMonth, subDays, subMonths } from 'date-fns';
 import { BarChart3, Check, ChevronLeft, ChevronRight, GripVertical, LogOut, PlusCircle, Share2, Target, UserPlus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -81,6 +82,7 @@ const mapReq = (row: FriendRequestRow): HabitFriendRequest => ({
 export default function Dashboard() {
   const { user, currentUser, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const router = useRouter();
 
   const [currentDate, setCurrentDate] = React.useState(new Date());
   const [chartMonth, setChartMonth] = React.useState(startOfMonth(new Date()));
@@ -191,8 +193,19 @@ export default function Dashboard() {
     void loadData();
   }, [loadData]);
 
+  React.useEffect(() => {
+    if (authLoading || user) return;
+    router.replace('/login');
+    const fallback = window.setTimeout(() => {
+      if (window.location.pathname !== '/login') {
+        window.location.replace('/login');
+      }
+    }, 900);
+    return () => window.clearTimeout(fallback);
+  }, [authLoading, router, user]);
+
   if (authLoading) return <main className="p-6 text-sm text-slate-500">Loading...</main>;
-  if (!user) return <main className="p-6 text-sm text-slate-500">Please login to continue.</main>;
+  if (!user) return <main className="p-6 text-sm text-slate-500">Redirecting to login...</main>;
 
   const selectedHabit = selectedHabitId ? [...myHabits, ...friendHabits].find((h) => h.id === selectedHabitId) || null : null;
   const parsedCustomStart = new Date(`${customStartDate}T00:00:00`);

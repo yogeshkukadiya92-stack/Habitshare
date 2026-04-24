@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/components/auth-provider';
@@ -8,6 +8,13 @@ export const metadata: Metadata = {
   title: 'Habit Share | Connect & Grow',
   description: 'Track your daily habits and share progress with your friends.',
   manifest: '/manifest.json',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  interactiveWidget: 'resizes-content',
 };
 
 export default function RootLayout({
@@ -22,7 +29,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
       </head>
-      <body className="font-sans antialiased bg-background min-h-screen">
+      <body className="font-sans antialiased bg-background min-h-screen overflow-x-hidden">
         <AuthProvider>
           <AppShell>{children}</AppShell>
           <Toaster />
